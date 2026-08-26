@@ -1,14 +1,15 @@
 from noark5_workflow.core.registry import OperationRegistry
 from noark5_workflow.operations import (
     AnalyseArkivstrukturOperation,
-    DetectExtractionOperation,
+    DiasPackageOperation,
     MetadataInventoryOperation,
 )
 
 
 def build_registry() -> OperationRegistry:
     registry = OperationRegistry()
-    registry.register(DetectExtractionOperation())
+    # Uttrekksdeteksjon skjer automatisk i kildepanelet og er ikke en workflow-operasjon.
     registry.register(MetadataInventoryOperation())
     registry.register(AnalyseArkivstrukturOperation())
+    registry.register(DiasPackageOperation())
     return registry

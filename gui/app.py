@@ -14,6 +14,7 @@ from noark5_workflow.executors.local import LocalExecutor
 from noark5_workflow.sources.noark5_extraction import Noark5Extraction
 from version import APP_NAME, VERSION
 from . import theme
+from .dias_dialog import DiasParamDialog
 from .log_panel import LogPanel
 from .operations_panel import OperationsPanel
 from .settings_dialog import SettingsDialog
@@ -159,6 +160,21 @@ class WorkflowApp(ctk.CTk):
             self.status_bar.set_status("Klar")
 
     def _add_operation(self, operation_id: str) -> None:
+        if operation_id == "dias_package":
+            operation = self.registry.get(operation_id)
+            extraction_root = self.extraction.root if self.extraction else None
+
+            def add_configured(params: dict) -> None:
+                operation.configure(params)
+                if self.workflow_panel.add(operation_id):
+                    self.log_panel.append(f"Lagt til i workflow: {operation.definition.name}")
+                    self.log_panel.append(f"DIAS-utdata: {params.get('output_dir') or '(samme mappe som uttrekk)'}")
+                else:
+                    self.status_bar.set_status("Operasjonen finnes allerede i workflow")
+
+            DiasParamDialog(self, getattr(operation, "params", {}), extraction_root, add_configured)
+            return
+
         if self.workflow_panel.add(operation_id):
             operation = self.registry.get(operation_id)
             self.log_panel.append(f"Lagt til i workflow: {operation.definition.name}")
