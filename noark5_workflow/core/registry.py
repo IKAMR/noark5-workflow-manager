@@ -16,3 +16,14 @@ class OperationRegistry:
 
     def all(self) -> list[BaseOperation]:
         return list(self._operations.values())
+
+    def by_category(self, category: str) -> list[BaseOperation]:
+        return [op for op in self._operations.values() if op.definition.category == category]
+
+    def categories(self) -> list[str]:
+        seen: list[str] = []
+        for operation in self._operations.values():
+            category = operation.definition.category
+            if category not in seen:
+                seen.append(category)
+        return seen

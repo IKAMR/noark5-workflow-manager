@@ -2,5 +2,8 @@
   "execution_backend": "local",
   "remote_endpoint": "",
   "shared_storage_root": "",
-  "log_level": "INFO"
+  "temp_dir": "",
+  "log_level": "INFO",
+  "operation_visibility": 2,
+  "appearance_mode": "dark"
 }

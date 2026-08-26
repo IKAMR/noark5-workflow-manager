@@ -18,6 +18,8 @@ class OperationDefinition:
     name: str
     description: str
     execution_target: ExecutionTarget = ExecutionTarget.EITHER
+    category: str = "Pipeline"
+    status_level: int = 2
 
 
 class BaseOperation(ABC):

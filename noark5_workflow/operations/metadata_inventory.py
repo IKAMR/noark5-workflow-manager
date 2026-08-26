@@ -12,11 +12,12 @@ class MetadataInventoryOperation(BaseOperation):
         name="Metadataoversikt",
         description="Rapporter metadatafiler som er funnet og filstørrelse i byte uten å lese dokumentfiler.",
         execution_target=ExecutionTarget.EITHER,
+        category="Metadata",
     )
 
     def can_run(self, ctx: OperationContext) -> tuple[bool, str]:
         extraction = ctx.source or Noark5Extraction.detect(ctx.extraction_root)
-        return extraction.is_noark5_candidate, "arkivstruktur.xml is required."
+        return extraction.is_noark5_candidate, "arkivstruktur.xml er påkrevd."
 
     def run(self, ctx: OperationContext) -> OperationResult:
         extraction = ctx.source or Noark5Extraction.detect(ctx.extraction_root)
@@ -27,9 +28,9 @@ class MetadataInventoryOperation(BaseOperation):
         for idx, path in enumerate(files, start=1):
             path = Path(path)
             rows.append({"name": path.name, "path": str(path), "bytes": path.stat().st_size})
-            ctx.progress(idx / total, f"Inventory: {path.name}")
+            ctx.progress(idx / total, f"Metadata: {path.name}")
         return OperationResult(
             True,
-            f"Metadataoversikt complete: {len(rows)} XML file(s).",
+            f"Metadataoversikt fullført: {len(rows)} XML-fil(er).",
             data={"files": rows, "xsd_count": len(extraction.xsd_files)},
         )

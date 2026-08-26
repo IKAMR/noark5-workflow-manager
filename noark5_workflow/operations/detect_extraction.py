@@ -10,10 +10,11 @@ class DetectExtractionOperation(BaseOperation):
         name="Finn Noark 5-uttrekk",
         description="Finn sentrale Noark 5 XML-/XSD-filer og dokumenter-mappen.",
         execution_target=ExecutionTarget.EITHER,
+        category="Pipeline",
     )
 
     def run(self, ctx: OperationContext) -> OperationResult:
-        ctx.progress(0.1, "Scanning extraction root")
+        ctx.progress(0.1, "Søker etter Noark 5-uttrekk")
         extraction = Noark5Extraction.detect(ctx.extraction_root)
         ctx.source = extraction
         inventory = extraction.inventory()
