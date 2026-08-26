@@ -1,0 +1,6 @@
+{
+  "execution_backend": "local",
+  "remote_endpoint": "",
+  "shared_storage_root": "",
+  "log_level": "INFO"
+}
