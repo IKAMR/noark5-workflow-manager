@@ -17,13 +17,13 @@ class StatusBar(ctk.CTkFrame):
         self.status_var = ctk.StringVar(value="Klar")
         self.right_var = ctk.StringVar(value=f"Tråder: {os.cpu_count() or 1} | Deteksjon: -- | Backend: lokal")
 
-        ctk.CTkLabel(self, textvariable=self.left_var, font=theme.SMALL_FONT, text_color=theme.TEXT_MUTED).grid(
+        ctk.CTkLabel(self, textvariable=self.left_var, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(
             row=0, column=0, padx=10, pady=3, sticky="w"
         )
-        ctk.CTkLabel(self, textvariable=self.status_var, font=theme.SMALL_FONT, text_color=theme.TEXT).grid(
+        ctk.CTkLabel(self, textvariable=self.status_var, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT).grid(
             row=0, column=1, padx=10, pady=3
         )
-        ctk.CTkLabel(self, textvariable=self.right_var, font=theme.SMALL_FONT, text_color=theme.TEXT_MUTED).grid(
+        ctk.CTkLabel(self, textvariable=self.right_var, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(
             row=0, column=2, padx=10, pady=3, sticky="e"
         )
 

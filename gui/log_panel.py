@@ -25,7 +25,7 @@ class LogPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="KJØRELOGG",
-            font=theme.SECTION_FONT,
+            font=theme.font(theme.SECTION_SIZE, "bold"),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, sticky="w")
 
@@ -34,7 +34,7 @@ class LogPanel(ctk.CTkFrame):
             text="Vis siste",
             width=66,
             height=22,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
             command=self._toggle_show,
@@ -47,7 +47,7 @@ class LogPanel(ctk.CTkFrame):
             width=50,
             height=22,
             command=self.clear,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
         ).grid(row=0, column=2)
@@ -57,7 +57,7 @@ class LogPanel(ctk.CTkFrame):
             fg_color=theme.APP_BG,
             text_color=theme.TEXT,
             wrap="word",
-            font=theme.NORMAL_FONT,
+            font=theme.font(theme.NORMAL_SIZE),
             corner_radius=8,
             state="disabled",
         )

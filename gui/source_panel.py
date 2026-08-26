@@ -23,7 +23,7 @@ class SourcePanel(ctk.CTkFrame):
         ctk.CTkLabel(
             self,
             text="NOARK 5",
-            font=theme.SECTION_FONT,
+            font=theme.font(theme.SECTION_SIZE, "bold"),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, padx=12, pady=(10, 6), sticky="w")
 
@@ -35,7 +35,7 @@ class SourcePanel(ctk.CTkFrame):
             fg_color=theme.DROPZONE_BG,
             hover_color="#223152",
             text_color=theme.TEXT_SUB,
-            font=theme.NORMAL_FONT,
+            font=theme.font(theme.NORMAL_SIZE),
             corner_radius=4,
         )
         self.dropzone.grid(row=1, column=0, padx=12, pady=(0, 8), sticky="ew")
@@ -43,7 +43,7 @@ class SourcePanel(ctk.CTkFrame):
         self.selected_label = ctk.CTkLabel(
             self,
             text="(tom)",
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             text_color=theme.TEXT_MUTED,
             anchor="center",
         )
@@ -52,7 +52,7 @@ class SourcePanel(ctk.CTkFrame):
         self.info = ctk.CTkTextbox(
             self,
             wrap="word",
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.PANEL_BG_DARK,
             text_color=theme.TEXT_SUB,
             corner_radius=6,

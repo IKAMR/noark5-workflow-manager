@@ -53,7 +53,7 @@ class DiasParamDialog(ctk.CTkToplevel):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-        ctk.CTkLabel(self, text="DIAS-PAKKING (SIP/AIC)", font=theme.SECTION_FONT, text_color=theme.TEXT).grid(
+        ctk.CTkLabel(self, text="DIAS-PAKKING (SIP/AIC)", font=theme.font(theme.SECTION_SIZE, "bold"), text_color=theme.TEXT).grid(
             row=0, column=0, padx=18, pady=(16, 8), sticky="w"
         )
 
@@ -63,17 +63,17 @@ class DiasParamDialog(ctk.CTkToplevel):
 
         row = 0
         for key, label in _FIELDS:
-            ctk.CTkLabel(form, text=label, font=theme.SMALL_FONT, text_color=theme.TEXT_SUB).grid(
+            ctk.CTkLabel(form, text=label, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB).grid(
                 row=row, column=0, padx=(12, 8), pady=5, sticky="w"
             )
             var = ctk.StringVar(value=str(values.get(key, "")))
             self.vars[key] = var
-            ctk.CTkEntry(form, textvariable=var, font=theme.SMALL_FONT).grid(
+            ctk.CTkEntry(form, textvariable=var, font=theme.font(theme.SMALL_SIZE)).grid(
                 row=row, column=1, padx=(0, 12), pady=5, sticky="ew"
             )
             row += 1
 
-        ctk.CTkLabel(form, text="Arkivtype", font=theme.SMALL_FONT, text_color=theme.TEXT_SUB).grid(
+        ctk.CTkLabel(form, text="Arkivtype", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB).grid(
             row=row, column=0, padx=(12, 8), pady=5, sticky="w"
         )
         self.vars["archivist_type"] = ctk.StringVar(value=str(values.get("archivist_type", "NOARK-5")))
@@ -81,36 +81,36 @@ class DiasParamDialog(ctk.CTkToplevel):
             form,
             values=["NOARK-5", "Postjournaler", "Annet"],
             variable=self.vars["archivist_type"],
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
         ).grid(row=row, column=1, padx=(0, 12), pady=5, sticky="ew")
         row += 1
 
-        ctk.CTkLabel(form, text="Produsent (programvare)", font=theme.SMALL_FONT, text_color=theme.TEXT_SUB).grid(
+        ctk.CTkLabel(form, text="Produsent (programvare)", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB).grid(
             row=row, column=0, padx=(12, 8), pady=5, sticky="w"
         )
         self.vars["producer_software"] = ctk.StringVar(value=str(values.get("producer_software", "Noark 5 Workflow Manager")))
-        ctk.CTkEntry(form, textvariable=self.vars["producer_software"], font=theme.SMALL_FONT).grid(
+        ctk.CTkEntry(form, textvariable=self.vars["producer_software"], font=theme.font(theme.SMALL_SIZE)).grid(
             row=row, column=1, padx=(0, 12), pady=5, sticky="ew"
         )
         row += 1
 
-        ctk.CTkLabel(form, text="Utdatamappe", font=theme.SMALL_FONT, text_color=theme.TEXT_SUB).grid(
+        ctk.CTkLabel(form, text="Utdatamappe", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB).grid(
             row=row, column=0, padx=(12, 8), pady=5, sticky="w"
         )
         out_row = ctk.CTkFrame(form, fg_color="transparent")
         out_row.grid(row=row, column=1, padx=(0, 12), pady=5, sticky="ew")
         out_row.grid_columnconfigure(0, weight=1)
         self.vars["output_dir"] = ctk.StringVar(value=str(values.get("output_dir", "")))
-        ctk.CTkEntry(out_row, textvariable=self.vars["output_dir"], font=theme.SMALL_FONT).grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(out_row, text="...", width=34, command=self._browse_output).grid(row=0, column=1, padx=(6, 0))
+        ctk.CTkEntry(out_row, textvariable=self.vars["output_dir"], font=theme.font(theme.SMALL_SIZE)).grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(out_row, text="...", width=34, command=self._browse_output, font=theme.font(theme.NORMAL_SIZE)).grid(row=0, column=1, padx=(6, 0))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.grid(row=2, column=0, padx=16, pady=(6, 16), sticky="ew")
         buttons.grid_columnconfigure(0, weight=1)
-        ctk.CTkButton(buttons, text="Avbryt", fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, command=self.destroy).grid(
+        ctk.CTkButton(buttons, text="Avbryt", fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, command=self.destroy, font=theme.font(theme.NORMAL_SIZE)).grid(
             row=0, column=1, padx=(6, 0)
         )
-        ctk.CTkButton(buttons, text="Legg til i workflow", fg_color=theme.BLUE, hover_color=theme.BLUE_DIM, command=self._confirm).grid(
+        ctk.CTkButton(buttons, text="Legg til i workflow", fg_color=theme.BLUE, hover_color=theme.BLUE_DIM, command=self._confirm, font=theme.font(theme.NORMAL_SIZE)).grid(
             row=0, column=2, padx=(6, 0)
         )
 

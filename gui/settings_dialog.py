@@ -18,7 +18,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-        ctk.CTkLabel(self, text="Globale innstillinger", font=theme.TITLE_FONT, text_color=theme.BLUE).grid(
+        ctk.CTkLabel(self, text="Globale innstillinger", font=theme.font(theme.TITLE_SIZE, "bold"), text_color=theme.BLUE).grid(
             row=0, column=0, padx=24, pady=(20, 10), sticky="w"
         )
 
@@ -33,35 +33,35 @@ class SettingsDialog(ctk.CTkToplevel):
         self.visibility_var = ctk.StringVar(value=str(self.settings.get("operation_visibility", 2)))
 
         row = 0
-        ctk.CTkLabel(body, text="Generelt", font=theme.SECTION_FONT, text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(12, 8), sticky="w")
+        ctk.CTkLabel(body, text="Generelt", font=theme.font(theme.SECTION_SIZE, "bold"), text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(12, 8), sticky="w")
         row += 1
-        ctk.CTkLabel(body, text="Temp-mappe", font=theme.NORMAL_FONT).grid(row=row, column=0, padx=12, pady=8, sticky="w")
-        ctk.CTkEntry(body, textvariable=self.temp_var).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
+        ctk.CTkLabel(body, text="Temp-mappe", font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=0, padx=12, pady=8, sticky="w")
+        ctk.CTkEntry(body, textvariable=self.temp_var, font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
         row += 1
-        ctk.CTkLabel(body, text="Kjøring", font=theme.SECTION_FONT, text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(20, 8), sticky="w")
+        ctk.CTkLabel(body, text="Kjøring", font=theme.font(theme.SECTION_SIZE, "bold"), text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(20, 8), sticky="w")
         row += 1
-        ctk.CTkLabel(body, text="Execution backend", font=theme.NORMAL_FONT).grid(row=row, column=0, padx=12, pady=8, sticky="w")
-        ctk.CTkOptionMenu(body, variable=self.backend_var, values=["local", "server"], command=self._backend_changed).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
+        ctk.CTkLabel(body, text="Execution backend", font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=0, padx=12, pady=8, sticky="w")
+        ctk.CTkOptionMenu(body, variable=self.backend_var, values=["local", "server"], command=self._backend_changed, font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
         row += 1
-        ctk.CTkLabel(body, text="Server-endepunkt", font=theme.NORMAL_FONT).grid(row=row, column=0, padx=12, pady=8, sticky="w")
-        self.endpoint_entry = ctk.CTkEntry(body, textvariable=self.endpoint_var)
+        ctk.CTkLabel(body, text="Server-endepunkt", font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=0, padx=12, pady=8, sticky="w")
+        self.endpoint_entry = ctk.CTkEntry(body, textvariable=self.endpoint_var, font=theme.font(theme.NORMAL_SIZE))
         self.endpoint_entry.grid(row=row, column=1, padx=12, pady=8, sticky="ew")
         row += 1
-        ctk.CTkLabel(body, text="Delt lagringsrot", font=theme.NORMAL_FONT).grid(row=row, column=0, padx=12, pady=8, sticky="w")
-        self.storage_entry = ctk.CTkEntry(body, textvariable=self.storage_var)
+        ctk.CTkLabel(body, text="Delt lagringsrot", font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=0, padx=12, pady=8, sticky="w")
+        self.storage_entry = ctk.CTkEntry(body, textvariable=self.storage_var, font=theme.font(theme.NORMAL_SIZE))
         self.storage_entry.grid(row=row, column=1, padx=12, pady=8, sticky="ew")
         row += 1
-        ctk.CTkLabel(body, text="Operasjoner-synlighet", font=theme.SECTION_FONT, text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(20, 8), sticky="w")
+        ctk.CTkLabel(body, text="Operasjoner-synlighet", font=theme.font(theme.SECTION_SIZE, "bold"), text_color=theme.BLUE).grid(row=row, column=0, columnspan=2, padx=12, pady=(20, 8), sticky="w")
         row += 1
-        ctk.CTkLabel(body, text="Vis operasjoner med status over", font=theme.NORMAL_FONT).grid(row=row, column=0, padx=12, pady=8, sticky="w")
-        ctk.CTkOptionMenu(body, variable=self.visibility_var, values=["0", "1", "2"]).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
+        ctk.CTkLabel(body, text="Vis operasjoner med status over", font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=0, padx=12, pady=8, sticky="w")
+        ctk.CTkOptionMenu(body, variable=self.visibility_var, values=["0", "1", "2"], font=theme.font(theme.NORMAL_SIZE)).grid(row=row, column=1, padx=12, pady=8, sticky="ew")
         row += 1
-        ctk.CTkLabel(body, text="0 = alle | 1 = beta + ok | 2 = kun ok/stabil", font=theme.SMALL_FONT, text_color=theme.TEXT_MUTED).grid(row=row, column=0, columnspan=2, padx=12, pady=(0, 16), sticky="w")
+        ctk.CTkLabel(body, text="0 = alle | 1 = beta + ok | 2 = kun ok/stabil", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(row=row, column=0, columnspan=2, padx=12, pady=(0, 16), sticky="w")
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.grid(row=2, column=0, padx=20, pady=(4, 18), sticky="e")
-        ctk.CTkButton(buttons, text="Avbryt", command=self.destroy, width=110).grid(row=0, column=0, padx=5)
-        ctk.CTkButton(buttons, text="Lagre", command=self._save, width=130).grid(row=0, column=1, padx=5)
+        ctk.CTkButton(buttons, text="Avbryt", command=self.destroy, width=110, font=theme.font(theme.NORMAL_SIZE)).grid(row=0, column=0, padx=5)
+        ctk.CTkButton(buttons, text="Lagre", command=self._save, width=130, font=theme.font(theme.NORMAL_SIZE)).grid(row=0, column=1, padx=5)
         self._backend_changed(self.backend_var.get())
 
     def _backend_changed(self, value: str) -> None:

@@ -28,7 +28,7 @@ class WorkflowPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             self,
             text="WORKFLOW",
-            font=theme.SECTION_FONT,
+            font=theme.font(theme.SECTION_SIZE, "bold"),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, padx=8, pady=(4, 8), sticky="w")
 
@@ -48,7 +48,7 @@ class WorkflowPanel(ctk.CTkFrame):
             text="Kjør workflow",
             command=self.on_run,
             height=34,
-            font=theme.NORMAL_FONT,
+            font=theme.font(theme.NORMAL_SIZE),
             fg_color=theme.BLUE,
             hover_color=theme.BLUE_DIM,
         )
@@ -59,7 +59,7 @@ class WorkflowPanel(ctk.CTkFrame):
             width=38,
             height=34,
             state="disabled",
-            font=(theme.FONT_FAMILY, 14, "bold"),
+            font=theme.font(14, "bold"),
             fg_color=theme.BUTTON_BG,
         )
         self.activity_button.grid(row=0, column=1, padx=(6, 0))
@@ -72,7 +72,7 @@ class WorkflowPanel(ctk.CTkFrame):
             text="Tøm",
             command=self.clear,
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
         ).grid(row=0, column=0, padx=(0, 3), sticky="ew")
@@ -81,7 +81,7 @@ class WorkflowPanel(ctk.CTkFrame):
             text="Lagre profil...",
             state="disabled",
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
         ).grid(row=0, column=1, padx=(3, 0), sticky="ew")
 
@@ -93,7 +93,7 @@ class WorkflowPanel(ctk.CTkFrame):
             text="Åpne prosjekt",
             state="disabled",
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
         ).grid(row=0, column=0, padx=(0, 3), sticky="ew")
         ctk.CTkButton(
@@ -101,7 +101,7 @@ class WorkflowPanel(ctk.CTkFrame):
             text="Lagre prosjekt",
             state="disabled",
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
         ).grid(row=0, column=1, padx=(3, 0), sticky="ew")
 
@@ -128,7 +128,7 @@ class WorkflowPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 self.items,
                 text="Legg til operasjoner\nfra paletten til høyre",
-                font=theme.SMALL_FONT,
+                font=theme.font(theme.SMALL_SIZE),
                 text_color=theme.TEXT_MUTED,
                 justify="center",
             ).grid(row=0, column=0, padx=8, pady=38)
@@ -150,7 +150,7 @@ class WorkflowPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 item,
                 text=f"{row + 1}. {operation.definition.name}",
-                font=theme.SMALL_FONT,
+                font=theme.font(theme.SMALL_SIZE),
                 text_color=theme.TEXT,
                 anchor="w",
             ).grid(row=0, column=0, padx=8, pady=6, sticky="ew")
@@ -159,7 +159,7 @@ class WorkflowPanel(ctk.CTkFrame):
                 text="×",
                 width=24,
                 height=22,
-                font=(theme.FONT_FAMILY, 12, "bold"),
+                font=theme.font(12, "bold"),
                 fg_color=theme.DANGER_BG,
                 hover_color="#3d2020",
                 text_color=theme.DANGER_TEXT,

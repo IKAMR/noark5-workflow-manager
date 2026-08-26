@@ -22,7 +22,7 @@ class OperationsPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             self,
             text="TILGJENGELIGE OPERASJONER",
-            font=theme.SECTION_FONT,
+            font=theme.font(theme.SECTION_SIZE, "bold"),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, padx=12, pady=(8, 6), sticky="w")
 
@@ -37,7 +37,7 @@ class OperationsPanel(ctk.CTkFrame):
                 width=80,
                 height=24,
                 corner_radius=5,
-                font=theme.SMALL_FONT,
+                font=theme.font(theme.SMALL_SIZE),
                 command=lambda c=category: self.show_category(c),
                 fg_color=theme.BUTTON_BG,
                 hover_color=theme.BUTTON_HOVER,
@@ -69,7 +69,7 @@ class OperationsPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 self.cards,
                 text="Ingen operasjoner i denne kategorien ennå.",
-                font=theme.NORMAL_FONT,
+                font=theme.font(theme.NORMAL_SIZE),
                 text_color=theme.TEXT_MUTED,
             ).grid(row=0, column=0, padx=14, pady=20, sticky="w")
             return
@@ -95,7 +95,7 @@ class OperationsPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 card,
                 text=operation.definition.name,
-                font=theme.NORMAL_FONT,
+                font=theme.font(theme.NORMAL_SIZE),
                 text_color=theme.TEXT,
                 anchor="w",
             ).grid(row=0, column=1, padx=8, pady=7, sticky="ew")
@@ -105,7 +105,7 @@ class OperationsPanel(ctk.CTkFrame):
                 width=30,
                 height=28,
                 corner_radius=6,
-                font=(theme.FONT_FAMILY, 14, "bold"),
+                font=theme.font(14, "bold"),
                 fg_color=accent,
                 hover_color=accent,
                 text_color="#ffffff",

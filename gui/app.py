@@ -13,6 +13,7 @@ from noark5_workflow.core.workflow import Workflow
 from noark5_workflow.executors.local import LocalExecutor
 from noark5_workflow.sources.noark5_extraction import Noark5Extraction
 from version import APP_NAME, VERSION
+from settings import load_config, save_config
 from . import theme
 from .dias_dialog import DiasParamDialog
 from .log_panel import LogPanel
@@ -36,16 +37,11 @@ class WorkflowApp(ctk.CTk):
         self.executor = LocalExecutor()
         self.extraction: Noark5Extraction | None = None
         self.cancel_requested = False
-        self.settings = {
-            "execution_backend": "local",
-            "remote_endpoint": "",
-            "shared_storage_root": "",
-            "temp_dir": "",
-            "log_level": "INFO",
-            "operation_visibility": 2,
-        }
+        self.settings = load_config()
+        theme.FontRegistry.set_offset(int(self.settings.get("font_offset", 0)))
 
         self._build_ui()
+        self.status_bar.set_temp(self.settings.get("temp_dir") or None)
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(1, weight=1)
@@ -88,7 +84,7 @@ class WorkflowApp(ctk.CTk):
         ctk.CTkLabel(
             header,
             text=APP_NAME.upper(),
-            font=theme.TITLE_FONT,
+            font=theme.font(theme.TITLE_SIZE, "bold"),
             text_color=theme.BLUE,
         ).grid(row=0, column=0, padx=(16, 18), pady=10, sticky="w")
 
@@ -97,13 +93,13 @@ class WorkflowApp(ctk.CTk):
             values=["-- profil --"],
             width=135,
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
         ).grid(row=0, column=1, padx=6, pady=8)
 
         ctk.CTkLabel(
             header,
             text=f"v{VERSION}",
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=2, padx=8, pady=8, sticky="w")
 
@@ -112,7 +108,7 @@ class WorkflowApp(ctk.CTk):
             text="Endre temp-mappe",
             width=110,
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
             command=self._change_temp_dir,
@@ -123,26 +119,43 @@ class WorkflowApp(ctk.CTk):
             text="Innstillinger",
             width=100,
             height=28,
-            font=theme.SMALL_FONT,
+            font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
             command=self._open_settings,
         ).grid(row=0, column=5, padx=4, pady=8)
 
-        ctk.CTkButton(header, text="A-", width=34, height=28, state="disabled", fg_color=theme.BUTTON_BG).grid(
-            row=0, column=6, padx=2, pady=8
-        )
-        ctk.CTkButton(header, text="A+", width=34, height=28, state="disabled", fg_color=theme.BUTTON_BG).grid(
-            row=0, column=7, padx=2, pady=8
-        )
-        ctk.CTkButton(header, text="?", width=34, height=28, state="disabled", fg_color=theme.BUTTON_BG).grid(
-            row=0, column=8, padx=(2, 10), pady=8
-        )
+        ctk.CTkButton(
+            header, text="A-", width=34, height=28,
+            font=theme.font(theme.SMALL_SIZE),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+            command=lambda: self._font_scale(-1),
+        ).grid(row=0, column=6, padx=2, pady=8)
+        ctk.CTkButton(
+            header, text="A+", width=34, height=28,
+            font=theme.font(theme.SMALL_SIZE),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+            command=lambda: self._font_scale(+1),
+        ).grid(row=0, column=7, padx=2, pady=8)
+        ctk.CTkButton(
+            header, text="?", width=34, height=28, state="disabled",
+            font=theme.font(theme.SMALL_SIZE), fg_color=theme.BUTTON_BG,
+        ).grid(row=0, column=8, padx=(2, 10), pady=8)
+
+    def _font_scale(self, delta: int) -> None:
+        """Juster skriftstørrelsen dynamisk, på samme måte som SIARD Workflow Manager."""
+        theme.FontRegistry.scale(delta)
+        offset = theme.FontRegistry.current_offset()
+        self.settings["font_offset"] = offset
+        save_config({"font_offset": offset})
+        sign = f"+{offset}" if offset > 0 else str(offset)
+        self.status_bar.set_status(f"Skriftstørrelse: {sign}")
 
     def _change_temp_dir(self) -> None:
         folder = filedialog.askdirectory(title="Velg temp-mappe")
         if folder:
             self.settings["temp_dir"] = folder
+            save_config({"temp_dir": folder})
             self.status_bar.set_temp(folder)
             self.log_panel.append(f"Temp-mappe endret: {folder}")
 
@@ -251,6 +264,8 @@ class WorkflowApp(ctk.CTk):
 
     def _save_settings(self, settings: dict) -> None:
         self.settings = dict(settings)
+        self.settings["font_offset"] = theme.FontRegistry.current_offset()
+        save_config(self.settings)
         self.status_bar.set_temp(self.settings.get("temp_dir") or None)
         self.status_bar.set_status("Innstillinger oppdatert")
 
