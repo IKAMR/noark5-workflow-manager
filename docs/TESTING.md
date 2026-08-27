@@ -25,7 +25,7 @@ Rapporten inneholder dato/tid, PASS/FAIL, antall tester og full testutskrift. Ny
 
 ## PREMIS-tester
 
-a10 legger til `tests/test_premis_provenance.py`. Testene skal minst verifisere:
+v0.1.0 inkluderer `tests/test_premis_provenance.py`. Testene skal minst verifisere:
 
 - PREMIS-fil med ett Noark 5-object, event(s) og Noark 5 Workflow Manager-agent
 - gyldig DIAS_PREMIS `eventType` og fallback til `Adjustment`
@@ -46,3 +46,17 @@ Når analysefunksjoner for U1/U2, arkivstruktur og dokumentkontroll implementere
 ## Test av utdataisolasjon
 
 Automatiske tester skal verifisere at workflow-PREMIS ikke skrives i eller ved siden av kildeområdet når ingen eksplisitt utdatamappe finnes, og at DIAS-pakking legger workflow-PREMIS i valgt DIAS-utdatamappe. Praktisk test bør også kontrollere at kildekatalogen er uendret etter workflow-kjøring.
+
+## Planlagte testområder etter v0.1.0
+
+Videre utvikling skal ha automatiserte tester for:
+
+- transfer A->B og checksum-likhet,
+- feil ved avvik mellom kilde og destinasjon,
+- ingen skriving til read-only kilde,
+- korrekt PREMIS for transfer/verifikasjon,
+- Arkade CLI-adapter med kontrollert fake/stub der praktisk,
+- native Noark-kontroller mot kjente XPath/KDRS Query-resultater,
+- recursive discovery/prequalification/skip/retry,
+- store kandidater uten utilsiktet full kopiering eller hashing i discovery-steget,
+- final AIP-selection slik at debugmateriale ikke inkluderes uten eksplisitt valg.

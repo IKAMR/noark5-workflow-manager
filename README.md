@@ -2,7 +2,7 @@
 
 Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
 
-**Versjon:** `0.1.0-a10`
+**Versjon:** `0.1.0`
 
 ## Forhold til SIARD Workflow Manager
 
@@ -18,7 +18,7 @@ DIAS-pakking skal derfor ikke endre, omorganisere eller tolke om den interne str
 
 Den overordnede DIAS-pakkestrukturen er den samme uavhengig av om innholdet er et Noark 5-uttrekk eller annet arkivmateriale. Metadataelementer og verdier kan naturlig variere med innhold og avlevering.
 
-## Status i v0.1.0-a10
+## Status i v0.1.0
 
 Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og har nå:
 
@@ -46,14 +46,14 @@ U1/N5.101, U2/N5.102 og den virkelige strømmede analysemotoren for `arkivstrukt
 
 ## Workflow logging og PREMIS-proveniens
 
-a10 innfører en sentral PREMIS-proveniensmekanisme basert på den generiske `PremisProvenanceLogger`-arkitekturen i SIARD Workflow Manager. Koden er tilpasset Noark 5 som objekt og `Noark 5 Workflow Manager` som programvareagent.
+v0.1.0 innfører en sentral PREMIS-proveniensmekanisme basert på den generiske `PremisProvenanceLogger`-arkitekturen i SIARD Workflow Manager. Koden er tilpasset Noark 5 som objekt og `Noark 5 Workflow Manager` som programvareagent.
 
 Prinsippet er:
 
 - alle operasjoner/tester vises i vanlig workflow-/kjørelogg
 - relevante bevarings-/valideringshendelser kan i tillegg bli PREMIS events
 - operasjoner skriver ikke PREMIS XML selv
-- `LocalExecutor` bruker den sentrale loggeren og lagrer én samlet `<uttrekksnavn>_premis.xml` ved siden av uttrekksmappen, med mindre `premis_output_dir` er konfigurert
+- `LocalExecutor` bruker den sentrale loggeren og lagrer workflow-PREMIS i eksplisitt valgt arbeids-/utdataområde; DIAS-pakking bruker valgt DIAS-utdatamappe og skriver aldri PREMIS ved siden av kilden som fallback
 - `enable_premis_provenance=false` kan slå av denne registreringen
 
 `DIAS-pakking (SIP/AIC)` er første konkrete operasjon som registreres som `Creation`. Workflow-PREMIS er separat fra den package-level PREMIS/METS som DIAS-pakkingen allerede lager inne i selve pakken.
@@ -155,3 +155,15 @@ GNU General Public License v3. Se `LICENCE`.
 ## Utviklingsdokumentasjon
 
 Før større endringer, se [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Begreper og grensesnitt er dokumentert i [docs/DEFINITIONS.md](docs/DEFINITIONS.md) og [docs/INTERFACE.md](docs/INTERFACE.md).
+
+## Veien videre etter v0.1.0
+
+`v0.1.0` er første dokumenterte baseline. Videre utvikling er samlet i:
+
+- [docs/SHARED-DEVELOPMENT.md](docs/SHARED-DEVELOPMENT.md) – samspill med SIARD Workflow Manager
+- [docs/SHARED-ROADMAP.md](docs/SHARED-ROADMAP.md) – implementerte og planlagte generiske funksjoner
+- [docs/CODE-MAP.md](docs/CODE-MAP.md) – rask oversikt over kodekilder og dataflyt
+
+Hovedsporene videre er native Noark 5-validering, Arkade 5 CLI-integrasjon, end-to-end pipeline, rekursive/batch-jobber, sporbar transfer mellom lagringssoner og eksplisitt finalisering fra arbeidsområde til AIP/AIC.
+
+Se også [docs/RELEASE-v0.1.0.md](docs/RELEASE-v0.1.0.md) for baseline og videre utviklingsspor.

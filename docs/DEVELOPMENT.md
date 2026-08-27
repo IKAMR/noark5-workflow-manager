@@ -7,7 +7,9 @@ Før analyse eller endring av kode i dette repositoriet:
 3. Les `docs/INTERFACE.md` ved endringer i grensesnitt eller kontrakter.
 4. Les `docs/DEFINITIONS.md` ved endringer som berører begreper og lagdeling.
 5. Les `docs/TESTING.md` ved endringer som krever ny eller endret validering.
-6. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
+6. Les `docs/CODE-MAP.md` for å finne riktig lag og dataflyt.
+7. Les `docs/SHARED-DEVELOPMENT.md` og `docs/SHARED-ROADMAP.md` før generiske workflow-/depotendringer som også kan være relevante for SIARD Workflow Manager.
+8. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
 
 ## Endringsprinsipp
 
@@ -35,7 +37,7 @@ Implementasjonen er basert på det generiske PREMIS-mønsteret i SIARD Workflow 
 
 ## Versjonering
 
-Kildekoden bruker versjon som `0.1.0-a10`. Git-tag kan bruke `v0.1.0-a10`.
+Stabil baseline er `0.1.0` og Git-tag `v0.1.0`. Nye utviklingsserier bruker alpha-suffiks, for eksempel `0.2.0-a1`.
 
 ## Utdataområder og bevaringskilde
 
@@ -44,3 +46,10 @@ Kildekoden bruker versjon som `0.1.0-a10`. Git-tag kan bruke `v0.1.0-a10`.
 - Workflow-PREMIS skal følge eksplisitt workflow-/operasjonsutdata. DIAS-pakking bruker den valgte DIAS-utdatamappen.
 - Skill mellom **arbeidsområde** (alle tester, debug, mellomresultater og rapporter) og **finaliseringsområde for AIP** (kuratert delmengde som faktisk skal inngå i endelig AIC/AIP).
 - Ikke anta at alt som finnes i arbeidsområdet skal bevares i AIP. Finalisering skal være et eksplisitt steg.
+
+
+## Generisk kode mot SIARD Workflow Manager
+
+- Generiske forbedringer skal vurderes opp mot `SHARED-DEVELOPMENT.md` før de gjøres domenespesifikke.
+- `SHARED-ROADMAP.md` skal oppdateres når en funksjon implementeres i ett prosjekt og er kandidat for det andre.
+- Et eget felles GUI/core-repository opprettes ikke nå; kodebasene holdes løst koblet gjennom dokumenterte kontrakter, referanseimplementasjoner og tester.

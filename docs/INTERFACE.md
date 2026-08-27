@@ -51,10 +51,24 @@ Fremtidig `RemoteExecutor` må opprettholde tilsvarende semantikk på serverside
 
 DIAS-dialogen produserer parametere til DIAS-operasjonen. Valgt Noark 5-uttrekk er kildeinnhold. Manuelt lagt til filer og mapper er tilleggsinnhold i den genererte pakken og skal ikke skrives tilbake til kildemappen på disk.
 
-`DiasPackageOperation` er i a10 første konkrete Noark-operasjon som deklarerer en workflow-PREMIS-hendelse: `Creation` / `DIAS SIP/AIC-pakking`. Dette er separat fra package-level PREMIS/METS som DIAS-pakkingen allerede genererer internt.
+`DiasPackageOperation` er i v0.1.0 første konkrete Noark-operasjon som deklarerer en workflow-PREMIS-hendelse: `Creation` / `DIAS SIP/AIC-pakking`. Dette er separat fra package-level PREMIS/METS som DIAS-pakkingen allerede genererer internt.
 
 ### Utdatakontrakt for PREMIS
 
 `BaseOperation.premis_output_dir(result, ctx)` returnerer eksplisitt målmappe for sentral workflow-PREMIS, eller `None` dersom ingen målmappe er valgt. Executor skal aldri falle tilbake til kildeområdet.
 
 `DiasPackageOperation` returnerer den valgte DIAS-utdatamappen (foreldremappen til generert `aic_path`) som PREMIS-mål. Dermed skrives `<uttrekksnavn>_premis.xml` i samme eksplisitte utdataområde som DIAS-resultatet, ikke ved siden av Noark 5-kilden.
+
+## Planlagte generiske kontrakter
+
+### Transfer/verify
+
+En transfer-operasjon skal minst beskrive eksplisitt kilde, destinasjon, lagringsrolle, verifikasjonsmetode og resultat. Kilden skal ikke endres som sideeffekt av verifikasjon.
+
+### External validator adapter
+
+Et eksternt verktøy som Arkade 5 CLI skal kapsles som en normal operasjon og returnere `OperationResult` med exit-status, rapport-/loggreferanser og normaliserte funn der dette er tilgjengelig.
+
+### Batch/recursive controller
+
+Batchlaget oppdager og prequalifier kandidater, men kjører den faktiske jobben gjennom ordinær workflow/executor. Dermed finnes ikke to separate implementasjoner av samme validering.

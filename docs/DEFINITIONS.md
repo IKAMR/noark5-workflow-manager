@@ -22,7 +22,7 @@ Maskinlesbar dokumentasjon av relevante bevarings- og valideringshendelser. Work
 
 ## PREMIS object
 
-Objektet hendelsene gjelder. I a10 er dette det valgte Noark 5-uttrekket identifisert med mappenavn og format `NOARK-5`.
+Objektet hendelsene gjelder. I v0.1.0 er dette det valgte Noark 5-uttrekket identifisert med mappenavn og format `NOARK-5`.
 
 ## PREMIS agent
 
@@ -59,3 +59,27 @@ Eksplisitt kuratert delmengde som er godkjent for langtidsbevaring og som skal i
 ## SIP og AIP
 
 **SIP** er innsendingspakken ved overføring til depot. Når materialet er tatt inn i bevaringsforvaltningen, er den bevarte representasjonen en **AIP**. At de samme bitene kan videreføres uendret gjør ikke begrepene identiske; rollen/livssyklusstadiet er forskjellig.
+
+## Original received
+
+Mottatt/original kopi på distribuert eller offline lagring. Behandles som read-only bevaringsbevis.
+
+## Quarantine
+
+Område for karantene/antivirusperiode før materialet flyttes videre til arbeidsområdet.
+
+## Working area
+
+Arbeidsområde som kan inneholde omfattende tester, debug, mellomresultater, rapporter og alternative kopier. Alt her skal ikke automatisk inn i AIP.
+
+## Final AIP
+
+Eksplisitt kuratert innhold som er godkjent for bevaring og som skal inngå i den endelige bevaringspakken.
+
+## AIC output
+
+Utdataområdet der AIC/container med AIP produseres. SIP beskriver innsendingsrollen/stadiet; innhold som er overtatt til bevaring omtales som AIP selv om byteinnhold kan være identisk med mottatt materiale.
+
+## Recursive job / batch job
+
+Metodisk kjøring over mange kandidater: discovery, prequalification, skip/run/fail med begrunnelse, ordinær workflow-kjøring og aggregert resultat.

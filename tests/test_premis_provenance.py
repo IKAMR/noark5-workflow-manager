@@ -53,7 +53,7 @@ class PremisProvenanceTests(unittest.TestCase):
             op = _FakePremisOperation()
             result = op.run(ctx)
 
-            logger = PremisProvenanceLogger(Path(td), root, agent_version="0.1.0-a10")
+            logger = PremisProvenanceLogger(Path(td), root, agent_version="0.1.0")
             logger.record(op, result, ctx)
             out = logger.finalize(root, ctx)
 

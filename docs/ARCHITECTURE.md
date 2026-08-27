@@ -30,7 +30,7 @@ Tre dokumentasjonslag skal holdes adskilt:
 
 PREMIS-mekanismen ligger sentralt i `noark5_workflow/core/premis_logger.py`. Operasjoner produserer ikke PREMIS XML selv; de deklarerer metadata/hook-metoder som executor-/workflowlaget bruker. Dette følger samme generiske arkitektur som SIARD Workflow Manager.
 
-I a10 oppretter `LocalExecutor`/gjenbruker én logger per `OperationContext`, registrerer aktuelle hendelser og skriver en samlet `<uttrekksnavn>_premis.xml` utenfor selve kildeuttrekket. Filen oppdateres etter hver registrerte hendelse slik at proveniens ikke tapes om et senere steg feiler.
+I v0.1.0 oppretter `LocalExecutor`/gjenbruker én logger per `OperationContext`, registrerer aktuelle hendelser og skriver en samlet `<uttrekksnavn>_premis.xml` utenfor selve kildeuttrekket. Filen oppdateres etter hver registrerte hendelse slik at proveniens ikke tapes om et senere steg feiler.
 
 ## Kjørebackend
 
@@ -114,3 +114,19 @@ SIP betegner innsendingspakken. Etter mottak/forvaltning og når innholdet inng�
 Finalisering bør senere være et eksplisitt workflow-steg som bygger en manifestert/visbar kandidatliste for AIP: kildeinnhold + valgte rapporter/proveniens/resultater. Brukeren skal kunne se hva som inkluderes og utelate ren debug, duplikater og midlertidige filer før AIC produseres.
 
 Workflow-PREMIS og andre genererte sidefiler skal skrives i eksplisitt arbeids-/utdataområde. Ingen generert fil skal plasseres i kildeområdet som fallback.
+
+## Bevaringssoner og fremtidig transfermodell
+
+Videre arkitektur skal støtte eksplisitte lagringsroller fremfor å behandle alle mapper som like:
+
+`ORIGINAL_RECEIVED -> QUARANTINE -> WORKING -> FINAL_AIP -> AIC_OUTPUT -> PRESERVATION_STORAGE`
+
+Overføring mellom soner skal være en normal workflow-operasjon med eksplisitt A og B, verifikasjon og relevant PREMIS. Original mottakskopi skal behandles som read-only. Arbeidsområdet kan være rikt på debug/mellomresultater, mens FINAL_AIP er en eksplisitt kuratert delmengde.
+
+## Eksterne validatorer
+
+Arkade 5 CLI skal kunne kobles inn gjennom en adapter/operasjon som starter programmet, fanger exit status og høster rapporter. Resultatet normaliseres til `OperationResult`. Arkade-resultater skal kunne sammenlignes med våre egne Noark-kontroller.
+
+## Pipeline og recursive jobs
+
+Pipeline er et orkestreringslag over eksisterende operasjoner. Recursive/batch-jobber er et separat orkestreringslag for mange kandidater og skal bruke samme operations/executor-kontrakt. Se `CODE-MAP.md` og `SHARED-ROADMAP.md`.
