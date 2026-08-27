@@ -2,7 +2,7 @@
 
 Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
 
-**Versjon:** `0.1.0-a6`
+**Versjon:** `0.1.0-a7`
 
 ## Forhold til SIARD Workflow Manager
 
@@ -18,7 +18,7 @@ DIAS-pakking skal derfor ikke endre, omorganisere eller tolke om den interne str
 
 Den overordnede DIAS-pakkestrukturen er den samme uavhengig av om innholdet er et Noark 5-uttrekk eller annet arkivmateriale. Metadataelementer og verdier kan naturlig variere med innhold og avlevering.
 
-## Status i v0.1.0-a6
+## Status i v0.1.0-a7
 
 Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og har nå:
 
@@ -34,7 +34,10 @@ Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og 
 - DIAS-konfigurasjonsdialog med to-kolonne-oppsett: `METADATA | PAKKESTRUKTUR`
 - innlesing av eksisterende METS XML (`info.xml`, `mets.xml` eller annet filnavn)
 - validering av obligatoriske DIAS-felt og periodedatoer
-- pakkevisning som tydelig viser at Noark 5-kilden er låst og pakkes uendret
+- interaktiv pakkevisning med `Legg til fil`, `Fjern` og valg av målområde i DIAS-pakken
+- ekstra filer kan legges under `content/`, `administrative_metadata/`, `administrative_metadata/repository_operations/` eller `descriptive_metadata/`
+- `test.bat` kjører alle automatiserte tester og skriver versjonert rapport til `docs/test-results/`
+- testing er dokumentert i `docs/TESTING.md`
 
 U1/N5.101, U2/N5.102 og den virkelige strømmede analysemotoren for `arkivstruktur.xml` er ikke implementert ennå.
 
@@ -63,7 +66,9 @@ Dialogen kan lese metadata fra en eksisterende METS-fil. Importen tolker blant a
 - `altRecordID TYPE="ENDDATE"`
 - METS-agenter for arkivorganisasjon, kildesystem/systemversjon/arkivtype, skaper, produsent, avleverer, eier og bevaringsansvarlig
 
-Noark 5-kilden vises i pakkestrukturen, men kan ikke redigeres fra DIAS-dialogen. Dette er bevisst: DIAS-funksjonaliteten opererer på pakkenivå og skal ikke interferere med uttrekksnivået.
+Noark 5-kilden vises i pakkestrukturen. DIAS-dialogen kan i tillegg supplere pakken med manuelt valgte filer. Valgt målområde styres i pakkestrukturen, slik at for eksempel rapporter og depotoperasjoner kan plasseres under `administrative_metadata/repository_operations/`, beskrivende materiale under `descriptive_metadata/`, eller tilleggsinnhold under `content/`.
+
+Tilleggsfiler kopieres bare inn i den nye DIAS-pakken. Kildemappen på disk endres ikke.
 
 ## Krav
 
@@ -73,7 +78,10 @@ Noark 5-kilden vises i pakkestrukturen, men kan ikke redigeres fra DIAS-dialogen
 På Windows er normal bruk:
 
 1. Kjør `install.bat` ved første installasjon eller når avhengigheter endres.
-2. Start programmet med `start.bat`.
+2. Kjør `test.bat` og kontroller at alle tester består.
+3. Start programmet med `start.bat`.
+
+`test.bat` skriver automatisk en versjonert testrapport til `docs/test-results/`. Se [docs/TESTING.md](docs/TESTING.md).
 
 ## Operasjonsarkitektur
 

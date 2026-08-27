@@ -17,7 +17,6 @@ from noark5_workflow.core.operation import BaseOperation, ExecutionTarget, Opera
 from noark5_workflow.core.result import OperationResult
 from noark5_workflow.sources.noark5_extraction import Noark5Extraction
 
-
 DEFAULT_PARAMS = {
     "submission_agreement": "",
     "label": "",
@@ -36,26 +35,22 @@ DEFAULT_PARAMS = {
     "creator": "",
     "preserver": "",
     "output_dir": "",
+    "extra_files": "[]",
 }
 
 _REQUIRED_META = [
-    "label",
-    "system",
-    "system_version",
-    "submission_agreement",
-    "archivist_type",
-    "period_start",
-    "period_end",
-    "owner_org",
-    "archivist_org",
-    "submitter_org",
-    "submitter_person",
-    "producer_org",
-    "producer_person",
-    "producer_software",
-    "creator",
-    "preserver",
+    "label", "system", "system_version", "submission_agreement", "archivist_type",
+    "period_start", "period_end", "owner_org", "archivist_org", "submitter_org",
+    "submitter_person", "producer_org", "producer_person", "producer_software",
+    "creator", "preserver",
 ]
+
+_ALLOWED_EXTRA_ROOTS = ("content/", "administrative_metadata/", "descriptive_metadata/")
+_RESERVED_EXTRA_DESTS = {
+    "mets.xml",
+    "log.xml",
+    "administrative_metadata/premis.xml",
+}
 
 
 def _ts() -> str:
@@ -91,7 +86,32 @@ def _iter_files(root: Path):
             yield base_path / name
 
 
-def _estimate_source_size(root: Path) -> tuple[int, int]:
+def _normalise_extra_files(raw) -> list[dict[str, str]]:
+    try:
+        items = json.loads(raw) if isinstance(raw, str) else list(raw or [])
+    except Exception:
+        items = []
+    result: list[dict[str, str]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        src = str(item.get("src", "")).strip()
+        dest = str(item.get("dest", "")).replace("\\", "/").lstrip("/").strip()
+        if not src or not dest:
+            continue
+        parts = Path(dest).parts
+        if ".." in parts or dest in _RESERVED_EXTRA_DESTS:
+            raise ValueError(f"Ugyldig målsti for ekstra fil: {dest}")
+        if not any(dest.startswith(prefix) for prefix in _ALLOWED_EXTRA_ROOTS):
+            raise ValueError(
+                "Ekstra filer må plasseres under content/, administrative_metadata/ "
+                "eller descriptive_metadata/."
+            )
+        result.append({"src": src, "dest": dest})
+    return result
+
+
+def _estimate_source_size(root: Path, extra_files: list[dict[str, str]] | None = None) -> tuple[int, int]:
     total_bytes = 0
     total_files = 0
     for path in _iter_files(root):
@@ -100,32 +120,41 @@ def _estimate_source_size(root: Path) -> tuple[int, int]:
             total_files += 1
         except OSError:
             continue
-    # TAR is uncompressed and metadata adds some overhead.
+    for ef in extra_files or []:
+        try:
+            p = Path(ef["src"])
+            if p.is_file():
+                total_bytes += p.stat().st_size
+                total_files += 1
+        except OSError:
+            continue
     return int(total_bytes * 1.03) + 2 * 1024 * 1024, total_files
 
 
-def _gather_file_info(root: Path, sip_id: str, ctx: OperationContext, total_files: int) -> dict[str, dict]:
+def _make_info(path: Path, key: str, ctx: OperationContext) -> dict:
+    stat = path.stat()
+    return {
+        "sha256": _sha256_file(path, ctx),
+        "mime": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+        "size": stat.st_size,
+        "mtime": datetime.fromtimestamp(stat.st_mtime).astimezone().isoformat(timespec="seconds"),
+    }
+
+
+def _gather_source_info(root: Path, sip_id: str, ctx: OperationContext, total_files: int) -> dict[str, dict]:
     info: dict[str, dict] = {}
     total = max(total_files, 1)
     for index, path in enumerate(_iter_files(root), start=1):
         rel = path.relative_to(root).as_posix()
-        stat = path.stat()
-        mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-        digest = _sha256_file(path, ctx)
         key = f"{sip_id}/content/{rel}"
-        info[key] = {
-            "sha256": digest,
-            "mime": mime,
-            "size": stat.st_size,
-            "mtime": datetime.fromtimestamp(stat.st_mtime).astimezone().isoformat(timespec="seconds"),
-        }
+        info[key] = _make_info(path, key, ctx)
         if index == 1 or index == total_files or index % 100 == 0:
             ctx.progress(index / total, f"Sjekksummer: {index}/{total_files} filer")
     return info
 
 
 def _write_sip_log(path: Path, sip_id: str, created: str, meta: dict) -> None:
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <premis:premis xmlns:premis="http://arkivverket.no/standarder/PREMIS"
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://arkivverket.no/standarder/PREMIS http://schema.arkivverket.no/PREMIS/v2.0/DIAS_PREMIS.xsd"
@@ -147,7 +176,7 @@ def _write_sip_log(path: Path, sip_id: str, created: str, meta: dict) -> None:
     <premis:linkingObjectIdentifier><premis:linkingObjectIdentifierType>NO/RA</premis:linkingObjectIdentifierType><premis:linkingObjectIdentifierValue>{escape(sip_id)}</premis:linkingObjectIdentifierValue></premis:linkingObjectIdentifier>
   </premis:event>
 </premis:premis>
-"""
+'''
     path.write_text(xml, encoding="utf-8")
 
 
@@ -236,7 +265,7 @@ def _write_info(path: Path, tar_path: Path, sip_id: str, created: str, meta: dic
     digest = _sha256_file(tar_path)
     stat = tar_path.stat()
     mtime = datetime.fromtimestamp(stat.st_mtime).astimezone().isoformat(timespec="seconds")
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <mets:mets xmlns:mets="http://www.loc.gov/METS/" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://www.loc.gov/METS/ http://schema.arkivverket.no/METS/info.xsd"
  PROFILE="http://xml.ra.se/METS/RA_METS_eARD.xml" LABEL={quoteattr(meta['label'])} TYPE="SIP" ID="ID{uuid1()}" OBJID="UUID:{sip_id}">
@@ -248,21 +277,46 @@ def _write_info(path: Path, tar_path: Path, sip_id: str, created: str, meta: dic
   <mets:fileSec><mets:fileGrp ID="fgrp001" USE="FILES"><mets:file MIMETYPE="application/x-tar" CHECKSUMTYPE="SHA-256" CHECKSUM="{digest}" CREATED={quoteattr(mtime)} ID="ID{uuid1()}" SIZE="{stat.st_size}"><mets:FLocat xlink:href={quoteattr(f'file:{sip_id}/content/{sip_id}.tar')} LOCTYPE="URL" xlink:type="simple"/></mets:file></mets:fileGrp></mets:fileSec>
   <mets:structMap><mets:div LABEL="Package"/></mets:structMap>
 </mets:mets>
-"""
+'''
     path.write_text(xml, encoding="utf-8")
 
 
 def _write_aic_log(path: Path, aic_id: str, sip_id: str, created: str, meta: dict) -> None:
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <premis:premis xmlns:premis="http://arkivverket.no/standarder/PREMIS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0">
   <premis:object xsi:type="premis:file"><premis:objectIdentifier><premis:objectIdentifierType>NO/RA</premis:objectIdentifierType><premis:objectIdentifierValue>{escape(aic_id)}</premis:objectIdentifierValue></premis:objectIdentifier><premis:significantProperties><premis:significantPropertiesType>label</premis:significantPropertiesType><premis:significantPropertiesValue>{escape(meta['label'])}</premis:significantPropertiesValue></premis:significantProperties><premis:significantProperties><premis:significantPropertiesType>iptype</premis:significantPropertiesType><premis:significantPropertiesValue>AIC</premis:significantPropertiesValue></premis:significantProperties></premis:object>
   <premis:event><premis:eventIdentifier><premis:eventIdentifierType>NO/RA</premis:eventIdentifierType><premis:eventIdentifierValue>{uuid1()}</premis:eventIdentifierValue></premis:eventIdentifier><premis:eventType>20000</premis:eventType><premis:eventDateTime>{escape(created)}</premis:eventDateTime><premis:eventDetail>Created AIC package</premis:eventDetail><premis:eventOutcomeInformation><premis:eventOutcome>0</premis:eventOutcome></premis:eventOutcomeInformation><premis:linkingObjectIdentifier><premis:linkingObjectIdentifierType>NO/RA</premis:linkingObjectIdentifierType><premis:linkingObjectIdentifierValue>{escape(sip_id)}</premis:linkingObjectIdentifierValue></premis:linkingObjectIdentifier></premis:event>
 </premis:premis>
-"""
+'''
     path.write_text(xml, encoding="utf-8")
 
 
-def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: OperationContext, total_files: int) -> Path:
+def _copy_extra_files(inner: Path, source_root: Path, sip_id: str, meta: dict, ctx: OperationContext) -> tuple[list[dict[str, str]], dict[str, dict]]:
+    extras = _normalise_extra_files(meta.get("extra_files", "[]"))
+    extra_info: dict[str, dict] = {}
+    copied: list[dict[str, str]] = []
+    for ef in extras:
+        src = Path(ef["src"])
+        if not src.is_file():
+            raise FileNotFoundError(f"Ekstra fil finnes ikke: {src}")
+        dest_rel = ef["dest"]
+        if dest_rel.startswith("content/"):
+            source_collision = source_root / dest_rel.removeprefix("content/")
+            if source_collision.exists():
+                raise FileExistsError(f"Ekstra fil kolliderer med kildeinnhold: {dest_rel}")
+        dest = inner / dest_rel
+        if dest.exists():
+            raise FileExistsError(f"To filer har samme målsti i DIAS-pakken: {dest_rel}")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        key = f"{sip_id}/{dest_rel}"
+        extra_info[key] = _make_info(dest, key, ctx)
+        copied.append({"src": str(src), "dest": dest_rel})
+        ctx.log(f"Ekstra fil inkludert: {dest_rel}")
+    return copied, extra_info
+
+
+def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: OperationContext, source_file_count: int) -> tuple[Path, int]:
     sip_id = str(uuid1())
     aic_id = str(uuid1())
     temp_dir_setting = str(ctx.settings.get("temp_dir", "") or "").strip()
@@ -280,7 +334,9 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
     try:
         created = _ts()
         ctx.log("Beregner SHA-256 for filer i Noark 5-uttrekket...")
-        info = _gather_file_info(source_root, sip_id, ctx, total_files)
+        source_info = _gather_source_info(source_root, sip_id, ctx, source_file_count)
+        copied_extras, extra_info = _copy_extra_files(inner, source_root, sip_id, meta, ctx)
+        info = {**source_info, **extra_info}
 
         _write_sip_log(inner / "log.xml", sip_id, created, meta)
         _write_sip_premis(inner / "administrative_metadata" / "premis.xml", sip_id, info)
@@ -297,13 +353,12 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
                     raise RuntimeError("Operasjonen ble avbrutt.")
                 rel = path.relative_to(source_root).as_posix()
                 tar.add(path, arcname=f"{sip_id}/content/{rel}", recursive=False)
-                if index == total_files or index % 250 == 0:
-                    ctx.progress(index / max(total_files, 1), f"Pakker: {index}/{total_files} filer")
+                if index == source_file_count or index % 250 == 0:
+                    ctx.progress(index / max(source_file_count, 1), f"Pakker: {index}/{source_file_count} filer")
 
         shutil.rmtree(inner)
         _write_info(package_root / "info.xml", tar_path, sip_id, created, meta)
         _write_aic_log(outer_sip / "log.xml", aic_id, sip_id, _ts(), meta)
-
         target = out_root / aic_id
         if target.exists():
             raise FileExistsError(f"Målmappen finnes allerede: {target}")
@@ -311,7 +366,7 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
             package_root.rename(target)
         except OSError:
             shutil.move(str(package_root), str(target))
-        return target
+        return target, len(copied_extras)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -322,7 +377,7 @@ class DiasPackageOperation(BaseOperation):
         name="DIAS-pakking (SIP/AIC)",
         description=(
             "Pakker valgt Noark 5-uttrekk som DIAS SIP/AIC med METS, PREMIS, "
-            "SHA-256 og ukomprimert TAR, etter samme hovedprinsipp som SIARD Workflow Manager."
+            "SHA-256 og ukomprimert TAR. Pakken kan suppleres med manuelt valgte filer."
         ),
         execution_target=ExecutionTarget.EITHER,
         category="SIP/AIC-Pakking",
@@ -342,6 +397,10 @@ class DiasPackageOperation(BaseOperation):
         missing = [key for key in _REQUIRED_META if not str(self.params.get(key, "")).strip()]
         if missing:
             return False, "Manglende DIAS-parametere: " + ", ".join(missing)
+        try:
+            _normalise_extra_files(self.params.get("extra_files", "[]"))
+        except ValueError as exc:
+            return False, str(exc)
         return True, ""
 
     def run(self, ctx: OperationContext) -> OperationResult:
@@ -350,7 +409,6 @@ class DiasPackageOperation(BaseOperation):
         source_root = Path(arkivstruktur).parent if arkivstruktur else extraction.root
         out_root = Path(str(self.params.get("output_dir", "")).strip() or source_root.parent).resolve()
         out_root.mkdir(parents=True, exist_ok=True)
-
         try:
             source_resolved = source_root.resolve()
             out_resolved = out_root.resolve()
@@ -359,11 +417,16 @@ class DiasPackageOperation(BaseOperation):
         except OSError:
             pass
 
-        ctx.log("Estimerer pakkestørrelse...")
-        estimated, total_files = _estimate_source_size(source_root)
-        if total_files == 0:
-            return OperationResult(False, "Noark 5-uttrekket inneholder ingen filer.")
+        try:
+            extras = _normalise_extra_files(self.params.get("extra_files", "[]"))
+        except ValueError as exc:
+            return OperationResult(False, str(exc))
 
+        ctx.log("Estimerer pakkestørrelse...")
+        estimated, total_with_extras = _estimate_source_size(source_root, extras)
+        source_file_count = sum(1 for _ in _iter_files(source_root))
+        if source_file_count == 0:
+            return OperationResult(False, "Noark 5-uttrekket inneholder ingen filer.")
         try:
             free = shutil.disk_usage(out_root).free
             ctx.log(f"Estimert pakkestørrelse: {_fmt_bytes(estimated)}. Ledig: {_fmt_bytes(free)}.")
@@ -373,14 +436,13 @@ class DiasPackageOperation(BaseOperation):
                     f"Ikke nok ledig plass i {out_root}: trenger ca. {_fmt_bytes(estimated)}, har {_fmt_bytes(free)}.",
                 )
         except OSError:
-            free = 0
+            pass
 
         meta = {**DEFAULT_PARAMS, **self.params}
         try:
-            aic_path = _build_package(source_root, out_root, meta, ctx, total_files)
+            aic_path, extra_count = _build_package(source_root, out_root, meta, ctx, source_file_count)
         except Exception as exc:
             return OperationResult(False, f"DIAS-pakking feilet: {exc}")
-
         ctx.progress(1.0, "DIAS-pakking fullført")
         return OperationResult(
             True,
@@ -388,7 +450,9 @@ class DiasPackageOperation(BaseOperation):
             data={
                 "aic_path": str(aic_path),
                 "source_root": str(source_root),
-                "file_count": total_files,
+                "file_count": total_with_extras,
+                "source_file_count": source_file_count,
+                "extra_file_count": extra_count,
                 "estimated_bytes": estimated,
             },
             outputs=[str(aic_path)],

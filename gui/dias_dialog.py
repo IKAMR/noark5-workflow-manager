@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 import tkinter as tk
 import tkinter.ttk as ttk
 from pathlib import Path
@@ -34,13 +35,20 @@ _FIELDS = [
 
 _REQUIRED = {key for key, _ in _FIELDS}
 
+_DESTINATIONS = {
+    "content": "content",
+    "adm": "administrative_metadata",
+    "repo_ops": "administrative_metadata/repository_operations",
+    "desc": "descriptive_metadata",
+}
+
 
 class DiasParamDialog(ctk.CTkToplevel):
-    """DIAS-konfigurasjon på pakkenivå.
+    """Konfigurerer DIAS-pakken uten å endre kildefilene på disk.
 
-    Noark 5-uttrekket vises som låst innhold og pakkes uendret. Dialogen
-    beskriver DIAS-pakken og viser den faste pakkestrukturen; den redigerer
-    ikke system-/uttrekksnivået.
+    Kildeuttrekket vises sammen med manuelt tilleggsinnhold. Brukeren kan
+    legge ekstra filer i content/ eller metadataområdene i den framtidige
+    SIP-en. Dette endrer ikke den valgte Noark 5-kildemappen på disk.
     """
 
     def __init__(
@@ -64,12 +72,28 @@ class DiasParamDialog(ctk.CTkToplevel):
         self.vars: dict[str, ctk.StringVar] = {}
         self.entries: dict[str, ctk.CTkEntry] = {}
         self.values = {**DEFAULT_PARAMS, **(initial or {})}
+        self.extra_files: list[dict[str, str]] = self._load_extra_files(self.values.get("extra_files", "[]"))
+        self._folder_ids: dict[str, str] = {}
+        self._manual_items: dict[str, int] = {}
+
         if self.extraction_root:
             self.values["label"] = self.values.get("label") or self.extraction_root.name
             self.values["output_dir"] = self.values.get("output_dir") or str(self.extraction_root.parent)
 
         self._build()
         self._populate_tree()
+
+    @staticmethod
+    def _load_extra_files(value) -> list[dict[str, str]]:
+        try:
+            items = json.loads(value) if isinstance(value, str) else list(value or [])
+        except Exception:
+            return []
+        result = []
+        for item in items:
+            if isinstance(item, dict) and item.get("src") and item.get("dest"):
+                result.append({"src": str(item["src"]), "dest": str(item["dest"]).replace("\\", "/")})
+        return result
 
     def _build(self) -> None:
         self.grid_columnconfigure(0, weight=2, minsize=500)
@@ -170,7 +194,8 @@ class DiasParamDialog(ctk.CTkToplevel):
             pass
         style.configure(
             "Dias.Treeview", background=theme.PANEL_BG_DARK, fieldbackground=theme.PANEL_BG_DARK,
-            foreground=theme.TEXT, borderwidth=0, rowheight=max(22, theme.FontRegistry.effective_size(theme.SMALL_SIZE) + 12),
+            foreground=theme.TEXT, borderwidth=0,
+            rowheight=max(22, theme.FontRegistry.effective_size(theme.SMALL_SIZE) + 12),
             font=(theme.FONT_FAMILY, theme.FontRegistry.effective_size(theme.SMALL_SIZE)),
         )
         style.map("Dias.Treeview", background=[("selected", theme.BLUE_DIM)])
@@ -184,43 +209,113 @@ class DiasParamDialog(ctk.CTkToplevel):
         controls = ctk.CTkFrame(parent, fg_color="transparent")
         controls.grid(row=2, column=0, padx=12, pady=(2, 4), sticky="ew")
         ctk.CTkButton(
-            controls, text="Oppdater", width=90, command=self._populate_tree,
+            controls, text="+  Legg til fil", width=120, command=self._add_file,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
+        ).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(
+            controls, text="Fjern", width=80, command=self._remove_file,
             fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
         ).pack(side="left")
+        ctk.CTkButton(
+            controls, text="Oppdater", width=90, command=self._populate_tree,
+            fg_color=theme.BLUE_DIM, hover_color=theme.BLUE, font=theme.font(theme.SMALL_SIZE)
+        ).pack(side="right")
 
         ctk.CTkLabel(
             parent,
-            text="Kildeinnholdet er låst: DIAS-pakking beskriver og omslutter uttrekket, men endrer ikke strukturen i Noark 5-uttrekket.",
-            wraplength=330, justify="left", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED,
+            text=(
+                "Velg målmappe i treet før «Legg til fil». Uten valg brukes "
+                "administrative_metadata/repository_operations/. Tilleggsfiler pakkes inn, "
+                "men kildefilene på disk endres ikke."
+            ),
+            wraplength=350, justify="left", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED,
         ).grid(row=3, column=0, padx=12, pady=(2, 10), sticky="w")
+
+    def _insert_folder(self, parent: str, key: str, text: str, open_: bool = True) -> str:
+        item = self.tree.insert(parent, "end", text=text, open=open_, tags=("folder", key))
+        self._folder_ids[key] = item
+        return item
 
     def _populate_tree(self) -> None:
         if not hasattr(self, "tree"):
             return
         self.tree.delete(*self.tree.get_children())
-        root = self.tree.insert("", "end", text="DIAS SIP/AIC", open=True)
-        content = self.tree.insert(root, "end", text="content/", open=True)
-        self.tree.insert(root, "end", text="administrative_metadata/", open=True)
-        self.tree.insert(root, "end", text="  repository_operations/")
-        self.tree.insert(root, "end", text="descriptive_metadata/")
-        self.tree.insert(root, "end", text="info.xml  [genereres]")
-        self.tree.insert(root, "end", text="log.xml  [genereres]")
+        self._folder_ids.clear()
+        self._manual_items.clear()
+
+        root = self.tree.insert("", "end", text="DIAS SIP/AIC", open=True, tags=("root",))
+        content = self._insert_folder(root, "content", "content/")
+        adm = self._insert_folder(root, "adm", "administrative_metadata/")
+        repo_ops = self._insert_folder(adm, "repo_ops", "repository_operations/")
+        desc = self._insert_folder(root, "desc", "descriptive_metadata/")
+        self.tree.insert(root, "end", text="info.xml  [genereres]", tags=("generated",))
+        self.tree.insert(root, "end", text="log.xml  [genereres]", tags=("generated",))
 
         if not self.extraction_root or not self.extraction_root.exists():
-            self.tree.insert(content, "end", text="[ingen Noark 5-kilde valgt]")
-            return
-
-        source = self.tree.insert(content, "end", text=f"{self.extraction_root.name}/  [låst kilde]", open=True)
-        try:
-            children = sorted(self.extraction_root.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
-        except OSError as exc:
-            self.tree.insert(source, "end", text=f"[kunne ikke lese: {exc}]")
-            return
-        for child in children:
-            if child.is_dir():
-                self.tree.insert(source, "end", text=f"{child.name}/  [beholdes uendret]")
+            self.tree.insert(content, "end", text="[ingen Noark 5-kilde valgt]", tags=("source",))
+        else:
+            source = self.tree.insert(content, "end", text=f"{self.extraction_root.name}/  [kilde]", open=True, tags=("source",))
+            try:
+                children = sorted(self.extraction_root.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+            except OSError as exc:
+                self.tree.insert(source, "end", text=f"[kunne ikke lese: {exc}]", tags=("source",))
             else:
-                self.tree.insert(source, "end", text=child.name)
+                for child in children:
+                    text = f"{child.name}/" if child.is_dir() else child.name
+                    self.tree.insert(source, "end", text=text, tags=("source",))
+
+        folder_by_dest = {
+            "content": content,
+            "administrative_metadata": adm,
+            "administrative_metadata/repository_operations": repo_ops,
+            "descriptive_metadata": desc,
+        }
+        for index, extra in enumerate(self.extra_files):
+            dest = extra["dest"].replace("\\", "/").lstrip("/")
+            dest_dir = dest.rsplit("/", 1)[0] if "/" in dest else "content"
+            parent = folder_by_dest.get(dest_dir, repo_ops)
+            item = self.tree.insert(parent, "end", text=f"{Path(extra['src']).name}  [manuelt]", tags=("manual",))
+            self._manual_items[item] = index
+
+    def _selected_destination(self) -> str:
+        sel = self.tree.focus()
+        if sel:
+            tags = set(self.tree.item(sel, "tags"))
+            for key in _DESTINATIONS:
+                if key in tags:
+                    return _DESTINATIONS[key]
+            parent = self.tree.parent(sel)
+            while parent:
+                ptags = set(self.tree.item(parent, "tags"))
+                for key in _DESTINATIONS:
+                    if key in ptags:
+                        return _DESTINATIONS[key]
+                parent = self.tree.parent(parent)
+        return _DESTINATIONS["repo_ops"]
+
+    def _add_file(self) -> None:
+        path = filedialog.askopenfilename(title="Legg til fil i DIAS-pakken", parent=self)
+        if not path:
+            return
+        dest_dir = self._selected_destination()
+        fname = Path(path).name
+        dest = f"{dest_dir}/{fname}" if dest_dir else fname
+        self.extra_files.append({"src": path, "dest": dest})
+        self._populate_tree()
+
+    def _remove_file(self) -> None:
+        sel = self.tree.focus()
+        index = self._manual_items.get(sel)
+        if index is None:
+            messagebox.showinfo(
+                "DIAS-pakking",
+                "Velg en manuelt lagt til fil for å fjerne den fra pakkeoppsettet.",
+                parent=self,
+            )
+            return
+        if 0 <= index < len(self.extra_files):
+            self.extra_files.pop(index)
+        self._populate_tree()
 
     def _load_from_mets(self) -> None:
         path = filedialog.askopenfilename(
@@ -236,8 +331,6 @@ class DiasParamDialog(ctk.CTkToplevel):
             messagebox.showerror("Feil ved innlesing", str(exc), parent=self)
             return
 
-        # Samme prinsipp som SIARD: reset metadatafeltene til standard, så legg på
-        # det METS faktisk beskriver. Kildesti og utdatamappe berøres ikke.
         defaults = {**DEFAULT_PARAMS}
         if self.extraction_root:
             defaults["label"] = self.extraction_root.name
@@ -295,7 +388,9 @@ class DiasParamDialog(ctk.CTkToplevel):
             labels = dict(_FIELDS)
             readable = ", ".join(labels.get(key, key) for key in missing)
             messagebox.showwarning(
-                "DIAS-pakking", f"Fyll ut alle obligatoriske felt før operasjonen legges til.\n\nMangler: {readable}", parent=self
+                "DIAS-pakking",
+                f"Fyll ut alle obligatoriske felt før operasjonen legges til.\n\nMangler: {readable}",
+                parent=self,
             )
             return
 
@@ -305,5 +400,6 @@ class DiasParamDialog(ctk.CTkToplevel):
             messagebox.showwarning("DIAS-pakking", "Periodens slutt kan ikke være før periodens start.", parent=self)
             return
 
+        values["extra_files"] = json.dumps(self.extra_files, ensure_ascii=False)
         self.on_confirm(values)
         self.destroy()

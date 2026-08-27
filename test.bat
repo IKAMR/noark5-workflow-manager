@@ -8,10 +8,11 @@ echo   Noark 5 Workflow Manager - Tester
 echo ========================================
 echo.
 
-py -m unittest discover -s tests -v
+py tests\run_tests.py
+set EXITCODE=%ERRORLEVEL%
 
 echo.
-if %errorlevel% equ 0 (
+if %EXITCODE% equ 0 (
     echo [OK] Alle tester bestått.
 ) else (
     echo [FEIL] En eller flere tester feilet.
@@ -19,3 +20,4 @@ if %errorlevel% equ 0 (
 
 echo.
 pause
+exit /b %EXITCODE%
