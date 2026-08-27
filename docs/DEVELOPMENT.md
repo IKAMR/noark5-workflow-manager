@@ -2,7 +2,7 @@
 
 Før analyse eller endring av kode i dette repositoriet:
 
-1. Les `DEVELOPMENT.md`.
+1. Les `docs/DEVELOPMENT.md`.
 2. Les `docs/ARCHITECTURE.md` der den finnes og er relevant.
 3. Les `docs/INTERFACE.md` ved endringer i grensesnitt eller kontrakter.
 4. Les `docs/DEFINITIONS.md` ved endringer som berører begreper og lagdeling.
@@ -18,4 +18,4 @@ Før analyse eller endring av kode i dette repositoriet:
 
 ## Versjonering
 
-Kildekoden bruker versjon som `0.1.0-a8`. Git-tag kan bruke `v0.1.0-a8`.
+Kildekoden bruker versjon som `0.1.0-a9`. Git-tag kan bruke `v0.1.0-a9`.

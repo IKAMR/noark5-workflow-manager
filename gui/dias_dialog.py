@@ -12,6 +12,7 @@ import customtkinter as ctk
 
 from noark5_workflow.operations.dias_mets import read_meta_from_mets
 from noark5_workflow.operations.dias_package import DEFAULT_PARAMS
+from settings import load_config, save_config
 from . import theme
 
 _FIELDS = [
@@ -69,6 +70,7 @@ class DiasParamDialog(ctk.CTkToplevel):
 
         self.on_confirm = on_confirm
         self.extraction_root = Path(extraction_root) if extraction_root else None
+        self.settings = load_config()
         self.vars: dict[str, ctk.StringVar] = {}
         self.entries: dict[str, ctk.CTkEntry] = {}
         self.values = {**DEFAULT_PARAMS, **(initial or {})}
@@ -79,7 +81,12 @@ class DiasParamDialog(ctk.CTkToplevel):
 
         if self.extraction_root:
             self.values["label"] = self.values.get("label") or self.extraction_root.name
-            self.values["output_dir"] = self.values.get("output_dir") or str(self.extraction_root.parent)
+        if not self.values.get("output_dir"):
+            remembered_output = str(self.settings.get("last_dias_output_dir", "")).strip()
+            if remembered_output:
+                self.values["output_dir"] = remembered_output
+            elif self.extraction_root:
+                self.values["output_dir"] = str(self.extraction_root.parent)
 
         self._build()
         self._populate_tree()
@@ -359,10 +366,32 @@ class DiasParamDialog(ctk.CTkToplevel):
             sel = self.tree.parent(sel)
         return _DESTINATIONS["repo_ops"]
 
+    def _initial_dir(self, key: str, fallback: str | Path | None = None) -> str | None:
+        value = str(self.settings.get(key, "")).strip()
+        if value and Path(value).is_dir():
+            return value
+        if fallback:
+            path = Path(fallback)
+            if path.is_dir():
+                return str(path)
+            if path.parent.is_dir():
+                return str(path.parent)
+        return None
+
+    def _remember_dir(self, key: str, folder: str | Path) -> None:
+        value = str(folder)
+        self.settings[key] = value
+        save_config({key: value})
+
     def _add_file(self) -> None:
-        path = filedialog.askopenfilename(title="Legg til fil i DIAS-pakken", parent=self)
+        kwargs = {"title": "Legg til fil i DIAS-pakken", "parent": self}
+        initialdir = self._initial_dir("last_dias_add_file_dir")
+        if initialdir:
+            kwargs["initialdir"] = initialdir
+        path = filedialog.askopenfilename(**kwargs)
         if not path:
             return
+        self._remember_dir("last_dias_add_file_dir", Path(path).parent)
         dest_dir = self._selected_destination()
         fname = Path(path).name
         dest = f"{dest_dir}/{fname}" if dest_dir else fname
@@ -370,9 +399,14 @@ class DiasParamDialog(ctk.CTkToplevel):
         self._populate_tree()
 
     def _add_folder(self) -> None:
-        path = filedialog.askdirectory(title="Legg til mappe i DIAS-pakken", parent=self)
+        kwargs = {"title": "Legg til mappe i DIAS-pakken", "parent": self}
+        initialdir = self._initial_dir("last_dias_add_folder_dir")
+        if initialdir:
+            kwargs["initialdir"] = initialdir
+        path = filedialog.askdirectory(**kwargs)
         if not path:
             return
+        self._remember_dir("last_dias_add_folder_dir", path)
         dest_dir = self._selected_destination()
         name = Path(path).name
         dest = f"{dest_dir}/{name}" if dest_dir else name
@@ -424,13 +458,18 @@ class DiasParamDialog(ctk.CTkToplevel):
         self._populate_tree()
 
     def _load_from_mets(self) -> None:
-        path = filedialog.askopenfilename(
-            title="Velg METS-fil",
-            filetypes=[("XML-filer", "*.xml"), ("Alle filer", "*.*")],
-            parent=self,
-        )
+        kwargs = {
+            "title": "Velg METS-fil",
+            "filetypes": [("XML-filer", "*.xml"), ("Alle filer", "*.*")],
+            "parent": self,
+        }
+        initialdir = self._initial_dir("last_mets_import_dir")
+        if initialdir:
+            kwargs["initialdir"] = initialdir
+        path = filedialog.askopenfilename(**kwargs)
         if not path:
             return
+        self._remember_dir("last_mets_import_dir", Path(path).parent)
         try:
             meta = read_meta_from_mets(path)
         except Exception as exc:
@@ -454,9 +493,17 @@ class DiasParamDialog(ctk.CTkToplevel):
         )
 
     def _browse_output(self) -> None:
-        folder = filedialog.askdirectory(title="Velg utdatamappe for DIAS-pakke", parent=self)
+        kwargs = {"title": "Velg utdatamappe for DIAS-pakke", "parent": self}
+        initialdir = self._initial_dir(
+            "last_dias_output_dir",
+            self.vars.get("output_dir").get().strip() if self.vars.get("output_dir") else None,
+        )
+        if initialdir:
+            kwargs["initialdir"] = initialdir
+        folder = filedialog.askdirectory(**kwargs)
         if folder:
             self.vars["output_dir"].set(folder)
+            self._remember_dir("last_dias_output_dir", folder)
 
     def _validate_date(self, key: str, show_message: bool) -> bool:
         value = self.vars[key].get().strip()
@@ -506,6 +553,8 @@ class DiasParamDialog(ctk.CTkToplevel):
             messagebox.showwarning("DIAS-pakking", "Periodens slutt kan ikke være før periodens start.", parent=self)
             return
 
+        if values.get("output_dir"):
+            self._remember_dir("last_dias_output_dir", values["output_dir"])
         values["extra_files"] = json.dumps(self.extra_files, ensure_ascii=False)
         self.on_confirm(values)
         self.destroy()

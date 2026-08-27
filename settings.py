@@ -14,6 +14,11 @@ DEFAULT_CONFIG = {
     "operation_visibility": 2,
     "appearance_mode": "dark",
     "font_offset": 0,
+    "last_noark_source_dir": "",
+    "last_dias_output_dir": "",
+    "last_mets_import_dir": "",
+    "last_dias_add_file_dir": "",
+    "last_dias_add_folder_dir": "",
 }
 
 

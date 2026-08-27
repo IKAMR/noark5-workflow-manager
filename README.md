@@ -2,7 +2,7 @@
 
 Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
 
-**Versjon:** `0.1.0-a8.4`
+**Versjon:** `0.1.0-a9`
 
 ## Forhold til SIARD Workflow Manager
 
@@ -18,7 +18,7 @@ DIAS-pakking skal derfor ikke endre, omorganisere eller tolke om den interne str
 
 Den overordnede DIAS-pakkestrukturen er den samme uavhengig av om innholdet er et Noark 5-uttrekk eller annet arkivmateriale. Metadataelementer og verdier kan naturlig variere med innhold og avlevering.
 
-## Status i v0.1.0-a8.4
+## Status i v0.1.0-a9
 
 Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og har nå:
 
@@ -38,8 +38,25 @@ Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og 
 - ekstra filer og mapper kan legges under `content/`, `administrative_metadata/`, `administrative_metadata/repository_operations/` eller `descriptive_metadata/`
 - `test.bat` kjører alle automatiserte tester og skriver versjonert rapport til `docs/test-results/`
 - testing er dokumentert i `docs/TESTING.md`
+- sist brukte mapper huskes i `config.json` for Noark 5-kilde, DIAS-utdata, METS/info.xml-import, `Legg til fil` og `Legg til mappe`
 
 U1/N5.101, U2/N5.102 og den virkelige strømmede analysemotoren for `arkivstruktur.xml` er ikke implementert ennå.
+
+## Sist brukte mapper
+
+v0.1.0-a9 husker arbeidsmapper mellom programstarter. Dette er brukerkomfort og lagres i lokal `config.json`; det er ikke en del av et prosjekt eller en DIAS-profil.
+
+Følgende huskes:
+
+- sist valgte rotmappe for Noark 5-uttrekk
+- sist valgte utdatamappe for DIAS-pakke
+- sist brukte mappe ved innlesing av METS/info.xml
+- sist brukte mappe for `Legg til fil`
+- sist brukte mappe for `Legg til mappe`
+
+Filvelgerne åpner neste gang i den relevante sist brukte mappen. Eksisterende `config.json` oppgraderes automatisk med standardverdier for nye nøkler.
+
+Profiler er et eget, senere lag for gjenbrukbare workflow- og metadataoppsett og skal ikke blandes sammen med disse sist-brukt-innstillingene.
 
 ## Noark 5-kilder
 
@@ -72,7 +89,7 @@ Tilleggsfiler og tilleggsmapper pakkes direkte fra valgt kilde inn i den ukompri
 
 ### Workflow-/prosjektkontroller
 
-a8 viser også de samme grunnkontrollene som SIARD Workflow Manager for `Lagre profil...`, `Åpne prosjekt`, `Lagre prosjekt` og prosjekt-reset. Selve profil-/prosjektformatet er ennå ikke implementert i Noark 5 Workflow Manager, så disse knappene er foreløpig deaktivert. Dette unngår å etablere et ufullstendig prosjektformat som senere ikke kan bevare operasjonsparametere korrekt.
+Workflow-panelet viser også de samme grunnkontrollene som SIARD Workflow Manager for `Lagre profil...`, `Åpne prosjekt`, `Lagre prosjekt` og prosjekt-reset. Selve profil-/prosjektformatet er ennå ikke implementert i Noark 5 Workflow Manager, så disse knappene er foreløpig deaktivert. Dette unngår å etablere et ufullstendig prosjektformat som senere ikke kan bevare operasjonsparametere korrekt.
 
 ## Krav
 
