@@ -86,6 +86,14 @@ def _iter_files(root: Path):
             yield base_path / name
 
 
+def _iter_dirs(root: Path):
+    for base, dirs, _files in os.walk(root):
+        dirs.sort(key=str.lower)
+        base_path = Path(base)
+        for name in dirs:
+            yield base_path / name
+
+
 def _normalise_extra_files(raw) -> list[dict[str, str]]:
     try:
         items = json.loads(raw) if isinstance(raw, str) else list(raw or [])
@@ -95,21 +103,25 @@ def _normalise_extra_files(raw) -> list[dict[str, str]]:
     for item in items:
         if not isinstance(item, dict):
             continue
+        kind = str(item.get("kind", "file"))
         src = str(item.get("src", "")).strip()
-        dest = str(item.get("dest", "")).replace("\\", "/").lstrip("/").strip()
-        if not src or not dest:
+        dest = str(item.get("dest", "")).replace("\\", "/").lstrip("/").rstrip("/").strip()
+        if kind not in ("file", "folder", "empty_folder"):
+            raise ValueError(f"Ukjent type tilleggsinnhold: {kind}")
+        if kind in ("file", "folder") and not src:
+            continue
+        if not dest:
             continue
         parts = Path(dest).parts
         if ".." in parts or dest in _RESERVED_EXTRA_DESTS:
-            raise ValueError(f"Ugyldig målsti for ekstra fil: {dest}")
-        if not any(dest.startswith(prefix) for prefix in _ALLOWED_EXTRA_ROOTS):
+            raise ValueError(f"Ugyldig målsti for tilleggsinnhold: {dest}")
+        if not any(dest == prefix.rstrip("/") or dest.startswith(prefix) for prefix in _ALLOWED_EXTRA_ROOTS):
             raise ValueError(
-                "Ekstra filer må plasseres under content/, administrative_metadata/ "
+                "Tilleggsinnhold må plasseres under content/, administrative_metadata/ "
                 "eller descriptive_metadata/."
             )
-        result.append({"src": src, "dest": dest})
+        result.append({"kind": kind, "src": src, "dest": dest})
     return result
-
 
 def _estimate_source_size(root: Path, extra_files: list[dict[str, str]] | None = None) -> tuple[int, int]:
     total_bytes = 0
@@ -122,10 +134,15 @@ def _estimate_source_size(root: Path, extra_files: list[dict[str, str]] | None =
             continue
     for ef in extra_files or []:
         try:
-            p = Path(ef["src"])
-            if p.is_file():
+            p = Path(ef.get("src", ""))
+            kind = ef.get("kind", "file")
+            if kind == "file" and p.is_file():
                 total_bytes += p.stat().st_size
                 total_files += 1
+            elif kind == "folder" and p.is_dir():
+                for child in _iter_files(p):
+                    total_bytes += child.stat().st_size
+                    total_files += 1
         except OSError:
             continue
     return int(total_bytes * 1.03) + 2 * 1024 * 1024, total_files
@@ -291,29 +308,94 @@ def _write_aic_log(path: Path, aic_id: str, sip_id: str, created: str, meta: dic
     path.write_text(xml, encoding="utf-8")
 
 
-def _copy_extra_files(inner: Path, source_root: Path, sip_id: str, meta: dict, ctx: OperationContext) -> tuple[list[dict[str, str]], dict[str, dict]]:
+def _prepare_extra_content(source_root: Path, sip_id: str, meta: dict, ctx: OperationContext) -> tuple[list[dict[str, str]], dict[str, dict]]:
+    """Validate extra package content and gather metadata without staging copies.
+
+    Files and folders selected by the user remain at their original locations on
+    disk and are later streamed directly into the uncompressed TAR. This avoids
+    duplicating large directory trees in the temporary work area and prevents
+    unnecessary Windows path-length growth.
+    """
     extras = _normalise_extra_files(meta.get("extra_files", "[]"))
     extra_info: dict[str, dict] = {}
-    copied: list[dict[str, str]] = []
+    prepared: list[dict[str, str]] = []
+    seen_dests: set[str] = set()
+
+    def check_content_collision(dest_rel: str) -> None:
+        if dest_rel == "content" or dest_rel.startswith("content/"):
+            rel = dest_rel.removeprefix("content/") if dest_rel != "content" else ""
+            source_collision = source_root / rel if rel else source_root
+            if rel and source_collision.exists():
+                raise FileExistsError(f"Tilleggsinnhold kolliderer med kildeinnhold: {dest_rel}")
+
     for ef in extras:
-        src = Path(ef["src"])
-        if not src.is_file():
-            raise FileNotFoundError(f"Ekstra fil finnes ikke: {src}")
+        kind = ef.get("kind", "file")
+        src = Path(ef.get("src", "")) if ef.get("src") else None
         dest_rel = ef["dest"]
-        if dest_rel.startswith("content/"):
-            source_collision = source_root / dest_rel.removeprefix("content/")
-            if source_collision.exists():
-                raise FileExistsError(f"Ekstra fil kolliderer med kildeinnhold: {dest_rel}")
-        dest = inner / dest_rel
-        if dest.exists():
-            raise FileExistsError(f"To filer har samme målsti i DIAS-pakken: {dest_rel}")
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
+        check_content_collision(dest_rel)
+        if dest_rel in seen_dests:
+            raise FileExistsError(f"To elementer har samme målsti i DIAS-pakken: {dest_rel}")
+        seen_dests.add(dest_rel)
+
+        if kind == "empty_folder":
+            prepared.append({"kind": kind, "src": "", "dest": dest_rel})
+            ctx.log(f"Mappe opprettet i pakke: {dest_rel}/")
+            continue
+
+        if kind == "folder":
+            if src is None or not src.is_dir():
+                raise FileNotFoundError(f"Ekstra mappe finnes ikke: {src}")
+            file_count = 0
+            for child in _iter_files(src):
+                rel_inside = child.relative_to(src).as_posix()
+                key = f"{sip_id}/{dest_rel}/{rel_inside}"
+                extra_info[key] = _make_info(child, key, ctx)
+                file_count += 1
+            prepared.append({"kind": kind, "src": str(src), "dest": dest_rel})
+            ctx.log(f"Ekstra mappe klar for pakking: {dest_rel}/ ({file_count} filer)")
+            continue
+
+        if src is None or not src.is_file():
+            raise FileNotFoundError(f"Ekstra fil finnes ikke: {src}")
         key = f"{sip_id}/{dest_rel}"
-        extra_info[key] = _make_info(dest, key, ctx)
-        copied.append({"src": str(src), "dest": dest_rel})
-        ctx.log(f"Ekstra fil inkludert: {dest_rel}")
-    return copied, extra_info
+        extra_info[key] = _make_info(src, key, ctx)
+        prepared.append({"kind": kind, "src": str(src), "dest": dest_rel})
+        ctx.log(f"Ekstra fil klar for pakking: {dest_rel}")
+
+    return prepared, extra_info
+
+
+def _add_extra_content_to_tar(tar: tarfile.TarFile, sip_id: str, extras: list[dict[str, str]], ctx: OperationContext) -> None:
+    """Stream additional files/folders directly into the SIP TAR."""
+    for ef in extras:
+        if ctx.cancelled():
+            raise RuntimeError("Operasjonen ble avbrutt.")
+        kind = ef.get("kind", "file")
+        dest_rel = ef["dest"].rstrip("/")
+        arc_root = f"{sip_id}/{dest_rel}"
+
+        if kind == "empty_folder":
+            info = tarfile.TarInfo(name=arc_root + "/")
+            info.type = tarfile.DIRTYPE
+            info.mode = 0o755
+            info.mtime = int(datetime.now().timestamp())
+            tar.addfile(info)
+            continue
+
+        src = Path(ef["src"])
+        if kind == "file":
+            tar.add(src, arcname=arc_root, recursive=False)
+            continue
+
+        tar.add(src, arcname=arc_root, recursive=False)
+        for directory in _iter_dirs(src):
+            rel = directory.relative_to(src).as_posix()
+            tar.add(directory, arcname=f"{arc_root}/{rel}", recursive=False)
+        for child in _iter_files(src):
+            if ctx.cancelled():
+                raise RuntimeError("Operasjonen ble avbrutt.")
+            rel = child.relative_to(src).as_posix()
+            tar.add(child, arcname=f"{arc_root}/{rel}", recursive=False)
 
 
 def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: OperationContext, source_file_count: int) -> tuple[Path, int]:
@@ -335,7 +417,7 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
         created = _ts()
         ctx.log("Beregner SHA-256 for filer i Noark 5-uttrekket...")
         source_info = _gather_source_info(source_root, sip_id, ctx, source_file_count)
-        copied_extras, extra_info = _copy_extra_files(inner, source_root, sip_id, meta, ctx)
+        prepared_extras, extra_info = _prepare_extra_content(source_root, sip_id, meta, ctx)
         info = {**source_info, **extra_info}
 
         _write_sip_log(inner / "log.xml", sip_id, created, meta)
@@ -345,9 +427,15 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
         tar_path = outer_sip / "content" / f"{sip_id}.tar"
         ctx.log("Oppretter ukomprimert SIP TAR...")
         with tarfile.open(tar_path, "w") as tar:
+            for path in _iter_dirs(inner):
+                arc = path.relative_to(inner.parent).as_posix()
+                tar.add(path, arcname=arc, recursive=False)
             for path in _iter_files(inner):
                 arc = path.relative_to(inner.parent).as_posix()
                 tar.add(path, arcname=arc, recursive=False)
+            for path in _iter_dirs(source_root):
+                rel = path.relative_to(source_root).as_posix()
+                tar.add(path, arcname=f"{sip_id}/content/{rel}", recursive=False)
             for index, path in enumerate(_iter_files(source_root), start=1):
                 if ctx.cancelled():
                     raise RuntimeError("Operasjonen ble avbrutt.")
@@ -355,6 +443,7 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
                 tar.add(path, arcname=f"{sip_id}/content/{rel}", recursive=False)
                 if index == source_file_count or index % 250 == 0:
                     ctx.progress(index / max(source_file_count, 1), f"Pakker: {index}/{source_file_count} filer")
+            _add_extra_content_to_tar(tar, sip_id, prepared_extras, ctx)
 
         shutil.rmtree(inner)
         _write_info(package_root / "info.xml", tar_path, sip_id, created, meta)
@@ -366,7 +455,7 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
             package_root.rename(target)
         except OSError:
             shutil.move(str(package_root), str(target))
-        return target, len(copied_extras)
+        return target, len(prepared_extras)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -377,7 +466,7 @@ class DiasPackageOperation(BaseOperation):
         name="DIAS-pakking (SIP/AIC)",
         description=(
             "Pakker valgt Noark 5-uttrekk som DIAS SIP/AIC med METS, PREMIS, "
-            "SHA-256 og ukomprimert TAR. Pakken kan suppleres med manuelt valgte filer."
+            "SHA-256 og ukomprimert TAR. Pakken kan suppleres med filer og mapper."
         ),
         execution_target=ExecutionTarget.EITHER,
         category="SIP/AIC-Pakking",

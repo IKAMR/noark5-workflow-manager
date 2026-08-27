@@ -75,6 +75,7 @@ class DiasParamDialog(ctk.CTkToplevel):
         self.extra_files: list[dict[str, str]] = self._load_extra_files(self.values.get("extra_files", "[]"))
         self._folder_ids: dict[str, str] = {}
         self._manual_items: dict[str, int] = {}
+        self._tree_destinations: dict[str, str] = {}
 
         if self.extraction_root:
             self.values["label"] = self.values.get("label") or self.extraction_root.name
@@ -91,8 +92,19 @@ class DiasParamDialog(ctk.CTkToplevel):
             return []
         result = []
         for item in items:
-            if isinstance(item, dict) and item.get("src") and item.get("dest"):
-                result.append({"src": str(item["src"]), "dest": str(item["dest"]).replace("\\", "/")})
+            if not isinstance(item, dict) or not item.get("dest"):
+                continue
+            kind = str(item.get("kind", "file"))
+            src = str(item.get("src", ""))
+            if kind in ("file", "folder") and not src:
+                continue
+            if kind not in ("file", "folder", "empty_folder"):
+                continue
+            result.append({
+                "kind": kind,
+                "src": src,
+                "dest": str(item["dest"]).replace("\\", "/").rstrip("/"),
+            })
         return result
 
     def _build(self) -> None:
@@ -209,11 +221,19 @@ class DiasParamDialog(ctk.CTkToplevel):
         controls = ctk.CTkFrame(parent, fg_color="transparent")
         controls.grid(row=2, column=0, padx=12, pady=(2, 4), sticky="ew")
         ctk.CTkButton(
-            controls, text="+  Legg til fil", width=120, command=self._add_file,
+            controls, text="+  Legg til fil", width=105, command=self._add_file,
             fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
-        ).pack(side="left", padx=(0, 6))
+        ).pack(side="left", padx=(0, 5))
         ctk.CTkButton(
-            controls, text="Fjern", width=80, command=self._remove_file,
+            controls, text="+  Legg til mappe", width=120, command=self._add_folder,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
+        ).pack(side="left", padx=(0, 5))
+        ctk.CTkButton(
+            controls, text="+  Opprett mappe", width=120, command=self._create_folder,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
+        ).pack(side="left", padx=(0, 5))
+        ctk.CTkButton(
+            controls, text="Fjern", width=70, command=self._remove_file,
             fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER, font=theme.font(theme.SMALL_SIZE)
         ).pack(side="left")
         ctk.CTkButton(
@@ -224,9 +244,9 @@ class DiasParamDialog(ctk.CTkToplevel):
         ctk.CTkLabel(
             parent,
             text=(
-                "Velg målmappe i treet før «Legg til fil». Uten valg brukes "
-                "administrative_metadata/repository_operations/. Tilleggsfiler pakkes inn, "
-                "men kildefilene på disk endres ikke."
+                "Velg målmappe i treet før du legger til fil/mappe eller oppretter mappe. "
+                "Uten valg brukes administrative_metadata/repository_operations/. "
+                "Tillegg pakkes inn, men kildene på disk endres ikke."
             ),
             wraplength=350, justify="left", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED,
         ).grid(row=3, column=0, padx=12, pady=(2, 10), sticky="w")
@@ -234,6 +254,8 @@ class DiasParamDialog(ctk.CTkToplevel):
     def _insert_folder(self, parent: str, key: str, text: str, open_: bool = True) -> str:
         item = self.tree.insert(parent, "end", text=text, open=open_, tags=("folder", key))
         self._folder_ids[key] = item
+        if key in _DESTINATIONS:
+            self._tree_destinations[item] = _DESTINATIONS[key]
         return item
 
     def _populate_tree(self) -> None:
@@ -242,6 +264,7 @@ class DiasParamDialog(ctk.CTkToplevel):
         self.tree.delete(*self.tree.get_children())
         self._folder_ids.clear()
         self._manual_items.clear()
+        self._tree_destinations.clear()
 
         root = self.tree.insert("", "end", text="DIAS SIP/AIC", open=True, tags=("root",))
         content = self._insert_folder(root, "content", "content/")
@@ -270,27 +293,70 @@ class DiasParamDialog(ctk.CTkToplevel):
             "administrative_metadata/repository_operations": repo_ops,
             "descriptive_metadata": desc,
         }
+
+        def ensure_dest_folder(dest_dir: str) -> str:
+            if dest_dir in folder_by_dest:
+                return folder_by_dest[dest_dir]
+            roots = sorted(folder_by_dest, key=len, reverse=True)
+            root_key = next(
+                (r for r in roots if dest_dir == r or dest_dir.startswith(r + "/")),
+                "administrative_metadata/repository_operations",
+            )
+            parent_item = folder_by_dest[root_key]
+            current = root_key
+            suffix = dest_dir[len(root_key):].strip("/")
+            for part in [p for p in suffix.split("/") if p]:
+                current = f"{current}/{part}"
+                if current not in folder_by_dest:
+                    node = self.tree.insert(
+                        parent_item, "end", text=f"{part}/  [manuelt]", open=True, tags=("manual_folder",)
+                    )
+                    folder_by_dest[current] = node
+                    self._tree_destinations[node] = current
+                parent_item = folder_by_dest[current]
+            return parent_item
+
         for index, extra in enumerate(self.extra_files):
-            dest = extra["dest"].replace("\\", "/").lstrip("/")
-            dest_dir = dest.rsplit("/", 1)[0] if "/" in dest else "content"
-            parent = folder_by_dest.get(dest_dir, repo_ops)
-            item = self.tree.insert(parent, "end", text=f"{Path(extra['src']).name}  [manuelt]", tags=("manual",))
-            self._manual_items[item] = index
+            dest = extra["dest"].replace("\\", "/").lstrip("/").rstrip("/")
+            kind = extra.get("kind", "file")
+            if kind in ("folder", "empty_folder"):
+                parent_dir = dest.rsplit("/", 1)[0] if "/" in dest else "content"
+                parent = ensure_dest_folder(parent_dir)
+                name = dest.rsplit("/", 1)[-1]
+                label = "[mappe]" if kind == "folder" else "[opprettet]"
+                item = self.tree.insert(
+                    parent, "end", text=f"{name}/  {label}", open=True, tags=("manual_folder", "manual")
+                )
+                self._tree_destinations[item] = dest
+                self._manual_items[item] = index
+                if kind == "folder":
+                    src = Path(extra.get("src", ""))
+                    if src.is_dir():
+                        try:
+                            children = sorted(src.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+                            for child in children:
+                                txt = f"{child.name}/" if child.is_dir() else child.name
+                                self.tree.insert(item, "end", text=txt, tags=("manual_preview",))
+                        except OSError:
+                            pass
+            else:
+                dest_dir = dest.rsplit("/", 1)[0] if "/" in dest else "content"
+                parent = ensure_dest_folder(dest_dir)
+                item = self.tree.insert(
+                    parent, "end", text=f"{Path(extra['src']).name}  [manuelt]", tags=("manual",)
+                )
+                self._manual_items[item] = index
 
     def _selected_destination(self) -> str:
         sel = self.tree.focus()
-        if sel:
+        while sel:
+            if sel in self._tree_destinations:
+                return self._tree_destinations[sel]
             tags = set(self.tree.item(sel, "tags"))
             for key in _DESTINATIONS:
                 if key in tags:
                     return _DESTINATIONS[key]
-            parent = self.tree.parent(sel)
-            while parent:
-                ptags = set(self.tree.item(parent, "tags"))
-                for key in _DESTINATIONS:
-                    if key in ptags:
-                        return _DESTINATIONS[key]
-                parent = self.tree.parent(parent)
+            sel = self.tree.parent(sel)
         return _DESTINATIONS["repo_ops"]
 
     def _add_file(self) -> None:
@@ -300,7 +366,47 @@ class DiasParamDialog(ctk.CTkToplevel):
         dest_dir = self._selected_destination()
         fname = Path(path).name
         dest = f"{dest_dir}/{fname}" if dest_dir else fname
-        self.extra_files.append({"src": path, "dest": dest})
+        self.extra_files.append({"kind": "file", "src": path, "dest": dest})
+        self._populate_tree()
+
+    def _add_folder(self) -> None:
+        path = filedialog.askdirectory(title="Legg til mappe i DIAS-pakken", parent=self)
+        if not path:
+            return
+        dest_dir = self._selected_destination()
+        name = Path(path).name
+        dest = f"{dest_dir}/{name}" if dest_dir else name
+        self.extra_files.append({"kind": "folder", "src": path, "dest": dest})
+        self._populate_tree()
+
+    def _create_folder(self) -> None:
+        from tkinter import simpledialog
+
+        name = simpledialog.askstring(
+            "Opprett mappe",
+            "Mappenavn i DIAS-pakken:",
+            parent=self,
+        )
+        if not name:
+            return
+        name = name.strip().replace("\\", "/").strip("/")
+        if not name or "/" in name or name in (".", ".."):
+            messagebox.showwarning(
+                "DIAS-pakking",
+                "Oppgi ett gyldig mappenavn uten skråstrek.",
+                parent=self,
+            )
+            return
+        dest_dir = self._selected_destination()
+        dest = f"{dest_dir}/{name}" if dest_dir else name
+        if any(item.get("dest", "").rstrip("/") == dest for item in self.extra_files):
+            messagebox.showwarning(
+                "DIAS-pakking",
+                f"Mappen finnes allerede i pakkeoppsettet: {dest}",
+                parent=self,
+            )
+            return
+        self.extra_files.append({"kind": "empty_folder", "src": "", "dest": dest})
         self._populate_tree()
 
     def _remove_file(self) -> None:
@@ -309,7 +415,7 @@ class DiasParamDialog(ctk.CTkToplevel):
         if index is None:
             messagebox.showinfo(
                 "DIAS-pakking",
-                "Velg en manuelt lagt til fil for å fjerne den fra pakkeoppsettet.",
+                "Velg en manuelt lagt til fil eller mappe for å fjerne den fra pakkeoppsettet.",
                 parent=self,
             )
             return
