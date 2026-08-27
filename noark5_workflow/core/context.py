@@ -15,6 +15,9 @@ class OperationContext:
     progress_cb: ProgressCallback | None = None
     log_cb: LogCallback | None = None
     cancelled_cb: Callable[[], bool] | None = None
+    # Delt workflow-tilstand. Brukes blant annet av sentral PREMIS-proveniens.
+    metadata: dict[str, Any] = field(default_factory=dict)
+    results: dict[str, Any] = field(default_factory=dict)
 
     def progress(self, fraction: float, message: str = "") -> None:
         if self.progress_cb:
@@ -26,3 +29,6 @@ class OperationContext:
 
     def cancelled(self) -> bool:
         return bool(self.cancelled_cb and self.cancelled_cb())
+
+    def set_result(self, operation_id: str, data: Any) -> None:
+        self.results[operation_id] = data

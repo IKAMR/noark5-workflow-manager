@@ -461,6 +461,12 @@ def _build_package(source_root: Path, out_root: Path, meta: dict, ctx: Operation
 
 
 class DiasPackageOperation(BaseOperation):
+    # Opprettelse av DIAS SIP/AIC er en relevant bevaringshendelse.
+    # Selve Noark 5-kilden endres ikke.
+    premis_record = True
+    premis_event_type = "Creation"
+    premis_event_label = "DIAS SIP/AIC-pakking"
+
     definition = OperationDefinition(
         operation_id="dias_package",
         name="DIAS-pakking (SIP/AIC)",
@@ -491,6 +497,22 @@ class DiasPackageOperation(BaseOperation):
         except ValueError as exc:
             return False, str(exc)
         return True, ""
+
+    def premis_output_dir(self, result: OperationResult, ctx: OperationContext):
+        """Workflow-PREMIS skal følge eksplisitt valgt DIAS-utdata, aldri kilden."""
+        if result.ok and result.data.get("aic_path"):
+            return Path(str(result.data["aic_path"])).parent
+        configured = str(self.params.get("output_dir", "") or "").strip()
+        return Path(configured) if configured else super().premis_output_dir(result, ctx)
+
+    def premis_detail(self, result: OperationResult, ctx: OperationContext) -> str:
+        if result.ok and result.data:
+            return (
+                f"DIAS-pakke opprettet: {Path(str(result.data.get('aic_path', ''))).name}; "
+                f"kilde={result.data.get('source_root', '')}; "
+                f"filer={result.data.get('file_count', '')}"
+            )
+        return result.message or ""
 
     def run(self, ctx: OperationContext) -> OperationResult:
         extraction = ctx.source or Noark5Extraction.detect(ctx.extraction_root)

@@ -21,35 +21,28 @@ På Windows:
 docs/test-results/v<VERSION>.md
 ```
 
-Eksempel:
+Rapporten inneholder dato/tid, PASS/FAIL, antall tester og full testutskrift. Ny kjøring av samme versjon erstatter rapporten; det er sluttresultatet for den aktuelle versjonen som skal bevares.
 
-```text
-docs/test-results/v0.1.0-a7.md
-```
+## PREMIS-tester
 
-Rapporten inneholder dato/tid, PASS/FAIL, antall tester og full testutskrift.
+a10 legger til `tests/test_premis_provenance.py`. Testene skal minst verifisere:
+
+- PREMIS-fil med ett Noark 5-object, event(s) og Noark 5 Workflow Manager-agent
+- gyldig DIAS_PREMIS `eventType` og fallback til `Adjustment`
+- sentral registrering via `LocalExecutor`
+- at loggeren kan slås av med `enable_premis_provenance`
+- at PREMIS ikke erstatter vanlig workflow-logg
+
+Når flere relevante operasjoner introduseres, skal tester kontrollere at de deklarerer riktig eventType og at read-only steg ikke feilaktig beskrives som innholdsendringer.
 
 ## Manuelle testresultater
 
-Manuelle tester dokumenteres separat under:
-
-```text
-docs/manual-test-results/
-```
-
-Normalt brukes én fil per versjon:
-
-```text
-v0.1.0-a7.md
-```
-
-Ved flere større, avgrensede testforløp kan beskrivende suffiks brukes, for eksempel:
-
-```text
-v0.1.0-a7_dias-package.md
-v0.1.0-a7_mets-import.md
-```
+Manuelle tester dokumenteres separat under `docs/manual-test-results/`, normalt én fil per versjon.
 
 ## Videre validering
 
 Når analysefunksjoner for U1/U2, arkivstruktur og dokumentkontroll implementeres, skal resultater valideres mot kjente uttrekk og der det er relevant sammenlignes med eksisterende KDRS Query-resultater.
+
+## Test av utdataisolasjon
+
+Automatiske tester skal verifisere at workflow-PREMIS ikke skrives i eller ved siden av kildeområdet når ingen eksplisitt utdatamappe finnes, og at DIAS-pakking legger workflow-PREMIS i valgt DIAS-utdatamappe. Praktisk test bør også kontrollere at kildekatalogen er uendret etter workflow-kjøring.
