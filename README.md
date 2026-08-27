@@ -2,42 +2,45 @@
 
 Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
 
-Prosjektet følger de arkitektoniske prinsippene i **SIARD Workflow Manager**: operasjoner er skilt fra GUI-et, operasjoner returnerer strukturerte resultater, og arbeidsflytlaget kan utvikles uavhengig av formatspesifikke funksjoner.
+**Versjon:** `0.1.0-a6`
 
-**Versjon:** `0.1.0-a1`  
-**Status:** første skall / arkitekturprototype
+## Forhold til SIARD Workflow Manager
 
-## Formål
+Noark 5 Workflow Manager bygger på arkitektur, arbeidsflytmodell, GUI-prinsipper og enkelte generelle funksjonelle konsepter fra [SIARD Workflow Manager](https://github.com/smult/SIARD-Workflow-Manager).
 
-Første versjon etablerer et rammeverk som senere kan brukes til blant annet:
+Prosjektene er separate verktøy for henholdsvis Noark 5- og SIARD-uttrekk. Noark 5-spesifikk analyse og SIARD-spesifikk behandling holdes adskilt, mens generelle arbeidsflyt- og pakkekonsepter kan følge samme modell der dette er naturlig.
 
-- analyse av `arkivstruktur.xml`
-- samlede tellinger tilsvarende U1 / N5.101
-- tellinger per arkivdel tilsvarende U2 / N5.102
-- analyse på tvers av flere Noark 5 XML-filer
-- kontroll av dokumentmetadata mot filer i `dokumenter/`
-- rapportering og kvalitetskontroll
-- lokal eller senere serverbasert kjøring av operasjoner
+## Viktig prinsipp: uttrekk og DIAS-pakke er separate nivåer
 
-Selve U1/U2-analysemotoren er ikke implementert i denne første skallversjonen.
+Noark 5 er system-/uttrekksnivået. DIAS SIP/AIC er pakkenivået rundt innholdet.
 
-## Innhold i første skall
+DIAS-pakking skal derfor ikke endre, omorganisere eller tolke om den interne strukturen i Noark 5-uttrekket. Det valgte uttrekket pakkes som innhold med uendret intern struktur, mens DIAS-laget beskriver og kontrollerer pakken gjennom blant annet METS, PREMIS, sjekksummer og pakkeidentifikatorer.
+
+Den overordnede DIAS-pakkestrukturen er den samme uavhengig av om innholdet er et Noark 5-uttrekk eller annet arkivmateriale. Metadataelementer og verdier kan naturlig variere med innhold og avlevering.
+
+## Status i v0.1.0-a6
+
+Denne alfaen viderefører GUI- og arbeidsflytskallet fra tidligere versjoner og har nå:
 
 - CustomTkinter-basert skrivebords-GUI
-- valg og deteksjon av Noark 5-uttrekk
-- operasjonsregister
-- kontrakt med `BaseOperation` og `OperationResult`
-- `OperationContext` for kilde, innstillinger, fremdrift og arbeidsmappe
+- valg og automatisk deteksjon av Noark 5-uttrekk
+- kategorisert operasjonspalett og workflow
 - lokal kjøring gjennom `LocalExecutor`
 - eksplisitt grensesnitt for fremtidig serverkjøring gjennom `RemoteExecutor`
-- operasjon for deteksjon av Noark 5-uttrekk
-- enkel inventaroperasjon for metadatafiler
-- plassholder for fremtidig strømmet analyse av `arkivstruktur.xml`
-- grunnleggende tester
+- vedvarende A-/A+ skriftstørrelse etter samme prinsipp som SIARD Workflow Manager
+- metadataoversikt og plassholder for senere arkivstruktur-analyse
+- DIAS-pakking (SIP/AIC) av komplett valgt Noark 5-uttrekk
+- SHA-256, METS, PREMIS, `info.xml`, `log.xml` og ukomprimert SIP TAR
+- DIAS-konfigurasjonsdialog med to-kolonne-oppsett: `METADATA | PAKKESTRUKTUR`
+- innlesing av eksisterende METS XML (`info.xml`, `mets.xml` eller annet filnavn)
+- validering av obligatoriske DIAS-felt og periodedatoer
+- pakkevisning som tydelig viser at Noark 5-kilden er låst og pakkes uendret
+
+U1/N5.101, U2/N5.102 og den virkelige strømmede analysemotoren for `arkivstruktur.xml` er ikke implementert ennå.
 
 ## Noark 5-kilder
 
-Skallet kjenner igjen blant annet:
+Programmet kjenner igjen blant annet:
 
 - `arkivstruktur.xml`
 - `arkivuttrekk.xml`
@@ -48,26 +51,31 @@ Skallet kjenner igjen blant annet:
 - XSD-filer
 - `dokumenter/`
 
+## DIAS-pakking (SIP/AIC)
+
+Velg først et Noark 5-uttrekk. Under kategorien `SIP/AIC-Pakking` kan operasjonen `DIAS-pakking (SIP/AIC)` legges til workflow.
+
+Dialogen kan lese metadata fra en eksisterende METS-fil. Importen tolker blant annet:
+
+- `LABEL` som pakketittel
+- `altRecordID TYPE="SUBMISSIONAGREEMENT"`
+- `altRecordID TYPE="STARTDATE"`
+- `altRecordID TYPE="ENDDATE"`
+- METS-agenter for arkivorganisasjon, kildesystem/systemversjon/arkivtype, skaper, produsent, avleverer, eier og bevaringsansvarlig
+
+Noark 5-kilden vises i pakkestrukturen, men kan ikke redigeres fra DIAS-dialogen. Dette er bevisst: DIAS-funksjonaliteten opererer på pakkenivå og skal ikke interferere med uttrekksnivået.
+
 ## Krav
 
 - Python 3.10 eller nyere
 - Windows, macOS eller Linux
 
-Installer avhengigheter:
+På Windows er normal bruk:
 
-```bash
-pip install -r requirements.txt
-```
+1. Kjør `install.bat` ved første installasjon eller når avhengigheter endres.
+2. Start programmet med `start.bat`.
 
-## Kjøring
-
-```bash
-python main.py
-```
-
-På Windows kan også `start.bat` brukes.
-
-## Operasjoner
+## Operasjonsarkitektur
 
 En operasjon arver fra `BaseOperation` og implementerer:
 
@@ -83,13 +91,13 @@ Operasjoner angir et `ExecutionTarget`:
 - `server`
 - `either`
 
-I denne første versjonen brukes bare `LocalExecutor`. `RemoteExecutor` er med som et eksplisitt grensesnitt for senere klient/server-støtte.
+I dagens versjon brukes `LocalExecutor`. `RemoteExecutor` er et eksplisitt grensesnitt for senere klient/server-støtte.
 
 ## Server/klient-retning
 
-Arkitekturen er bevisst skilt mellom GUI, operasjoner og kjørebackend. En fremtidig klient skal derfor kunne sende samme operasjon til en server eller arbeidsnode, samtidig som lokal kjøring fortsatt er tilgjengelig.
+Arkitekturen er bevisst skilt mellom GUI, operasjoner og kjørebackend. En fremtidig klient skal kunne sende samme operasjon til en server eller arbeidsnode, samtidig som lokal kjøring fortsatt er tilgjengelig.
 
-For store bevaringsuttrekk er anbefalt modell **delt lagring + jobbreferanser**, ikke opplasting av hele uttrekket gjennom GUI-klienten.
+For store bevaringsuttrekk er anbefalt modell delt lagring + jobbreferanser, ikke opplasting av hele uttrekket gjennom GUI-klienten.
 
 Se [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for mer informasjon.
 
