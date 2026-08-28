@@ -1,0 +1,82 @@
+name: Feature request
+description: Suggest a new feature or improvement for Noark 5 Workflow Manager
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement.
+
+        We are interested in both Noark 5-specific needs and generic workflow functionality that may also be relevant to SIARD Workflow Manager.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: What problem should this feature solve?
+      placeholder: Describe the practical archival/depot workflow need first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Suggested solution
+      description: What would you like Noark 5 Workflow Manager to do?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Is this mainly Noark-specific, generic workflow functionality, or uncertain?
+      options:
+        - Noark 5-specific
+        - Generic workflow functionality
+        - Potentially useful for SIARD Workflow Manager too
+        - Unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Validation / reporting
+        - Arkade 5 integration
+        - Pipeline / orchestration
+        - Recursive jobs / batch processing
+        - Transfer / checksum / PREMIS
+        - Working area / Final AIP / AIC
+        - DIAS package handling
+        - Metadata import
+        - GUI / usability
+        - Server / distributed execution
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Are there current manual workarounds or other tools that partly solve the need?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add examples, screenshots, references, or workflow context. Do not upload sensitive archival material.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I have checked that this request is not already covered by an open issue.
+          required: true

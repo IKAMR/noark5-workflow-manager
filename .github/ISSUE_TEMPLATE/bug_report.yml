@@ -1,0 +1,112 @@
+name: Bug report
+description: Report a reproducible problem in Noark 5 Workflow Manager
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Noark 5 Workflow Manager.
+
+        Please do not upload confidential, sensitive, or real archival material to a public issue. Use anonymized examples where possible.
+
+  - type: input
+    id: version
+    attributes:
+      label: Noark 5 Workflow Manager version
+      description: Which version are you using?
+      placeholder: e.g. v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Windows version and architecture if known.
+      placeholder: e.g. Windows 11 23H2, 64-bit
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the application does the problem concern?
+      options:
+        - Noark 5 source/extraction
+        - Workflow / operation execution
+        - DIAS / AIP / AIC packaging
+        - Metadata import (info.xml / METS)
+        - PREMIS / provenance
+        - Validation / reporting
+        - Arkade 5 integration
+        - GUI / usability
+        - Settings / folders
+        - Testing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What were you trying to do?
+      description: Describe the task and the relevant workflow or operation.
+      placeholder: Explain what you selected, which operation you ran, and the intended result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Give the shortest repeatable sequence of steps.
+      placeholder: |
+        1. Start the application with start.bat
+        2. Select ...
+        3. Add operation ...
+        4. Run workflow
+        5. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant log or error output
+      description: Paste the relevant part of the log or traceback. Remove sensitive paths/data if needed.
+      render: text
+
+  - type: textarea
+    id: extraction
+    attributes:
+      label: Relevant Noark 5 / package information
+      description: If relevant, describe the extraction/package type, approximate size, number of parts, or whether it came from Arkade/DIAS. Do not upload sensitive archival content.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I have checked that this is not already reported in an open issue.
+          required: true
+        - label: I have not attached confidential or sensitive archival material.
+          required: true
