@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest a new feature or improvement for Noark 5 Workflow Manager
+description: Suggest an improvement or new capability
 title: "[Feature]: "
 labels:
   - enhancement
@@ -7,36 +7,38 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting an improvement.
-
-        We are interested in both Noark 5-specific needs and generic workflow functionality that may also be relevant to SIARD Workflow Manager.
+        Beskriv behovet først. Det gjør det lettere å vurdere både Noark 5-spesifikke løsninger og generisk funksjonalitet som kan være relevant for SIARD Workflow Manager.
 
   - type: textarea
     id: problem
     attributes:
       label: Problem or need
-      description: What problem should this feature solve?
-      placeholder: Describe the practical archival/depot workflow need first.
+      description: Hvilket problem eller hvilken arbeidsprosess ønsker du å forbedre?
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: Suggested solution
-      description: What would you like Noark 5 Workflow Manager to do?
+      label: Desired solution
+      description: Hva ønsker du at Noark 5 Workflow Manager skal kunne gjøre?
     validations:
       required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Finnes det alternative løsninger eller eksisterende verktøy/arbeidsmåter?
 
   - type: dropdown
     id: scope
     attributes:
       label: Scope
-      description: Is this mainly Noark-specific, generic workflow functionality, or uncertain?
+      description: Hvordan vurderer du funksjonens omfang?
       options:
         - Noark 5-specific
-        - Generic workflow functionality
-        - Potentially useful for SIARD Workflow Manager too
+        - Generic workflow functionality that may also be useful in SIARD Workflow Manager
         - Unsure
     validations:
       required: true
@@ -46,37 +48,29 @@ body:
     attributes:
       label: Area
       options:
-        - Validation / reporting
+        - Noark 5 validation / reporting
         - Arkade 5 integration
-        - Pipeline / orchestration
-        - Recursive jobs / batch processing
-        - Transfer / checksum / PREMIS
-        - Working area / Final AIP / AIC
-        - DIAS package handling
-        - Metadata import
+        - DIAS / AIP / AIC
+        - PREMIS / provenance
+        - Transfer / checksum / storage zones
+        - Pipeline
+        - Batch / recursive jobs
         - GUI / usability
-        - Server / distributed execution
         - Documentation
         - Other
     validations:
       required: true
 
   - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives considered
-      description: Are there current manual workarounds or other tools that partly solve the need?
-
-  - type: textarea
     id: context
     attributes:
       label: Additional context
-      description: Add examples, screenshots, references, or workflow context. Do not upload sensitive archival material.
+      description: Legg til relevant bakgrunn. Ikke del sensitivt arkivmateriale.
 
   - type: checkboxes
     id: checks
     attributes:
-      label: Checks
+      label: Before submitting
       options:
-        - label: I have checked that this request is not already covered by an open issue.
+        - label: I have checked existing issues for a similar request.
           required: true
