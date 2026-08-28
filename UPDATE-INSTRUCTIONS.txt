@@ -1,0 +1,19 @@
+Noark 5 Workflow Manager v0.1.1-a1
+
+This is an update package for the released v0.1.0 repository.
+Copy/overlay the contents into the repository root.
+
+Changed/new files:
+- version.py
+- gui/app.py
+- gui/jobs_window.py
+- noark5_workflow/core/job.py
+- tests/test_job_model.py
+- docs/JOBS-AND-BATCHES.md
+- docs/RELEASE-v0.1.1-a1.md
+
+Then run:
+  test.bat
+  start.bat
+
+Expected: existing suite plus 3 new Job/Batch tests.

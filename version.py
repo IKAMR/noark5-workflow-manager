@@ -1,2 +1,2 @@
 APP_NAME = "Noark 5 Workflow Manager"
-VERSION = "0.1.0"
+VERSION = "0.1.1-a1.4"

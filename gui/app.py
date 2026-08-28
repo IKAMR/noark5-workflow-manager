@@ -9,6 +9,7 @@ import customtkinter as ctk
 
 from noark5_workflow.app import build_registry
 from noark5_workflow.core.context import OperationContext
+from noark5_workflow.core.job import Job, JobBatch, JobStatus
 from noark5_workflow.core.workflow import Workflow
 from noark5_workflow.executors.local import LocalExecutor
 from noark5_workflow.sources.noark5_extraction import Noark5Extraction
@@ -16,6 +17,7 @@ from version import APP_NAME, VERSION
 from settings import load_config, save_config
 from . import theme
 from .dias_dialog import DiasParamDialog
+from .jobs_window import JobsWindow
 from .log_panel import LogPanel
 from .operations_panel import OperationsPanel
 from .settings_dialog import SettingsDialog
@@ -34,6 +36,9 @@ class WorkflowApp(ctk.CTk):
 
         self.registry = build_registry()
         self.workflow = Workflow()
+        self.jobs = JobBatch()
+        self.current_job: Job | None = None
+        self.jobs_window: JobsWindow | None = None
         self.executor = LocalExecutor()
         self.extraction: Noark5Extraction | None = None
         self.cancel_requested = False
@@ -103,6 +108,26 @@ class WorkflowApp(ctk.CTk):
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=2, padx=8, pady=8, sticky="w")
 
+        self.active_job_label = ctk.CTkLabel(
+            header,
+            text="AKTIV JOBB: ingen",
+            font=theme.font(theme.SMALL_SIZE, "bold"),
+            text_color=theme.TEXT_SUB,
+            anchor="w",
+        )
+        self.active_job_label.grid(row=0, column=3, padx=12, pady=8, sticky="ew")
+
+        ctk.CTkButton(
+            header,
+            text="Jobber",
+            width=78,
+            height=28,
+            font=theme.font(theme.SMALL_SIZE),
+            fg_color=theme.BLUE_DIM,
+            hover_color=theme.BLUE,
+            command=self._open_jobs,
+        ).grid(row=0, column=4, padx=(6, 4), pady=8)
+
         ctk.CTkButton(
             header,
             text="Endre temp-mappe",
@@ -112,7 +137,7 @@ class WorkflowApp(ctk.CTk):
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
             command=self._change_temp_dir,
-        ).grid(row=0, column=4, padx=(6, 4), pady=8)
+        ).grid(row=0, column=5, padx=(6, 4), pady=8)
 
         ctk.CTkButton(
             header,
@@ -123,24 +148,83 @@ class WorkflowApp(ctk.CTk):
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
             command=self._open_settings,
-        ).grid(row=0, column=5, padx=4, pady=8)
+        ).grid(row=0, column=6, padx=4, pady=8)
 
         ctk.CTkButton(
             header, text="A-", width=34, height=28,
             font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
             command=lambda: self._font_scale(-1),
-        ).grid(row=0, column=6, padx=2, pady=8)
+        ).grid(row=0, column=7, padx=2, pady=8)
         ctk.CTkButton(
             header, text="A+", width=34, height=28,
             font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
             command=lambda: self._font_scale(+1),
-        ).grid(row=0, column=7, padx=2, pady=8)
+        ).grid(row=0, column=8, padx=2, pady=8)
         ctk.CTkButton(
             header, text="?", width=34, height=28, state="disabled",
             font=theme.font(theme.SMALL_SIZE), fg_color=theme.BUTTON_BG,
-        ).grid(row=0, column=8, padx=(2, 10), pady=8)
+        ).grid(row=0, column=9, padx=(2, 10), pady=8)
+
+    def _open_jobs(self) -> None:
+        if self.current_job:
+            self.current_job.set_workflow(self.workflow.operation_ids())
+        if self.jobs_window is not None and self.jobs_window.winfo_exists():
+            self.jobs_window.focus()
+            self.jobs_window.refresh()
+            return
+        self.jobs_window = JobsWindow(self, self.jobs, self._open_job, self._create_job)
+
+    def _create_job(self, source_root: Path) -> Job:
+        # A new job starts with an empty workflow. Reuse/copy of another job's
+        # workflow must be an explicit user action in a later version.
+        return self.jobs.new_job(source_root)
+
+    def _refresh_active_job_label(self) -> None:
+        if not self.current_job:
+            self.active_job_label.configure(text="AKTIV JOBB: ingen", text_color=theme.TEXT_SUB)
+            return
+        count = len(self.workflow.operation_ids())
+        if count == 0:
+            suffix = "Workflow: 0 operasjoner - legg til operasjoner"
+        elif count == 1:
+            suffix = "Workflow: 1 operasjon"
+        else:
+            suffix = f"Workflow: {count} operasjoner"
+        self.active_job_label.configure(
+            text=f"AKTIV JOBB: {self.current_job.job_id} | {self.current_job.name} | {suffix}",
+            text_color=theme.BLUE,
+        )
+
+    def _ensure_job_for_current_source(self) -> Job | None:
+        root = self.source_panel.path_var.get().strip()
+        if not root:
+            return None
+        path = Path(root)
+        if self.current_job and self.current_job.source_root == path:
+            return self.current_job
+        existing = next((job for job in self.jobs.jobs() if job.source_root == path), None)
+        if existing:
+            self.current_job = existing
+            self._refresh_active_job_label()
+            return existing
+        self.current_job = self.jobs.new_job(path, workflow_ids=self.workflow.operation_ids())
+        self._refresh_active_job_label()
+        return self.current_job
+
+    def _open_job(self, job: Job) -> None:
+        if self.current_job:
+            self.current_job.set_workflow(self.workflow.operation_ids())
+        self.current_job = job
+        self.workflow.clear()
+        for operation_id in job.workflow_ids:
+            self.workflow.add(operation_id)
+        self.workflow_panel.refresh()
+        self.source_panel.set_path(str(job.source_root))
+        self._refresh_active_job_label()
+        self.status_bar.set_status(f"Åpnet {job.job_id}: {job.name}")
+        self.log_panel.append(f"Jobb åpnet: {job.job_id} - {job.name}")
 
     def _font_scale(self, delta: int) -> None:
         """Juster skriftstørrelsen dynamisk, på samme måte som SIARD Workflow Manager."""
@@ -162,6 +246,7 @@ class WorkflowApp(ctk.CTk):
     def _source_changed(self, extraction: Noark5Extraction | None) -> None:
         self.extraction = extraction
         if extraction:
+            self._ensure_job_for_current_source()
             detection = "Noark 5" if extraction.is_noark5_candidate else "ukjent"
             self.status_bar.update_storage(extraction.root, detection=detection)
             if extraction.is_noark5_candidate:
@@ -180,6 +265,10 @@ class WorkflowApp(ctk.CTk):
             def add_configured(params: dict) -> None:
                 operation.configure(params)
                 if self.workflow_panel.add(operation_id):
+                    if self.current_job:
+                        self.current_job.output_root = Path(params["output_dir"]) if params.get("output_dir") else None
+                        self.current_job.set_workflow(self.workflow.operation_ids())
+                    self._refresh_active_job_label()
                     self.log_panel.append(f"Lagt til i workflow: {operation.definition.name}")
                     self.log_panel.append(f"DIAS-utdata: {params.get('output_dir') or '(samme mappe som uttrekk)'}")
                 else:
@@ -189,12 +278,17 @@ class WorkflowApp(ctk.CTk):
             return
 
         if self.workflow_panel.add(operation_id):
+            if self.current_job:
+                self.current_job.set_workflow(self.workflow.operation_ids())
+            self._refresh_active_job_label()
             operation = self.registry.get(operation_id)
             self.log_panel.append(f"Lagt til i workflow: {operation.definition.name}")
         else:
             self.status_bar.set_status("Operasjonen finnes allerede i workflow")
 
     def _progress_callback(self, value: float, message: str) -> None:
+        if self.current_job:
+            self.current_job.progress = max(0.0, min(1.0, float(value)))
         self.after(0, lambda: self.status_bar.set_status(message or f"Kjører {value:.0%}"))
 
     def _run_workflow(self) -> None:
@@ -207,6 +301,13 @@ class WorkflowApp(ctk.CTk):
         if not root:
             messagebox.showwarning(APP_NAME, "Velg en uttrekksmappe først.")
             return
+
+        job = self._ensure_job_for_current_source()
+        if job:
+            job.set_workflow(op_ids)
+            job.status = JobStatus.RUNNING
+            job.progress = 0.0
+            job.message = "Workflow startet"
 
         self.workflow_panel.run_button.configure(state="disabled")
         self.cancel_requested = False
@@ -236,19 +337,30 @@ class WorkflowApp(ctk.CTk):
                             f"{'OK' if ok else 'FEIL'}: {n}"
                         ),
                     )
+                    if job:
+                        job.progress = index / total
+                        job.message = result.message
                     self.after(0, lambda i=index, t=total: self.status_bar.set_status(f"Workflow {i}/{t}"))
                     if not result.ok:
                         break
 
                 if isinstance(ctx.source, Noark5Extraction):
                     self.extraction = ctx.source
+                if job:
+                    job.status = JobStatus.OK if all_ok else JobStatus.FAILED
+                    job.progress = 1.0 if all_ok else job.progress
                 final = "Workflow fullført" if all_ok else "Workflow stoppet med feil"
                 self.after(0, lambda: self.status_bar.set_status(final))
             except Exception as exc:
+                if job:
+                    job.status = JobStatus.FAILED
+                    job.message = str(exc)
                 self.after(0, lambda: self.log_panel.append(f"FEIL: {exc}"))
                 self.after(0, lambda: self.status_bar.set_status("Feil"))
             finally:
                 self.after(0, lambda: self.workflow_panel.run_button.configure(state="normal"))
+                if self.jobs_window is not None and self.jobs_window.winfo_exists():
+                    self.after(0, self.jobs_window.refresh)
 
         threading.Thread(target=worker, daemon=True).start()
 
