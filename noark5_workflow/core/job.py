@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -16,21 +17,19 @@ class JobStatus(str, Enum):
 
 @dataclass
 class Job:
-    """One workflow execution against one source/extraction.
-
-    A Job is deliberately small in v0.1.1-a1. Scheduler/worker details are
-    metadata only for now; execution still happens through LocalExecutor.
-    """
+    """One workflow execution against one source/extraction."""
 
     job_id: str
     source_root: Path
     output_root: Path | None = None
     name: str = ""
     workflow_ids: list[str] = field(default_factory=list)
+    operation_params: dict[str, dict] = field(default_factory=dict)
     status: JobStatus = JobStatus.READY
     progress: float = 0.0
     worker: str = "Lokal (denne PC-en)"
     message: str = ""
+    log_entries: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.source_root = Path(self.source_root)
@@ -42,13 +41,15 @@ class Job:
     def set_workflow(self, operation_ids: Iterable[str]) -> None:
         self.workflow_ids = list(operation_ids)
 
+    def set_operation_params(self, operation_id: str, params: dict) -> None:
+        self.operation_params[operation_id] = deepcopy(dict(params))
+
+    def get_operation_params(self, operation_id: str) -> dict:
+        return deepcopy(self.operation_params.get(operation_id, {}))
+
 
 class JobBatch:
-    """Ordered collection of Jobs.
-
-    This is the future boundary for recursive discovery, scheduler queues and
-    distributed workers. a1 intentionally keeps it in-memory and local.
-    """
+    """Ordered collection of jobs; execution/scheduling is handled by the app."""
 
     def __init__(self) -> None:
         self._jobs: list[Job] = []

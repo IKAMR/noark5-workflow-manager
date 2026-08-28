@@ -1,29 +1,46 @@
 # Jobs and batches
 
-Introduced in v0.1.1-a1.
+Introduced in v0.1.1-a1; first executable local batch scheduler in v0.1.1-a2.
 
 ## User-facing hierarchy
 
-The GUI should remain simple even when execution grows beyond one extraction:
+1. **Jobber** – oversikt over én eller flere jobber.
+2. **Workflow** – detaljert arbeidsflate for én aktiv jobb.
+3. **Resultater** – senere eget aggregert resultatnivå.
 
-1. **Jobs** – overview of one or more jobs.
-2. **Workflow** – detailed workspace for one selected job.
-3. **Results** – later aggregate results for a batch.
-
-Scheduler and Worker are technical layers and should normally appear only as status information.
+Scheduler og Worker er tekniske lag og skal normalt vises som status, ikke som egne hovedvinduer.
 
 ## Core model
 
 ```text
 Batch
-├── Job 001 -> source A -> workflow -> output A
-├── Job 002 -> source B -> workflow -> output B
-└── Job 003 -> source C -> workflow -> output C
+├── JOB-001 -> source A -> workflow A -> output A
+├── JOB-002 -> source B -> workflow B -> output B
+└── JOB-003 -> source C -> workflow C -> output C
 ```
 
-A **Job** is one source/extraction plus one workflow execution and one output context.
+Én Job eier sin egen kilde, workflow, operasjonsparametre, utdata, status og kjørelogg.
 
-A **JobBatch** is an ordered collection of jobs. In a1 it is in-memory and local. It is intentionally the future boundary for recursive discovery and scheduling.
+## Start alle – v0.1.1-a2
+
+`Start alle` kjører alle jobber **sekvensielt** på `LocalExecutor` i den rekkefølgen de står i batchen.
+
+- Jobber uten operasjoner markeres `Hoppet over`.
+- Hver jobb får egen status, fremdrift, siste melding og intern kjørelogg.
+- Hovedloggen viser batchhendelser med jobb-ID som prefiks.
+- Batchoversikten viser samlet antall `Ferdig`, `Feil`, `Klar`, `Kjører` og `Hoppet over`.
+- `Stopp` ber den aktive operasjonen stoppe ved neste avbruddspunkt og starter ikke nye jobber etterpå.
+- Jobber og batch er fortsatt in-memory i a2. Det finnes ennå ingen lagre/gjenoppta-funksjon.
+
+## Per-jobb konfigurasjon
+
+Konfigurerbare operasjoner må ha parametre lagret på Job-objektet. Dette er kritisk for DIAS-pakking: JOB-001, JOB-002 osv. kan ha ulike utdataområder og metadata uten at siste åpne jobb overskriver de andre.
+
+## Output/resource locking
+
+Fra a2 opprettes en liten `.noark5-workflow-manager.lock` i eksplisitt valgt utdataområde mens jobben kjører. Dette hindrer to jobber eller to appinstanser i å skrive til samme utdataområde samtidig.
+
+Ved normal avslutning fjernes låsen automatisk. Etter maskin-/prosesskrasj kan en lås bli liggende igjen; den skal ikke slettes automatisk uten kontroll fordi den kan representere en faktisk aktiv annen instans.
 
 ## Planned execution layers
 
@@ -31,26 +48,12 @@ A **JobBatch** is an ordered collection of jobs. In a1 it is in-memory and local
 Workflow -> Job -> Batch -> Scheduler -> Worker
 ```
 
-- Workflow: ordered operations for one job.
-- Job: one source and one workflow execution.
-- Batch: several jobs.
-- Scheduler: queue, priority, retry and resource control.
-- Worker: local or remote execution node.
-
-v0.1.1-a1 implements Job and JobBatch only. Existing workflow execution remains local through LocalExecutor.
+A2 implementerer en enkel lokal sekvensiell scheduler. Parallellitet, prioritet, retry, persistent kø og remote workers kommer senere.
 
 ## Design rules
 
-- Do not turn recursive scanning into direct GUI loops.
-- Recursive discovery should create/prequalify Jobs and submit them to a Batch.
-- A large job must not be copied, unpacked or hashed merely because it was discovered.
-- Original/received sources remain read-only in principle.
-- Each job must have isolated output/provenance when multi-job execution is implemented.
-- Remote/server execution must exchange job specifications and storage references rather than forcing large payloads through the GUI.
-
-## Active job ownership
-
-From v0.1.1-a1.4 the main workspace always identifies the active job in the header.
-Everything shown in the source, workflow, operation and log workspace belongs to that active job.
-
-A newly created job starts with an empty workflow. Operations from the previously active job are not inherited implicitly. A future "copy workflow" or profile/batch function must be an explicit user action.
+- Recursive discovery skal opprette/prekvalifisere Jobs, ikke kjøre direkte i GUI-loop.
+- Store objekter skal ikke kopieres, pakkes ut eller hashes bare fordi de oppdages.
+- Original/received sources er i utgangspunktet read-only.
+- Hver jobb skal ha isolert output/proveniens.
+- Remote/server execution skal bruke job specifications og storage references fremfor å sende store payloads gjennom GUI-et.
