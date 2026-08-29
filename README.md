@@ -2,7 +2,6 @@
 
 Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
 
-**Gjeldende release:** `0.1.1`
 
 ## Forhold til SIARD Workflow Manager
 
@@ -16,7 +15,7 @@ Noark 5 er system-/uttrekksnivået. DIAS SIP/AIC er pakkenivået rundt innholdet
 
 DIAS-pakking skal ikke endre, omorganisere eller tolke om den interne strukturen i Noark 5-uttrekket. Det valgte uttrekket pakkes som innhold med uendret intern struktur, mens DIAS-laget beskriver og kontrollerer pakken gjennom blant annet METS, PREMIS, sjekksummer og pakkeidentifikatorer.
 
-## Status i v0.1.1
+## Status
 
 Programmet har blant annet:
 
@@ -100,7 +99,7 @@ Operasjoner angir et `ExecutionTarget`:
 - `server`
 - `either`
 
-I dagens versjon brukes `LocalExecutor`. `RemoteExecutor` er arkitekturgrensen for senere klient/server-støtte.
+I dagens implementasjon brukes `LocalExecutor`. `RemoteExecutor` er arkitekturgrensen for senere klient/server-støtte.
 
 For store bevaringsuttrekk er anbefalt framtidig servermodell delt lagring + jobbreferanser, ikke opplasting av hele uttrekket gjennom GUI-klienten.
 
