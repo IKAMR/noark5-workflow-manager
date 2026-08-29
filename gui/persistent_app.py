@@ -4,12 +4,17 @@ from pathlib import Path
 from tkinter import filedialog, messagebox
 
 from gui.app import WorkflowApp as BaseWorkflowApp
+from noark5_workflow.core.job import JobStatus
 from noark5_workflow.core.job_store import JobListFormatError, load_job_list, save_job_list
 from settings import save_config
 from version import APP_NAME, VERSION
 
 from . import theme
+from .dias_dialog import DiasParamDialog
 from .jobs_window import JobsWindow
+
+
+_TERMINAL_STATUSES = {JobStatus.OK, JobStatus.FAILED, JobStatus.SKIPPED}
 
 
 class WorkflowApp(BaseWorkflowApp):
@@ -18,6 +23,10 @@ class WorkflowApp(BaseWorkflowApp):
     def __init__(self) -> None:
         self.job_list_path: Path | None = None
         super().__init__()
+        # BaseWorkflowApp creates WorkflowPanel. v0.1.2-a1 adds an edit callback
+        # without changing the base constructor contract.
+        self.workflow_panel.on_edit = self._edit_operation
+        self.workflow_panel.refresh()
         self._restore_last_job_list()
 
     def _open_jobs(self) -> None:
@@ -181,6 +190,82 @@ class WorkflowApp(BaseWorkflowApp):
 
         if not self._load_job_list_file(path, show_error=False):
             self.status_bar.set_status("Sist brukte jobbliste kunne ikke åpnes")
+
+    def _edit_operation(self, operation_id: str) -> None:
+        """Edit existing per-job operation configuration without replacing history."""
+        if self.batch_running:
+            messagebox.showwarning(APP_NAME, "Workflow kan ikke redigeres mens Start alle kjører.")
+            return
+        job = self.current_job
+        if job is None:
+            messagebox.showwarning(APP_NAME, "Åpne en jobb før du redigerer workflow.")
+            return
+        if operation_id not in job.workflow_ids:
+            messagebox.showwarning(APP_NAME, "Operasjonen finnes ikke i aktiv jobb.")
+            return
+
+        if operation_id != "dias_package":
+            self.status_bar.set_status("Denne operasjonen har ingen redigeringsdialog ennå")
+            return
+
+        operation = self.registry.get(operation_id)
+        initial_params = job.get_operation_params(operation_id)
+        extraction_root = self.extraction.root if self.extraction else job.source_root
+
+        def save_changes(params: dict) -> None:
+            operation.configure(params)
+            job.set_operation_params(operation_id, params)
+            job.set_workflow(self.workflow.operation_ids())
+            job.output_root = Path(params["output_dir"]) if params.get("output_dir") else None
+
+            if job.status in _TERMINAL_STATUSES:
+                job.status = JobStatus.READY
+                job.progress = 0.0
+                job.message = "Konfigurasjon endret - klar for ny kjøring"
+
+            self._job_log(job, "KONFIGURASJON ENDRET: DIAS-pakking")
+            self.log_panel.append(f"DIAS-konfigurasjon oppdatert for {job.job_id}")
+            self.status_bar.set_status("DIAS-konfigurasjon oppdatert")
+            if self.jobs_window is not None and self.jobs_window.winfo_exists():
+                self.jobs_window.refresh()
+
+            # A named job list should keep the edit immediately. An unnamed list
+            # remains in memory until the user chooses Lagre/Lagre som.
+            if self.job_list_path is not None:
+                self._write_job_list(self.job_list_path)
+
+        DiasParamDialog(self, initial_params, extraction_root, save_changes)
+
+    def _confirm_rerun(self, jobs) -> bool:
+        previous = [
+            job for job in jobs
+            if job.status in _TERMINAL_STATUSES
+            or job.message == "Konfigurasjon endret - klar for ny kjøring"
+        ]
+        if not previous:
+            return True
+        names = ", ".join(job.job_id for job in previous[:6])
+        if len(previous) > 6:
+            names += f" + {len(previous) - 6} til"
+        return messagebox.askyesno(
+            APP_NAME,
+            "En eller flere jobber er tidligere kjørt:\n\n"
+            f"{names}\n\n"
+            "Kjøre på nytt? Tidligere resultatmapper slettes ikke. "
+            "En ny DIAS/AIC får ny identifikator, og ny kjøring dokumenteres som en ny hendelse.",
+        )
+
+    def _run_workflow(self) -> None:
+        job = self.current_job
+        if job is not None and job.status in _TERMINAL_STATUSES:
+            if not self._confirm_rerun([job]):
+                return
+        super()._run_workflow()
+
+    def _start_all_jobs(self) -> None:
+        if not self.batch_running and not self._confirm_rerun(self.jobs.jobs()):
+            return
+        super()._start_all_jobs()
 
 
 def run_gui() -> None:

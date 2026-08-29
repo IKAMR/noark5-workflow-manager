@@ -16,11 +16,13 @@ class WorkflowPanel(ctk.CTkFrame):
         registry: OperationRegistry,
         workflow: Workflow,
         on_run: Callable[[], None],
+        on_edit: Callable[[str], None] | None = None,
     ):
         super().__init__(master, fg_color=theme.APP_BG, corner_radius=0)
         self.registry = registry
         self.workflow = workflow
         self.on_run = on_run
+        self.on_edit = on_edit
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -38,7 +40,6 @@ class WorkflowPanel(ctk.CTkFrame):
             run_row, text="Kjør workflow", command=self.on_run, height=34, font=theme.font(theme.NORMAL_SIZE)
         )
         self.run_button.grid(row=0, column=0, sticky="ew")
-        # SIARD-paritet: prosjekt-reset er synlig, men prosjektmodellen er ikke implementert ennå.
         self.reset_project_button = ctk.CTkButton(
             run_row, text="↻", width=38, height=34, state="disabled", font=theme.font(theme.NORMAL_SIZE)
         )
@@ -100,9 +101,26 @@ class WorkflowPanel(ctk.CTkFrame):
             item = ctk.CTkFrame(self.items, fg_color=theme.CARD_BG, corner_radius=6)
             item.grid(row=row, column=0, padx=5, pady=4, sticky="ew")
             item.grid_columnconfigure(0, weight=1)
-            ctk.CTkLabel(item, text=f"{row + 1}. {operation.definition.name}", font=theme.font(theme.SMALL_SIZE), anchor="w").grid(
-                row=0, column=0, padx=8, pady=7, sticky="ew"
-            )
+            ctk.CTkLabel(
+                item,
+                text=f"{row + 1}. {operation.definition.name}",
+                font=theme.font(theme.SMALL_SIZE),
+                anchor="w",
+            ).grid(row=0, column=0, padx=8, pady=7, sticky="ew")
+
+            configure = getattr(operation, "configure", None)
+            if self.on_edit is not None and callable(configure):
+                ctk.CTkButton(
+                    item,
+                    text="Rediger",
+                    width=62,
+                    height=26,
+                    font=theme.font(theme.SMALL_SIZE),
+                    fg_color=theme.BUTTON_BG,
+                    hover_color=theme.BUTTON_HOVER,
+                    command=lambda oid=op_id: self.on_edit(oid),
+                ).grid(row=0, column=1, padx=(4, 2), pady=5)
+
             ctk.CTkButton(
                 item,
                 text="×",
@@ -110,4 +128,4 @@ class WorkflowPanel(ctk.CTkFrame):
                 height=26,
                 font=("Consolas", 14, "bold"),
                 command=lambda oid=op_id: self.remove(oid),
-            ).grid(row=0, column=1, padx=5, pady=5)
+            ).grid(row=0, column=2, padx=5, pady=5)
