@@ -19,6 +19,8 @@ DEFAULT_CONFIG = {
     "last_mets_import_dir": "",
     "last_dias_add_file_dir": "",
     "last_dias_add_folder_dir": "",
+    "last_job_list_file": "",
+    "last_job_list_dir": "",
     "enable_premis_provenance": True,
     "premis_output_dir": "",
 }

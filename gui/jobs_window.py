@@ -22,6 +22,11 @@ class JobsWindow(ctk.CTkToplevel):
         on_create_job: Callable[[Path], Job],
         on_start_all: Callable[[], None],
         on_stop: Callable[[], None],
+        on_new_list: Callable[[], bool],
+        on_open_list: Callable[[], bool],
+        on_save_list: Callable[[], bool],
+        on_save_list_as: Callable[[], bool],
+        get_list_path: Callable[[], Path | None],
     ) -> None:
         super().__init__(master)
         self.batch = batch
@@ -29,32 +34,68 @@ class JobsWindow(ctk.CTkToplevel):
         self.on_create_job = on_create_job
         self.on_start_all = on_start_all
         self.on_stop = on_stop
+        self.on_new_list = on_new_list
+        self.on_open_list = on_open_list
+        self.on_save_list = on_save_list
+        self.on_save_list_as = on_save_list_as
+        self.get_list_path = get_list_path
         self.settings = load_config()
         self._batch_running = False
         self.title("Jobber - Noark 5 Workflow Manager")
-        self.geometry("1300x760")
-        self.minsize(1000, 620)
+        self.geometry("1380x780")
+        self.minsize(1080, 640)
         self.configure(fg_color=theme.APP_BG)
         self.transient(master)
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
 
         header = ctk.CTkFrame(self, fg_color=theme.APP_BG, corner_radius=0)
-        header.grid(row=0, column=0, padx=18, pady=(14, 6), sticky="ew")
+        header.grid(row=0, column=0, padx=18, pady=(14, 4), sticky="ew")
         header.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             header, text="JOBBER", font=theme.font(theme.TITLE_SIZE, "bold"), text_color=theme.BLUE
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
             header,
-            text="Batch-oversikt. Start alle kjører jobbene sekvensielt på lokal worker.",
+            text="Persistent jobbliste. Start alle kjører jobbene sekvensielt på lokal worker.",
             font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED,
         ).grid(row=1, column=0, pady=(4, 0), sticky="w")
 
+        self.file_label = ctk.CTkLabel(
+            self,
+            text="Jobbliste: (ikke lagret)",
+            font=theme.font(theme.SMALL_SIZE),
+            text_color=theme.TEXT_SUB,
+            anchor="w",
+        )
+        self.file_label.grid(row=1, column=0, padx=18, pady=(0, 4), sticky="ew")
+
         buttons = ctk.CTkFrame(self, fg_color="transparent")
-        buttons.grid(row=1, column=0, padx=18, pady=8, sticky="ew")
-        self.new_button = ctk.CTkButton(buttons, text="+ Ny jobb", command=self._new_job, width=110)
+        buttons.grid(row=2, column=0, padx=18, pady=8, sticky="ew")
+
+        self.new_list_button = ctk.CTkButton(
+            buttons, text="Ny jobbliste", command=self._new_list, width=105,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+        )
+        self.new_list_button.pack(side="left", padx=(0, 4))
+        self.open_list_button = ctk.CTkButton(
+            buttons, text="Åpne...", command=self._open_list, width=82,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+        )
+        self.open_list_button.pack(side="left", padx=4)
+        self.save_list_button = ctk.CTkButton(
+            buttons, text="Lagre", command=self._save_list, width=75,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+        )
+        self.save_list_button.pack(side="left", padx=4)
+        self.save_as_button = ctk.CTkButton(
+            buttons, text="Lagre som...", command=self._save_list_as, width=100,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
+        )
+        self.save_as_button.pack(side="left", padx=(4, 14))
+
+        self.new_button = ctk.CTkButton(buttons, text="+ Ny jobb", command=self._new_job, width=100)
         self.new_button.pack(side="left", padx=(0, 6))
         self.start_all_button = ctk.CTkButton(
             buttons, text="Start alle", command=self.on_start_all, width=100,
@@ -74,16 +115,21 @@ class JobsWindow(ctk.CTkToplevel):
         self.scheduler_label.pack(side="right")
 
         self.list_frame = ctk.CTkScrollableFrame(self, fg_color=theme.PANEL_BG_DARK, corner_radius=8)
-        self.list_frame.grid(row=2, column=0, padx=18, pady=(0, 8), sticky="nsew")
+        self.list_frame.grid(row=3, column=0, padx=18, pady=(0, 8), sticky="nsew")
         self.list_frame.grid_columnconfigure(0, weight=1)
 
         self.summary = ctk.CTkLabel(self, text="", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB)
-        self.summary.grid(row=3, column=0, padx=18, pady=(2, 14), sticky="w")
+        self.summary.grid(row=4, column=0, padx=18, pady=(2, 14), sticky="w")
         self.refresh()
 
     def set_batch_running(self, running: bool) -> None:
         self._batch_running = bool(running)
-        self.new_button.configure(state="disabled" if running else "normal")
+        state = "disabled" if running else "normal"
+        self.new_list_button.configure(state=state)
+        self.open_list_button.configure(state=state)
+        self.save_list_button.configure(state=state)
+        self.save_as_button.configure(state=state)
+        self.new_button.configure(state=state)
         self.start_all_button.configure(state="disabled" if running or len(self.batch) == 0 else "normal")
         self.stop_button.configure(state="normal" if running else "disabled")
         self.scheduler_label.configure(
@@ -91,6 +137,22 @@ class JobsWindow(ctk.CTkToplevel):
                   if running else "Scheduler: lokal / sekvensiell   |   Worker: Lokal (denne PC-en)"),
             text_color=theme.BLUE if running else theme.TEXT_MUTED,
         )
+
+    def _new_list(self) -> None:
+        if not self._batch_running and self.on_new_list():
+            self.refresh()
+
+    def _open_list(self) -> None:
+        if not self._batch_running and self.on_open_list():
+            self.refresh()
+
+    def _save_list(self) -> None:
+        if not self._batch_running and self.on_save_list():
+            self.refresh()
+
+    def _save_list_as(self) -> None:
+        if not self._batch_running and self.on_save_list_as():
+            self.refresh()
 
     def _new_job(self) -> None:
         kwargs = {"title": "Velg rotmappe for ny Noark 5-jobb"}
@@ -112,6 +174,9 @@ class JobsWindow(ctk.CTkToplevel):
         self.destroy()
 
     def refresh(self) -> None:
+        path = self.get_list_path()
+        self.file_label.configure(text=f"Jobbliste: {path if path else '(ikke lagret)'}")
+
         for child in self.list_frame.winfo_children():
             child.destroy()
 

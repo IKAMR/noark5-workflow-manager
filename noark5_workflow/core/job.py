@@ -74,10 +74,30 @@ class JobBatch:
         self._jobs.append(job)
         return job
 
+    def _update_next_number(self, job_id: str) -> None:
+        if not job_id.startswith("JOB-"):
+            return
+        try:
+            number = int(job_id[4:])
+        except ValueError:
+            return
+        self._next_number = max(self._next_number, number + 1)
+
     def add(self, job: Job) -> None:
         if any(existing.job_id == job.job_id for existing in self._jobs):
             raise ValueError(f"Jobb-ID finnes allerede: {job.job_id}")
         self._jobs.append(job)
+        self._update_next_number(job.job_id)
+
+    def replace_all(self, jobs: Iterable[Job]) -> None:
+        self._jobs = []
+        self._next_number = 1
+        for job in jobs:
+            self.add(job)
+
+    def clear(self) -> None:
+        self._jobs = []
+        self._next_number = 1
 
     def remove(self, job_id: str) -> bool:
         for index, job in enumerate(self._jobs):
