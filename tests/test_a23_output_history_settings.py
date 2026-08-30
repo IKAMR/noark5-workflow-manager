@@ -24,6 +24,7 @@ class FakeOperation:
 class FakeContext:
     def __init__(self):
         self.lines = []
+
     def log(self, text):
         self.lines.append(text)
 
@@ -90,10 +91,13 @@ class A23OutputHistorySettingsTests(unittest.TestCase):
                 self.assertEqual(reset["last_job_list_file"], "")
 
     def test_settings_dialog_exposes_export_import_reset(self):
-        text = (ROOT / "gui" / "settings_dialog_a23.py").read_text(encoding="utf-8")
-        self.assertIn("Eksporter setup…", text)
-        self.assertIn("Importer setup…", text)
-        self.assertIn("Nullstill setup", text)
+        shim = (ROOT / "gui" / "settings_dialog_a23.py").read_text(encoding="utf-8")
+        runtime = (ROOT / "gui" / "settings_dialog.py").read_text(encoding="utf-8")
+
+        self.assertIn("from .settings_dialog import SettingsDialog", shim)
+        self.assertIn("Eksporter setup…", runtime)
+        self.assertIn("Importer setup…", runtime)
+        self.assertIn("Nullstill setup", runtime)
 
 
 if __name__ == "__main__":

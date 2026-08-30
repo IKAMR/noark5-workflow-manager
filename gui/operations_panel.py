@@ -4,13 +4,20 @@ from typing import Callable
 
 import customtkinter as ctk
 
+from app.operation_metadata import is_visible, maturity_label
 from noark5_workflow.core.registry import OperationRegistry
+from settings import load_config
 from . import theme
 
 
 class OperationsPanel(ctk.CTkFrame):
     def __init__(self, master, registry: OperationRegistry, on_add: Callable[[str], None]):
-        super().__init__(master, fg_color=theme.SURFACE_BG, corner_radius=10, height=theme.OPERATIONS_HEIGHT)
+        super().__init__(
+            master,
+            fg_color=theme.SURFACE_BG,
+            corner_radius=10,
+            height=theme.OPERATIONS_HEIGHT,
+        )
         self.registry = registry
         self.on_add = on_add
         self.active_category = "Pipeline"
@@ -26,7 +33,9 @@ class OperationsPanel(ctk.CTkFrame):
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, padx=12, pady=(8, 6), sticky="w")
 
-        self.tabs = ctk.CTkFrame(self, fg_color=theme.PANEL_BG, corner_radius=8, height=34)
+        self.tabs = ctk.CTkFrame(
+            self, fg_color=theme.PANEL_BG, corner_radius=8, height=34
+        )
         self.tabs.grid(row=1, column=0, padx=10, pady=(0, 6), sticky="ew")
         self.tabs.grid_propagate(False)
 
@@ -46,11 +55,23 @@ class OperationsPanel(ctk.CTkFrame):
             button.grid(row=0, column=col, padx=2, pady=5)
             self.tab_buttons[category] = button
 
-        self.cards = ctk.CTkFrame(self, fg_color=theme.PANEL_BG, corner_radius=8, height=62)
+        self.cards = ctk.CTkFrame(
+            self, fg_color=theme.PANEL_BG, corner_radius=8, height=62
+        )
         self.cards.grid(row=2, column=0, padx=10, pady=(0, 8), sticky="ew")
         self.cards.grid_propagate(False)
         self.cards.grid_columnconfigure((0, 1, 2), weight=1, uniform="card")
 
+        self.show_category(self.active_category)
+
+    def _visibility_level(self) -> int:
+        settings = load_config()
+        try:
+            return int(settings.get("operation_visibility", 2))
+        except (TypeError, ValueError):
+            return 2
+
+    def refresh_visibility(self) -> None:
         self.show_category(self.active_category)
 
     def show_category(self, category: str) -> None:
@@ -64,11 +85,16 @@ class OperationsPanel(ctk.CTkFrame):
         for child in self.cards.winfo_children():
             child.destroy()
 
-        operations = self.registry.by_category(category)
+        minimum = self._visibility_level()
+        operations = [
+            op
+            for op in self.registry.by_category(category)
+            if is_visible(op.definition.operation_id, minimum)
+        ]
         if not operations:
             ctk.CTkLabel(
                 self.cards,
-                text="Ingen operasjoner i denne kategorien ennå.",
+                text="Ingen operasjoner i denne kategorien med valgt modenhetsfilter.",
                 font=theme.font(theme.NORMAL_SIZE),
                 text_color=theme.TEXT_MUTED,
             ).grid(row=0, column=0, padx=14, pady=20, sticky="w")
@@ -89,16 +115,22 @@ class OperationsPanel(ctk.CTkFrame):
             card.grid_propagate(True)
             card.grid_columnconfigure(1, weight=1)
 
-            ctk.CTkFrame(card, width=4, height=1, fg_color=accent, corner_radius=2).grid(
-                row=0, column=0, padx=(6, 0), pady=4, sticky="ns"
+            ctk.CTkFrame(
+                card, width=4, height=1, fg_color=accent, corner_radius=2
+            ).grid(row=0, column=0, padx=(6, 0), pady=4, sticky="ns")
+
+            label = (
+                f"{operation.definition.name} · "
+                f"{maturity_label(operation.definition.operation_id)}"
             )
             ctk.CTkLabel(
                 card,
-                text=operation.definition.name,
+                text=label,
                 font=theme.font(theme.NORMAL_SIZE),
                 text_color=theme.TEXT,
                 anchor="w",
             ).grid(row=0, column=1, padx=8, pady=7, sticky="ew")
+
             ctk.CTkButton(
                 card,
                 text="+",

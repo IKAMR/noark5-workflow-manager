@@ -4,6 +4,7 @@ from typing import Callable
 
 import customtkinter as ctk
 
+from app.operation_metadata import maturity_short_label
 from noark5_workflow.core.registry import OperationRegistry
 from noark5_workflow.core.workflow import Workflow
 from . import theme
@@ -160,7 +161,7 @@ class WorkflowPanel(ctk.CTkFrame):
             item.grid(row=row, column=0, padx=5, pady=4, sticky="ew")
             item.grid_columnconfigure(0, weight=1)
 
-            label = f"{row + 1}. {operation.definition.name}"
+            label = f"{row + 1}. ({maturity_short_label(op_id)}) {operation.definition.name}"
             if op_id in checkpoints:
                 label += "  • kontrollpunkt"
 

@@ -1,17 +1,13 @@
 # Testing
 
-## Praktisk test av kontrollpunkt/resume
 
-Praktisk test av `stopp -> avslutt program -> start program -> fortsett` krever minst to operasjoner i samme workflow.
+## Praktiske tester før v0.1.2-a2 låses
 
-Med bare én operasjon finnes det ikke et meningsfullt kontrollpunkt etter operasjonen, fordi workflow allerede er ferdig. Inntil minst to reelle operasjoner er tilgjengelige, dekkes checkpoint-modellen av automatiserte tester.
-
-Når minst to operasjoner finnes, skal praktisk test minst dekke:
-
-1. legg inn to operasjoner
-2. sett `Stopp etter` på operasjon 1
-3. kjør til status `Venter ved kontrollpunkt`
-4. lagre og avslutt programmet
-5. start programmet på nytt og åpne jobben
-6. kontroller at `Fortsett workflow` vises
-7. fortsett og kontroller at operasjon 2 kjøres uten at operasjon 1 kjøres på nytt
+- Lukk hele appen før en reparasjonspakke legges over repoet; Python-moduler som allerede er lastet blir ellers ikke erstattet i kjørende prosess.
+- Kjør alltid `test.bat` etter overlay og deretter `start.bat` for praktisk test.
+- Test single-jobb og `Start alle` med separate outputområder.
+- Kontroller at PREMIS-historikk bevares ved gjentatt kjøring mot samme jobbs outputområde.
+- Kontroller at overordnet run-logg opprettes både for single og batch.
+- Kontroller fallback og `Bruk standard` for `logs/runs`, `setup` og `joblists`.
+- Praktisk kontrollpunkt stop/fortsett kan først fulltestes når minst to reelle operasjoner finnes i samme workflow.
+- Crash-recovery for ulagrede jobblisteendringer er ikke implementert ennå; dette står i `TODO-ROADMAP.md`.
