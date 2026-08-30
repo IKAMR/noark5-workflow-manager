@@ -1,0 +1,13 @@
+{
+  "format_version": 1,
+  "maturity_levels": {
+    "alpha": 0,
+    "beta": 1,
+    "stable": 2
+  },
+  "operations": {
+    "dias_package": {
+      "maturity": "stable"
+    }
+  }
+}

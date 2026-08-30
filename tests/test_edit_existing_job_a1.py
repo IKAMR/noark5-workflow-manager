@@ -21,15 +21,15 @@ class EditExistingJobA1RegressionTests(unittest.TestCase):
 
     def test_edit_of_completed_job_marks_it_ready_for_rerun(self):
         text = (ROOT / "gui" / "persistent_app.py").read_text(encoding="utf-8")
-        self.assertIn("job.status = JobStatus.READY", text)
-        self.assertIn("Konfigurasjon endret - klar for ny kjøring", text)
+        self.assertIn('job.reset_execution("Konfigurasjon endret - klar for ny kjøring")', text)
+        self.assertIn("JobStatus.WAITING", text)
 
     def test_rerun_requires_explicit_confirmation(self):
         text = (ROOT / "gui" / "persistent_app.py").read_text(encoding="utf-8")
         self.assertIn("def _confirm_rerun", text)
         self.assertIn("Tidligere resultatmapper slettes ikke", text)
-        self.assertIn("super()._run_workflow()", text)
-        self.assertIn("super()._start_all_jobs()", text)
+        self.assertIn("if not self._confirm_rerun([job]):", text)
+        self.assertIn("if terminal and not self._confirm_rerun(terminal):", text)
 
 
 if __name__ == "__main__":

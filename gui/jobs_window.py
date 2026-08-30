@@ -27,6 +27,7 @@ class JobsWindow(ctk.CTkToplevel):
         on_save_list: Callable[[], bool],
         on_save_list_as: Callable[[], bool],
         get_list_path: Callable[[], Path | None],
+        get_active_job_id: Callable[[], str | None] | None = None,
     ) -> None:
         super().__init__(master)
         self.batch = batch
@@ -39,6 +40,7 @@ class JobsWindow(ctk.CTkToplevel):
         self.on_save_list = on_save_list
         self.on_save_list_as = on_save_list_as
         self.get_list_path = get_list_path
+        self.get_active_job_id = get_active_job_id or (lambda: None)
         self.settings = load_config()
         self._batch_running = False
         self.title("Jobber - Noark 5 Workflow Manager")
@@ -95,7 +97,7 @@ class JobsWindow(ctk.CTkToplevel):
         )
         self.save_as_button.pack(side="left", padx=(4, 14))
 
-        self.new_button = ctk.CTkButton(buttons, text="+ Ny jobb", command=self._new_job, width=100)
+        self.new_button = ctk.CTkButton(buttons, text="+ Ny jobb", command=self._new_job, width=100, fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER)
         self.new_button.pack(side="left", padx=(0, 6))
         self.start_all_button = ctk.CTkButton(
             buttons, text="Start alle", command=self.on_start_all, width=100,
@@ -181,6 +183,8 @@ class JobsWindow(ctk.CTkToplevel):
             child.destroy()
 
         jobs = self.batch.jobs()
+        active_job_id = self.get_active_job_id()
+
         if not jobs:
             ctk.CTkLabel(
                 self.list_frame,
@@ -189,20 +193,23 @@ class JobsWindow(ctk.CTkToplevel):
             ).grid(row=0, column=0, padx=20, pady=80)
         else:
             for row, job in enumerate(jobs):
-                self._row(row, job)
+                self._row(row, job, active=(job.job_id == active_job_id))
 
         counts = self.batch.counts()
+        waiting = counts.get(JobStatus.WAITING, 0)
         self.summary.configure(
             text=(
                 f"Totalt: {len(jobs)}   |   Ferdig: {counts[JobStatus.OK]}   |   "
-                f"Kjører: {counts[JobStatus.RUNNING]}   |   Klar: {counts[JobStatus.READY]}   |   "
-                f"Feil: {counts[JobStatus.FAILED]}   |   Hoppet over: {counts[JobStatus.SKIPPED]}"
+                f"Kjører: {counts[JobStatus.RUNNING]}   |   Venter: {waiting}   |   "
+                f"Klar: {counts[JobStatus.READY]}   |   Feil: {counts[JobStatus.FAILED]}   |   "
+                f"Hoppet over: {counts[JobStatus.SKIPPED]}"
             )
         )
         self.set_batch_running(self._batch_running)
 
-    def _row(self, row: int, job: Job) -> None:
-        card = ctk.CTkFrame(self.list_frame, fg_color=theme.CARD_BG, corner_radius=6)
+    def _row(self, row: int, job: Job, *, active: bool = False) -> None:
+        card_color = theme.BLUE_DIM if active else theme.CARD_BG
+        card = ctk.CTkFrame(self.list_frame, fg_color=card_color, corner_radius=6)
         card.grid(row=row, column=0, padx=5, pady=4, sticky="ew")
         card.grid_columnconfigure(1, weight=1)
 
@@ -213,12 +220,30 @@ class JobsWindow(ctk.CTkToplevel):
         top = ctk.CTkFrame(card, fg_color="transparent")
         top.grid(row=0, column=0, columnspan=2, padx=8, pady=(7, 0), sticky="ew")
         top.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(top, text=job.job_id, width=80, anchor="w", font=theme.font(theme.SMALL_SIZE, "bold")).grid(row=0, column=0, padx=(0, 8), sticky="w")
-        ctk.CTkLabel(top, text=job.name, anchor="w", font=theme.font(theme.SMALL_SIZE, "bold")).grid(row=0, column=1, sticky="ew")
-        ctk.CTkLabel(top, text=job.status.value, width=90, anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=status_color).grid(row=0, column=2, padx=8, sticky="w")
+
+        id_text = f"{job.job_id}  • AKTIV" if active else job.job_id
+        id_color = theme.BLUE if active else theme.TEXT_SUB
+        ctk.CTkLabel(
+            top,
+            text=id_text,
+            width=130,
+            anchor="w",
+            font=theme.font(theme.SMALL_SIZE, "bold"),
+            text_color=id_color,
+        ).grid(row=0, column=0, padx=(0, 8), sticky="w")
+
+        ctk.CTkLabel(
+            top,
+            text=job.name,
+            anchor="w",
+            font=theme.font(theme.SMALL_SIZE, "bold"),
+            text_color=theme.BLUE if active else theme.TEXT_SUB,
+        ).grid(row=0, column=1, sticky="ew")
+
+        ctk.CTkLabel(top, text=job.status.value, width=110, anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=status_color).grid(row=0, column=2, padx=8, sticky="w")
         ctk.CTkLabel(top, text=f"{job.progress:.0%}", width=55, font=theme.font(theme.SMALL_SIZE)).grid(row=0, column=3, padx=8)
         ctk.CTkLabel(top, text=job.worker, width=145, anchor="w", font=theme.font(theme.SMALL_SIZE)).grid(row=0, column=4, padx=8, sticky="w")
-        ctk.CTkButton(top, text="Åpne", width=70, height=27, state="disabled" if self._batch_running else "normal", command=lambda j=job: self._open(j)).grid(row=0, column=5, padx=(8, 0))
+        ctk.CTkButton(top, text="Åpne", width=70, height=27, state="disabled" if self._batch_running else "normal", command=lambda j=job: self._open(j), fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER).grid(row=0, column=5, padx=(8, 0))
 
         details = ctk.CTkFrame(card, fg_color="transparent")
         details.grid(row=1, column=0, columnspan=2, padx=8, pady=(2, 7), sticky="ew")

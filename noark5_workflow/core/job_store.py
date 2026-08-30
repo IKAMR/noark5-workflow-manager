@@ -10,7 +10,8 @@ from typing import Any
 from .job import Job, JobBatch, JobStatus
 
 FILE_TYPE = "noark5-workflow-manager-job-list"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
+SUPPORTED_FORMAT_VERSIONS = {1, 2}
 FILE_EXTENSION = ".n5jobs"
 
 
@@ -58,10 +59,12 @@ def _job_to_dict(job: Job) -> dict[str, Any]:
         "worker": job.worker,
         "message": job.message,
         "log_entries": list(job.log_entries),
+        "checkpoint_after": list(job.checkpoint_after),
+        "next_operation_index": int(job.next_operation_index),
     }
 
 
-def _job_from_dict(data: dict[str, Any]) -> Job:
+def _job_from_dict(data: dict[str, Any], *, format_version: int) -> Job:
     job_id = str(data.get("job_id", "")).strip()
     source_root = str(data.get("source_root", "")).strip()
     if not job_id:
@@ -75,8 +78,6 @@ def _job_from_dict(data: dict[str, Any]) -> Job:
     except ValueError:
         status = JobStatus.READY
 
-    # A persisted RUNNING state cannot still be running after a fresh app start.
-    # Make it runnable again instead of presenting stale execution state.
     message = str(data.get("message", ""))
     if status == JobStatus.RUNNING:
         status = JobStatus.READY
@@ -94,10 +95,25 @@ def _job_from_dict(data: dict[str, Any]) -> Job:
     workflow_ids = data.get("workflow_ids", [])
     if not isinstance(workflow_ids, list):
         raise JobListFormatError(f"{job_id} har ugyldig workflow_ids")
+    workflow_ids = [str(value) for value in workflow_ids]
 
     logs = data.get("log_entries", [])
     if not isinstance(logs, list):
         logs = []
+
+    if format_version >= 2:
+        checkpoints = data.get("checkpoint_after", [])
+        if not isinstance(checkpoints, list):
+            checkpoints = []
+        checkpoints = [str(value) for value in checkpoints]
+        try:
+            next_operation_index = int(data.get("next_operation_index", 0))
+        except (TypeError, ValueError):
+            next_operation_index = 0
+    else:
+        # v0.1.1 job lists load cleanly and simply start without checkpoints.
+        checkpoints = []
+        next_operation_index = 0
 
     output_root = data.get("output_root")
     return Job(
@@ -105,13 +121,15 @@ def _job_from_dict(data: dict[str, Any]) -> Job:
         source_root=Path(source_root),
         output_root=Path(str(output_root)) if output_root else None,
         name=str(data.get("name", "")),
-        workflow_ids=[str(value) for value in workflow_ids],
+        workflow_ids=workflow_ids,
         operation_params=_json_value(params),
         status=status,
         progress=progress,
         worker=str(data.get("worker", "Lokal (denne PC-en)")),
         message=message,
         log_entries=[str(value) for value in logs][-2000:],
+        checkpoint_after=checkpoints,
+        next_operation_index=next_operation_index,
     )
 
 
@@ -182,9 +200,10 @@ def load_job_list(path: Path) -> LoadedJobList:
         raise JobListFormatError("Filen er ikke en Noark 5 Workflow Manager-jobbliste")
 
     version = data.get("format_version")
-    if version != FORMAT_VERSION:
+    if version not in SUPPORTED_FORMAT_VERSIONS:
         raise JobListFormatError(
-            f"Jobblisteformat {version!r} støttes ikke (støttet versjon: {FORMAT_VERSION})"
+            f"Jobblisteformat {version!r} støttes ikke "
+            f"(støttede versjoner: {sorted(SUPPORTED_FORMAT_VERSIONS)})"
         )
 
     raw_jobs = data.get("jobs", [])
@@ -195,7 +214,7 @@ def load_job_list(path: Path) -> LoadedJobList:
     for raw_job in raw_jobs:
         if not isinstance(raw_job, dict):
             raise JobListFormatError("Ugyldig jobb i jobs-listen")
-        batch.add(_job_from_dict(raw_job))
+        batch.add(_job_from_dict(raw_job, format_version=int(version)))
 
     active_job_id = data.get("active_job_id")
     if active_job_id is not None:

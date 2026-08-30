@@ -1,13 +1,8 @@
-"""
-PREMIS-proveniens for Noark 5 Workflow Manager.
+"""PREMIS-proveniens for Noark 5 Workflow Manager.
 
-Arkitekturen er bevisst basert på den generiske PremisProvenanceLogger i
-SIARD Workflow Manager (smult/SIARD-Workflow-Manager), tilpasset Noark 5 som
-objekt og Noark 5 Workflow Manager som programvareagent.
-
-Loggeren akkumulerer PREMIS-hendelser gjennom en workflow-kontekst og skriver
-én samlet <uttrekksnavn>_premis.xml. Vanlig teknisk kjørelogg er fortsatt
-separat og skal inneholde alle operasjoner/tester.
+Loggeren bevarer eksisterende hendelser når samme uttrekk kjøres flere ganger
+mot samme arbeids-/utdataområde. En ny kjøring skal aldri stille overskrive
+historikken fra en tidligere kjøring.
 """
 from __future__ import annotations
 
@@ -22,7 +17,6 @@ PREMIS_NS = "http://arkivverket.no/standarder/PREMIS"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
-# DIAS_PREMIS v2.0 eventType-enumerasjon. Samme sett som SIARD Workflow Manager.
 VALID_EVENT_TYPES = frozenset({
     "Creation", "Ingestion", "Migration", "Adjustment", "Deletion", "Disposal",
 })
@@ -38,12 +32,11 @@ def _p(tag: str) -> str:
 
 
 def _base_name(extraction_root: Path) -> str:
-    """Noark-uttrekk er mapper; mappenavnet er stabil base for sidefilen."""
     return Path(extraction_root).name or "noark5"
 
 
 class PremisProvenanceLogger:
-    """Samler PREMIS-hendelser og skriver én samlet proveniensfil."""
+    """Samler PREMIS-hendelser og bevarer tidligere proveniens."""
 
     def __init__(self, log_dir, extraction_root, agent_version: str = ""):
         self.log_dir = Path(log_dir)
@@ -54,6 +47,7 @@ class PremisProvenanceLogger:
         )
         self._events: list[dict] = []
         self._path: Path | None = None
+        self._existing_loaded = False
 
     @property
     def out_path(self) -> Path:
@@ -69,9 +63,44 @@ class PremisProvenanceLogger:
     def _ts(self) -> str:
         return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 
-    def record(self, op, result, ctx) -> None:
-        """Registrer én PREMIS-hendelse og speil den i vanlig kjørelogg."""
+    def _load_existing_events(self) -> None:
+        if self._existing_loaded:
+            return
+        self._existing_loaded = True
+        path = self.out_path
+        if not path.is_file():
+            return
         try:
+            root = ET.parse(path).getroot()
+        except (OSError, ET.ParseError) as exc:
+            # Do not overwrite unreadable provenance. Finalize will write a
+            # versioned side file instead, preserving the original bytes.
+            logger.warning("Kunne ikke lese eksisterende PREMIS %s: %s", path, exc)
+            self._existing_loaded = False
+            return
+
+        loaded: list[dict] = []
+        for event in root.findall(_p("event")):
+            event_type = event.findtext(_p("eventType"), default=DEFAULT_EVENT_TYPE)
+            event_datetime = event.findtext(_p("eventDateTime"), default="")
+            detail = event.findtext(_p("eventDetail"), default="")
+            outcome = event.find(_p("eventOutcomeInformation"))
+            outcome_value = "0"
+            if outcome is not None:
+                outcome_value = outcome.findtext(_p("eventOutcome"), default="0")
+            loaded.append({
+                "type": event_type if event_type in VALID_EVENT_TYPES else DEFAULT_EVENT_TYPE,
+                "label": "",
+                "op_id": "",
+                "datetime": event_datetime,
+                "detail": detail,
+                "success": outcome_value == "0",
+            })
+        self._events = loaded + self._events
+
+    def record(self, op, result, ctx) -> None:
+        try:
+            self._load_existing_events()
             raw_type = (getattr(op, "premis_event_type", "") or "").strip()
             if raw_type in VALID_EVENT_TYPES:
                 event_type = raw_type
@@ -111,8 +140,16 @@ class PremisProvenanceLogger:
         except Exception:
             logger.exception("Kunne ikke registrere PREMIS-hendelse for %r", op)
 
+    def _safe_output_path(self) -> Path:
+        path = self.out_path
+        if not path.exists():
+            return path
+        if self._existing_loaded:
+            return path
+        stamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
+        return path.with_name(f"{path.stem}_{stamp}{path.suffix}")
+
     def finalize(self, extraction_root, ctx=None) -> "Path | None":
-        """Skriv akkumulert proveniens. Returner None dersom det ikke finnes events."""
         if not self._events:
             return None
         try:
@@ -123,7 +160,7 @@ class PremisProvenanceLogger:
                 ET.indent(tree, space="  ")
             except Exception:
                 pass
-            out = self.out_path
+            out = self._safe_output_path()
             tree.write(out, encoding="utf-8", xml_declaration=True)
             self._path = out
             logger.info("PREMIS-proveniens skrevet: %s (%d hendelser)", out, len(self._events))
@@ -189,5 +226,4 @@ class PremisProvenanceLogger:
         ET.SubElement(aid, _p("agentIdentifierValue")).text = self.agent_id
         ET.SubElement(agent, _p("agentName")).text = "Noark 5 Workflow Manager"
         ET.SubElement(agent, _p("agentType")).text = "software"
-
         return root

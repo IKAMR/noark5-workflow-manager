@@ -41,8 +41,5 @@ def load_config() -> dict:
 def save_config(changes: dict) -> dict:
     data = load_config()
     data.update(changes)
-    CONFIG_PATH.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    CONFIG_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return data
