@@ -5,14 +5,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionBoundaryA3Tests(unittest.TestCase):
-    def test_internal_version_is_a4(self):
+    def test_internal_version_is_a5(self):
         text = (ROOT / "version.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.1.2-a4"', text)
+        self.assertIn('VERSION = "0.1.2-a5"', text)
 
     def test_alpha_state_documents_are_not_permanent(self):
-        self.assertFalse((ROOT / "docs" / "V0.1.2-A2-STATE.md").exists())
-        self.assertFalse((ROOT / "docs" / "V0.1.2-A3-STATE.md").exists())
-        self.assertFalse((ROOT / "docs" / "V0.1.2-A4-STATE.md").exists())
+        for alpha in ("A2", "A3", "A4", "A5"):
+            self.assertFalse((ROOT / "docs" / f"V0.1.2-{alpha}-STATE.md").exists())
 
 
 if __name__ == "__main__":

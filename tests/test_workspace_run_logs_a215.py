@@ -18,12 +18,7 @@ class WorkspaceRunLogsA215Tests(unittest.TestCase):
 
     def test_workspace_fallback_dirs(self):
         with tempfile.TemporaryDirectory() as temp:
-            settings = {
-                "temp_dir": temp,
-                "run_log_dir": "",
-                "setup_dir": "",
-                "job_list_dir": "",
-            }
+            settings = {"temp_dir": temp, "run_log_dir": "", "setup_dir": "", "job_list_dir": ""}
             self.assertEqual(run_log_dir(settings), Path(temp) / "logs" / "runs")
             self.assertEqual(setup_dir(settings), Path(temp) / "setup")
             self.assertEqual(job_list_dir(settings), Path(temp) / "joblists")
@@ -32,12 +27,7 @@ class WorkspaceRunLogsA215Tests(unittest.TestCase):
                 self.assertTrue(paths[key].is_dir())
 
     def test_configured_dirs_override_workspace_fallback(self):
-        settings = {
-            "temp_dir": "C:/temp",
-            "run_log_dir": "D:/logs",
-            "setup_dir": "D:/setup",
-            "job_list_dir": "D:/jobs",
-        }
+        settings = {"temp_dir": "C:/temp", "run_log_dir": "D:/logs", "setup_dir": "D:/setup", "job_list_dir": "D:/jobs"}
         self.assertEqual(str(run_log_dir(settings)), str(Path("D:/logs")))
         self.assertEqual(str(setup_dir(settings)), str(Path("D:/setup")))
         self.assertEqual(str(job_list_dir(settings)), str(Path("D:/jobs")))
@@ -46,23 +36,14 @@ class WorkspaceRunLogsA215Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             settings = {"temp_dir": temp, "run_log_dir": ""}
             single = RunOverviewLog(settings, run_type="single", app_version="0.1.2-a2")
-            job = SimpleNamespace(
-                job_id="JOB-001",
-                name="Test",
-                source_root=Path("C:/source"),
-                output_root=Path("C:/output"),
-                status=SimpleNamespace(value="ok"),
-                message="Workflow fullført",
-            )
+            job = SimpleNamespace(job_id="JOB-001", name="Test", source_root=Path("C:/source"), output_root=Path("C:/output"), status=SimpleNamespace(value="ok"), message="Workflow fullført")
             single.start_job(job)
             single.finish_job(job)
             single_path = single.finish()
-
             batch = RunOverviewLog(settings, run_type="batch", app_version="0.1.2-a2")
             batch.start_job(job)
             batch.finish_job(job)
             batch_path = batch.finish()
-
             self.assertNotEqual(single_path, batch_path)
             for path in (single_path, batch_path):
                 text = path.read_text(encoding="utf-8")
@@ -76,7 +57,9 @@ class WorkspaceRunLogsA215Tests(unittest.TestCase):
     def test_runtime_is_wired_to_a215(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
         runtime = (ROOT / "gui" / "persistent_app_a215.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a2155", main)
+        a5 = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a5", main)
+        self.assertIn("A2155WorkflowApp", a5)
         self.assertIn('self._new_run_log("single")', runtime)
         self.assertIn('self._new_run_log("batch")', runtime)
 

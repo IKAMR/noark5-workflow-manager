@@ -21,13 +21,7 @@ class BatchPhasesA2155Tests(unittest.TestCase):
 
     def test_runtime_has_explicit_pre_job_phases(self):
         text = (ROOT / "gui" / "persistent_app_a2155.py").read_text(encoding="utf-8")
-        for phrase in (
-            "Worker startet",
-            "Forbereder",
-            "Registrerer",
-            "Kjører",
-            "Avslutter batch",
-        ):
+        for phrase in ("Worker startet", "Forbereder", "Registrerer", "Kjører", "Avslutter batch"):
             self.assertIn(phrase, text)
 
     def test_runtime_has_nonblocking_startup_watchdog(self):
@@ -38,9 +32,11 @@ class BatchPhasesA2155Tests(unittest.TestCase):
         self.assertIn("BATCH STARTUP-FEIL", text)
         self.assertIn("self.batch_running = False", text)
 
-    def test_main_uses_a2155(self):
-        text = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a2155", text)
+    def test_main_uses_a2155_through_a5(self):
+        main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a5 = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a5", main)
+        self.assertIn("A2155WorkflowApp", a5)
 
 
 if __name__ == "__main__":
