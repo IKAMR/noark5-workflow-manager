@@ -41,9 +41,9 @@ class WorkspaceDefaultsA2151Tests(unittest.TestCase):
 
     def test_main_uses_workspace_runtime_chain(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
-        a5 = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a5", main)
-        self.assertIn("A2155WorkflowApp", a5)
+        a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a6", main)
+        self.assertIn("A5WorkflowApp", a6)
 
 
 if __name__ == "__main__":

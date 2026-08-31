@@ -32,10 +32,12 @@ class BatchPhasesA2155Tests(unittest.TestCase):
         self.assertIn("BATCH STARTUP-FEIL", text)
         self.assertIn("self.batch_running = False", text)
 
-    def test_main_uses_a2155_through_a5(self):
+    def test_main_uses_a2155_through_current_runtime(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
         a5 = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a5", main)
+        self.assertIn("persistent_app_a6", main)
+        self.assertIn("A5WorkflowApp", a6)
         self.assertIn("A2155WorkflowApp", a5)
 
 

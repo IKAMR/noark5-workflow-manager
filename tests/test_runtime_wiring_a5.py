@@ -5,9 +5,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class A5RuntimeWiringTests(unittest.TestCase):
-    def test_main_uses_a5_runtime(self):
-        text = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a5", text)
+    def test_main_uses_a5_runtime_through_a6(self):
+        main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a6", main)
+        self.assertIn("A5WorkflowApp", a6)
 
     def test_a5_inherits_a2155_and_wires_runners(self):
         text = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")

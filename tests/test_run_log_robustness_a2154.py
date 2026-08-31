@@ -24,11 +24,11 @@ class RunLogRobustnessA2154Tests(unittest.TestCase):
             self.assertIn("Planlagte jobber: 2", text)
 
     def test_latest_runtime_normalises_stale_running(self):
-        latest = (ROOT / "gui" / "persistent_app_a2155.py").read_text(encoding="utf-8")
-        parent = (ROOT / "gui" / "persistent_app_a2154.py").read_text(encoding="utf-8")
-        self.assertIn("A2154WorkflowApp", latest)
-        self.assertIn("if job.status == JobStatus.RUNNING:", parent)
-        self.assertIn("job.reset_execution", parent)
+        latest = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
+        core = (ROOT / "noark5_workflow" / "core" / "preflight.py").read_text(encoding="utf-8")
+        self.assertIn("self.preflight.normalize_job", latest)
+        self.assertIn("job.status == JobStatus.RUNNING", core)
+        self.assertIn("job.reset_execution", core)
 
     def test_batch_worker_has_top_level_exception_logging(self):
         text = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
@@ -37,9 +37,9 @@ class RunLogRobustnessA2154Tests(unittest.TestCase):
 
     def test_main_uses_robust_runtime_chain(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
-        a5 = (ROOT / "gui" / "persistent_app_a5.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a5", main)
-        self.assertIn("A2155WorkflowApp", a5)
+        a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a6", main)
+        self.assertIn("A5WorkflowApp", a6)
 
 
 if __name__ == "__main__":

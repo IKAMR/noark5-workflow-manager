@@ -1,4 +1,4 @@
-from gui.persistent_app_a5 import run_gui
+from gui.persistent_app_a6 import run_gui
 
 
 if __name__ == "__main__":
