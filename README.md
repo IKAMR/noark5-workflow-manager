@@ -1,45 +1,73 @@
 # Noark 5 Workflow Manager
 
-Arbeidsflytverktøy og GUI for analyse, validering og behandling av Noark 5-uttrekk.
-
+Arbeidsflytverktøy for analyse, validering og behandling av Noark
+5-uttrekk. Dagens brukergrensesnitt er et CustomTkinter-basert
+desktop-GUI. Arkitekturen skal samtidig holde jobb-, workflow- og
+operasjonslogikken uavhengig av GUI-et, slik at programmatisk
+styring/CLI og senere server-/API-grensesnitt kan bruke samme
+underliggende modell.
 
 ## Forhold til SIARD Workflow Manager
 
-Noark 5 Workflow Manager bygger på arkitektur, arbeidsflytmodell, GUI-prinsipper og enkelte generelle funksjonelle konsepter fra [SIARD Workflow Manager](https://github.com/smult/SIARD-Workflow-Manager).
+Noark 5 Workflow Manager bygger på arkitektur, arbeidsflytmodell,
+GUI-prinsipper og enkelte generelle funksjonelle konsepter fra [SIARD
+Workflow Manager](https://github.com/smult/SIARD-Workflow-Manager).
 
-Prosjektene er separate verktøy for henholdsvis Noark 5- og SIARD-uttrekk. Noark 5-spesifikk analyse og SIARD-spesifikk behandling holdes adskilt, mens generelle arbeidsflyt- og pakkekonsepter kan følge samme modell der dette er naturlig.
+Prosjektene er separate verktøy for henholdsvis Noark 5- og
+SIARD-uttrekk. Noark 5-spesifikk analyse og SIARD-spesifikk behandling
+holdes adskilt, mens generelle arbeidsflyt- og pakkekonsepter kan følge
+samme modell der dette er naturlig.
 
 ## Viktig prinsipp: uttrekk og DIAS-pakke er separate nivåer
 
-Noark 5 er system-/uttrekksnivået. DIAS SIP/AIC er pakkenivået rundt innholdet.
+Noark 5 er system-/uttrekksnivået. DIAS SIP/AIC er pakkenivået rundt
+innholdet.
 
-DIAS-pakking skal ikke endre, omorganisere eller tolke om den interne strukturen i Noark 5-uttrekket. Det valgte uttrekket pakkes som innhold med uendret intern struktur, mens DIAS-laget beskriver og kontrollerer pakken gjennom blant annet METS, PREMIS, sjekksummer og pakkeidentifikatorer.
+DIAS-pakking skal som hovedregel ikke endre, omorganisere eller tolke om
+den interne strukturen i Noark 5-uttrekket. Det valgte uttrekket pakkes
+som innhold med uendret intern struktur, mens DIAS-laget beskriver og
+kontrollerer pakken gjennom blant annet METS, PREMIS, sjekksummer og
+pakkeidentifikatorer.
+
+Når mottatt struktur må normaliseres for workflow-/bevaringsstrategi
+eller verktøykompatibilitet, skal repakking være en eksplisitt og
+dokumentert transformasjon. Original mottatt SIP/TAR skal som hovedregel
+bevares urørt.
 
 ## Status
 
 Programmet har blant annet:
 
-- CustomTkinter-basert desktop-GUI
-- valg og automatisk deteksjon av Noark 5-uttrekk
-- kategorisert operasjonspalett og workflow
-- lokal kjøring gjennom `LocalExecutor`
-- eksplisitt grensesnitt for framtidig serverkjøring gjennom `RemoteExecutor`
-- Job/Batch-modell med flere isolerte jobber
-- sekvensiell `Start alle`
-- separat workflow, operasjonsparametre og output per jobb
-- output/resource locking
-- vedvarende `.n5jobs`-jobblister
-- automatisk per-user arbeidsstatus for gjeldende jobb/jobbliste
-- kontroll av source-/target-kollisjoner og tidligere Workflow Manager-output
-- DIAS SIP/AIC-pakking
-- import av eksisterende METS XML / `info.xml`
-- SHA-256, METS, PREMIS, `info.xml`, `log.xml` og ukomprimert SIP TAR
-- `Legg til fil`, `Legg til mappe` og `Opprett mappe`
-- sentral workflow-PREMIS
-- vedvarende sist brukte mapper
-- `test.bat` med rapport til `docs/test-results/`
+-   CustomTkinter-basert desktop-GUI
+-   valg og automatisk deteksjon av Noark 5-uttrekk
+-   kategorisert operasjonspalett og workflow
+-   lokal kjøring gjennom `LocalExecutor`
+-   eksplisitt grensesnitt for framtidig serverkjøring gjennom
+    `RemoteExecutor`
+-   Job/Batch-modell med flere isolerte jobber
+-   sekvensiell `Start alle`
+-   separat workflow, operasjonsparametre og output per jobb
+-   output/resource locking
+-   vedvarende `.n5jobs`-jobblister
+-   automatisk per-user arbeidsstatus for gjeldende jobb/jobbliste
+-   kontroll av source-/target-kollisjoner og tidligere Workflow
+    Manager-output
+-   DIAS SIP/AIC-pakking
+-   import av eksisterende METS XML / `info.xml`
+-   SHA-256, METS, PREMIS, `info.xml`, `log.xml` og ukomprimert SIP TAR
+-   `Legg til fil`, `Legg til mappe` og `Opprett mappe`
+-   sentral workflow-PREMIS
+-   vedvarende sist brukte mapper
+-   `test.bat` med rapport til `docs/test-results/`
 
-Se `docs/JOBS-AND-BATCHES.md` og `docs/JOBS-BATCH-FUTURE-DESIGN.md` for jobbmodellen og videre retning.
+Planlagt videre retning inkluderer et programmatisk styringsgrensesnitt,
+naturlig først som CLI, slik at jobber og jobblister kan opprettes,
+startes og følges uten at desktop-GUI-et er startet. Dette er en
+arkitekturretning og skal ikke forstås som implementert funksjonalitet i
+dagens status.
+
+Se `docs/JOBS-AND-BATCHES.md` og `docs/JOBS-BATCH-FUTURE-DESIGN.md` for
+jobbmodellen og videre retning.
 
 ## Kjøremiljø
 
@@ -47,13 +75,19 @@ Se `docs/JOBS-AND-BATCHES.md` og `docs/JOBS-BATCH-FUTURE-DESIGN.md` for jobbmode
 
 Normal bruk på Windows:
 
-1. Kjør `install.bat` ved første installasjon eller når avhengigheter endres.
-2. Kjør `test.bat` og kontroller at alle tester består.
-3. Start programmet med `start.bat`.
+1.  Kjør `install.bat` ved første installasjon eller når avhengigheter
+    endres.
+2.  Kjør `test.bat` og kontroller at alle tester består.
+3.  Start programmet med `start.bat`.
 
-Python-kjernen er i stor grad plattformuavhengig, og Linux/macOS, Windows RDS/Terminal Server, headless server/worker, webklient og andre miljøer er realistiske framtidige mål. De skal ikke omtales som støttet før de har egne installasjons-/oppstarts-/testløp og er praktisk verifisert.
+Python-kjernen er i stor grad plattformuavhengig, og Linux/macOS,
+Windows RDS/Terminal Server, lokal headless/CLI-kjøring, headless
+server/worker, webklient og andre miljøer er realistiske framtidige mål.
+De skal ikke omtales som støttet før relevante
+installasjons-/oppstarts-/testløp er etablert og praktisk verifisert.
 
-Se [docs/RUNTIME-ENVIRONMENTS.md](docs/RUNTIME-ENVIRONMENTS.md) for gjeldende status, plattformbindinger og framtidige muligheter.
+Se [docs/RUNTIME-ENVIRONMENTS.md](docs/RUNTIME-ENVIRONMENTS.md) for
+gjeldende status, plattformbindinger og framtidige muligheter.
 
 ## Jobber og jobblister
 
@@ -61,53 +95,85 @@ Grunnprinsippet er:
 
 > One job = one source + one workflow + one output area.
 
-Jobblister kan lagres som `.n5jobs`. Store arkivuttrekk bygges ikke inn i jobblistefilen; kilde og output refereres med plassering.
+Jobblister kan lagres som `.n5jobs`. Store arkivuttrekk bygges ikke inn
+i jobblistefilen; kilde og output refereres med plassering.
 
-Gjeldende ikke-manuelt-lagrede arbeidsstatus kan lagres automatisk per bruker utenfor repository/installasjonsmappen slik at arbeid kan gjenopprettes etter ny programstart.
+Gjeldende ikke-manuelt-lagrede arbeidsstatus kan lagres automatisk per
+bruker utenfor repository/installasjonsmappen slik at arbeid kan
+gjenopprettes etter ny programstart.
+
+Jobb- og jobblistemodellen skal ikke være avhengig av desktop-GUI-et.
+GUI er dagens klient mot modellen; planlagt CLI/programmatisk styring og
+eventuelle senere API-klienter skal bruke samme jobb-, workflow- og
+executorlag.
 
 ## Workflow logging og PREMIS-proveniens
 
-Alle operasjoner/tester vises i vanlig workflow-/kjørelogg. Relevante bevarings-/valideringshendelser kan i tillegg registreres som PREMIS events.
+Alle operasjoner/tester vises i vanlig workflow-/kjørelogg. Relevante
+bevarings-/valideringshendelser kan i tillegg registreres som PREMIS
+events.
 
-Operasjoner skriver ikke workflow-PREMIS XML selv. `LocalExecutor` bruker den sentrale loggeren. Genererte workflow-filer skal skrives til eksplisitt arbeids-/utdataområde og ikke inn i mottatt Noark 5-kilde.
+Operasjoner skriver ikke workflow-PREMIS XML selv. `LocalExecutor`
+bruker den sentrale loggeren. Genererte workflow-filer skal skrives til
+eksplisitt arbeids-/utdataområde og ikke inn i mottatt Noark 5-kilde.
 
 ## DIAS-pakking
 
-DIAS-dialogen kan lese metadata fra eksisterende METS/`info.xml` og supplere pakken med manuelt valgte filer, mapper og nye tomme mapper.
+DIAS-dialogen kan lese metadata fra eksisterende METS/`info.xml` og
+supplere pakken med manuelt valgte filer, mapper og nye tomme mapper.
 
-Tilleggsinnhold pakkes fra valgt kilde uten å endre originalmaterialet på disk.
+Tilleggsinnhold pakkes fra valgt kilde uten å endre originalmaterialet
+på disk.
+
+DIAS-metadata og DIAS-pakken er et eget pakkenivå rundt Noark
+5-uttrekket. Eksisterende Noark 5-TAR skal kunne leses direkte der
+analyse eller validering ikke krever fysisk uttrekking av hele
+innholdet. Detaljene og grensene for normalisering/repakking beskrives i
+`docs/ARCHITECTURE.md`.
 
 ## Krav
 
-- Python 3.10 eller nyere
-- Windows desktop er dagens testede baseline
-- Python-avhengigheter installeres via `install.bat` / `requirements.txt`
+-   Python 3.10 eller nyere
+-   Windows desktop er dagens testede baseline
+-   Python-avhengigheter installeres via `install.bat` /
+    `requirements.txt`
 
-Se `docs/RUNTIME-ENVIRONMENTS.md` før andre kjøremiljøer beskrives eller gjøres til støttede plattformer.
+Se `docs/RUNTIME-ENVIRONMENTS.md` før andre kjøremiljøer beskrives eller
+gjøres til støttede plattformer.
 
 ## Operasjonsarkitektur
 
 En operasjon arver fra `BaseOperation` og implementerer:
 
-```python
+``` python
 run(ctx) -> OperationResult
 ```
 
 Operasjoner angir et `ExecutionTarget`:
 
-- `local`
-- `server`
-- `either`
+-   `local`
+-   `server`
+-   `either`
 
-I dagens implementasjon brukes `LocalExecutor`. `RemoteExecutor` er arkitekturgrensen for senere klient/server-støtte.
+I dagens implementasjon brukes `LocalExecutor`. `RemoteExecutor` er
+arkitekturgrensen for senere klient/server-støtte.
 
-For store bevaringsuttrekk er anbefalt framtidig servermodell delt lagring + jobbreferanser, ikke opplasting av hele uttrekket gjennom GUI-klienten.
+GUI-et skal ikke eie domenelogikk som er nødvendig for å opprette, kjøre
+eller følge jobber. Planlagt CLI/programmatisk styring og senere
+API-/servergrensesnitt skal bruke samme Job/Workflow/Executor-kontrakter
+som GUI-et, ikke parallelle implementasjoner av workflow-logikken.
 
-Se [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+For store bevaringsuttrekk er anbefalt framtidig servermodell delt
+lagring + jobbreferanser, ikke opplasting av hele uttrekket gjennom
+klientgrensesnittet.
+
+Se [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) og
+[docs/INTERFACE.md](docs/INTERFACE.md).
 
 ## Testing
 
-`test.bat` kjører automatiserte tester og skriver versjonert rapport under `docs/test-results/`.
+`test.bat` kjører automatiserte tester og skriver versjonert rapport
+under `docs/test-results/`.
 
 Se [docs/TESTING.md](docs/TESTING.md).
 
@@ -115,19 +181,21 @@ Se [docs/TESTING.md](docs/TESTING.md).
 
 Før større endringer, se:
 
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- [docs/INTERFACE.md](docs/INTERFACE.md)
-- [docs/DEFINITIONS.md](docs/DEFINITIONS.md)
-- [docs/CODE-MAP.md](docs/CODE-MAP.md)
-- [docs/SHARED-DEVELOPMENT.md](docs/SHARED-DEVELOPMENT.md)
-- [docs/SHARED-ROADMAP.md](docs/SHARED-ROADMAP.md)
-- [docs/RUNTIME-ENVIRONMENTS.md](docs/RUNTIME-ENVIRONMENTS.md)
-- [docs/RELEASES.md](docs/RELEASES.md)
+-   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+-   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+-   [docs/INTERFACE.md](docs/INTERFACE.md)
+-   [docs/DEFINITIONS.md](docs/DEFINITIONS.md)
+-   [docs/CODE-MAP.md](docs/CODE-MAP.md)
+-   [docs/SHARED-DEVELOPMENT.md](docs/SHARED-DEVELOPMENT.md)
+-   [docs/SHARED-ROADMAP.md](docs/SHARED-ROADMAP.md)
+-   [docs/RUNTIME-ENVIRONMENTS.md](docs/RUNTIME-ENVIRONMENTS.md)
+-   [docs/RELEASES.md](docs/RELEASES.md)
 
 ## Releasehistorikk
 
-Ferdige versjoner dokumenteres samlet i [docs/RELEASES.md](docs/RELEASES.md). Interne alpha-/fikstrinn beholdes ikke som separate permanente releasefiler.
+Ferdige versjoner dokumenteres samlet i
+[docs/RELEASES.md](docs/RELEASES.md). Interne alpha-/fikstrinn beholdes
+ikke som separate permanente releasefiler.
 
 ## Lisens
 

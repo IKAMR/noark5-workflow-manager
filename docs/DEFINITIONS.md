@@ -4,9 +4,13 @@
 
 System-/uttrekksnivået som består av Noark 5-metadata, skjemaer og dokumentinnhold. Mottatt uttrekk behandles som bevaringsbevis og skal normalt ikke endres av analyse/validering.
 
+Noark 5-nivået skal holdes adskilt fra et eventuelt DIAS-pakkelag rundt uttrekket. Uttrekksformatet omfatter også referanser og sjekksummer som inngår i den selvdokumenterende strukturen.
+
 ## DIAS SIP/AIC
 
 Pakkenivået rundt innhold som skal overføres eller bevares. Pakkingen beskriver og omslutter innholdet, og kan suppleres med andre filer og mapper i pakken.
+
+DIAS er et separat nivå over uttrekksformat som Noark 5 eller SIARD. For Noark 5 ligger selve uttrekket i TAR, mens DIAS-metadata-XML er en separat komponent på DIAS-nivået. Se `ARCHITECTURE.md` for bevarings-, validerings- og repakkingsprinsippene.
 
 ## Workflow-/kjørelogg
 
@@ -35,6 +39,28 @@ Resultatkode for hendelsen. DIAS-konvensjonen som brukes av den generiske logger
 ## content/
 
 DIAS-området for innhold. I Noark 5 Workflow Manager inngår det valgte Noark 5-uttrekket her. Brukeren kan også legge til annet relevant innhold når arbeidsprosessen krever det.
+
+I normalformen for Noark 5 Workflow Manager ligger roten til ett Noark 5-uttrekk direkte i `content`. Se `ARCHITECTURE.md` for unntak og normalisering/repakking.
+
+## Original SIP/TAR
+
+Mottatt pakket representasjon som som hovedregel bevares urørt og behandles read-only. Workflow Manager skal kunne lese relevant innhold direkte fra TAR uten automatisk full uttrekking.
+
+## Normalisert/repakket SIP
+
+Ny representasjon produsert når mottatt intern struktur må normaliseres, for eksempel når uttrekksroten ligger for dypt eller flere uttrekk må splittes. Repakking er en sporbar transformasjon med kobling til mottatt original.
+
+## Lokal persistens
+
+Applikasjonens lokale varige lagring av tilstand og data som trengs under distribuert og gjenopptakbar behandling. SQLite er foretrukket kandidat, men endelig datamodell og skjema er ikke besluttet.
+
+## Ekstern datakilde / adapter
+
+Et eksternt regneark, en database, et API eller et fagsystem som utveksler relevante data med Workflow Manager gjennom mapping mot en generisk intern modell. En bestemt ekstern master skal ikke definere produktets datamodell.
+
+## Programmatisk styringsgrensesnitt
+
+Maskinrettet inngang til Workflow Managers jobb- og workflowfunksjoner uten krav om aktivt desktop-GUI. CLI er planlagt første eksponering; framtidig nettverks-API eller andre eksterne stimuli kan bruke samme underliggende modell.
 
 ## administrative_metadata/
 

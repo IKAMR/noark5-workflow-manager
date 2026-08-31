@@ -21,6 +21,68 @@ Før analyse eller endring av kode i dette repositoriet:
 - Nye funksjoner skal ha automatiserte tester når det er praktisk mulig.
 - Før commit av en alpha: kjør `test.bat`, deretter praktisk test via `start.bat`.
 
+Nye tanker eller framtidsretninger skal normalt legges til som avgrensede arkitektur-/designpresiseringer. Eksisterende dokumentasjon skal ikke omskrives bredt dersom den fortsatt er korrekt.
+
+## GUI-konvensjoner
+
+Følgende regler er flyttet hit fra `INTERFACE.md` fordi de beskriver GUI-/utviklingskonvensjoner, ikke datautvekslingsgrensesnitt.
+
+### Knappestiler og handlingshierarki
+
+Knappfarge skal uttrykke handlingens rolle konsekvent i hele applikasjonen.
+
+- **Primær (blå):** hovedhandlingen som fullfører eller starter aktuell oppgave, for eksempel `Legg til i workflow`, `Kjør workflow`, `Start alle` eller `Lagre` i en bekreftelsesdialog.
+- **Sekundær (mørk):** støttehandlinger som valg, import, åpning, redigering, oppdatering og navigasjon.
+- **Stopp/fare:** egen tydelig stil brukes bare når handlingen stopper, sletter eller har en konsekvens som bør fremheves.
+- En dialog skal normalt ha bare én visuelt primær handling.
+- Farge skal ikke være eneste signal for fare eller status; knappetekst og kontekst skal også være tydelig.
+
+### Operasjonsmodenhet
+
+Operasjoner har eksplisitt modenhetsnivå definert i `config/operations.json`.
+
+- `Alpha`: eksperimentell og kan endres betydelig.
+- `Beta`: funksjonell, men fortsatt under utvikling og testing.
+- `Stabil`: klar for normal bruk.
+
+Innstillingen for operasjonssynlighet bruker `Alle (inkl. Alpha)`, `Beta og stabile` og `Kun stabile`. Internt kan verdiene `0`, `1` og `2` beholdes for bakoverkompatibilitet.
+
+Workflow-listen bruker kompakt modenhetsmerking på én rad:
+
+- `(S)` = Stabil
+- `(B)` = Beta
+- `(A)` = Alpha
+
+## Innstillinger og mappeadferd
+
+Dialoger som åpner eller lagrer filer og mapper skal huske siste relevante lokasjon med egne, tydelig navngitte innstillinger.
+
+- `last_noark_source_dir`
+- `last_dias_output_dir`
+- `last_mets_import_dir`
+- `last_dias_add_file_dir`
+- `last_dias_add_folder_dir`
+- `last_setup_dir`
+- `last_job_list_dir`
+- `last_job_list_file`
+
+Ved import av setup skal `last_setup_dir` settes til mappen setup-filen faktisk ble lest fra på denne maskinen.
+
+Konfigurerte standardmapper og sist brukte dialogmapper er forskjellige begreper.
+
+- `setup_dir` bestemmer standardplassering for setup.
+- `job_list_dir` bestemmer standardplassering for jobblister.
+- `run_log_dir` bestemmer standardplassering for overordnede kjørelogger.
+- `last_setup_dir` og `last_job_list_dir` beskriver hvor brukeren sist faktisk åpnet eller lagret noe.
+
+Tom eksplisitt standardverdi eller `Bruk standard` betyr fallback under `temp_dir`:
+
+- kjørelogg: `<temp_dir>/logs/runs`
+- setup: `<temp_dir>/setup`
+- jobblister: `<temp_dir>/joblists`
+
+Se også `APP-WORKSPACE-AND-RUN-LOGS.md`.
+
 ## Kjøremiljø og portabilitet
 
 - Windows desktop er dagens testede baseline.
@@ -31,6 +93,7 @@ Før analyse eller endring av kode i dette repositoriet:
 - Runtime-state og brukerinnstillinger skal på sikt ligge i egnet per-user application-data-område, ikke være avhengig av repository/installasjonsmappen.
 - Eksterne programmer skal kapsles i adaptere med konfigurerbar executable/path.
 - Core/operations skal ikke avhenge av GUI.
+- Jobb- og workflowfunksjoner som skal brukes fra GUI, CLI og senere API skal ligge i delte tjenester/core og ikke bare i GUI-handlere.
 - Lokal og framtidig remote kjøring skal bevare samme operations/executor-kontrakt.
 
 Se `docs/RUNTIME-ENVIRONMENTS.md`.

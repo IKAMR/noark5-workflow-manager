@@ -31,6 +31,18 @@ Operation
 
 GUI skal ikke implementere analyse eller pakking direkte. Operasjoner skal ikke omgå executorlaget når de kjøres gjennom workflow.
 
+## Planlagt flergrensesnitt-flyt
+
+Dagens konkrete inngang er GUI-et. Planlagt CLI/programmatisk styring og senere API skal bruke samme underliggende jobb-/workflow-/executorlag.
+
+```text
+Desktop GUI --------+
+CLI ----------------+--> delt command/job service --> Workflow / Job --> Executor --> Operation
+framtidig API ------+
+```
+
+Det delte command/job service-laget er en arkitekturretning; konkret modulplassering er ikke låst. Jobb-, jobbliste- og workflowfunksjoner som skal være tilgjengelige fra flere klienter skal ikke implementeres bare i GUI-handlere.
+
 ## Viktige moduler
 
 ### `noark5_workflow/core/context.py`
@@ -72,6 +84,8 @@ Noark extraction
 ```
 
 Store kilder skal ikke reparses for hver rapport når samme strukturdata kan gjenbrukes.
+
+TAR-baserte Noark 5-kilder bør i tillegg kunne leses selektivt/strømmet uten full uttrekking når analysen tillater det. Dette endrer ikke den logiske analysemodellen over.
 
 ## Planlagt ekstern validatorflyt
 
@@ -138,6 +152,8 @@ Batch controller
 ```
 
 Batchlaget skal orkestrere eksisterende operasjoner, ikke ha egne skjulte kopier av validator-/rapportkode.
+
+Den samme batchmodellen skal på sikt kunne startes fra GUI, CLI eller senere API uten at batchkjøringen implementeres på nytt i hvert grensesnitt.
 
 ## SIARD-kode som referanse
 

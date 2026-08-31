@@ -6,7 +6,7 @@ Noark 5 Workflow Manager skal være et arbeidsflytramverk for analyse, validerin
 
 Arkitekturen skiller mellom:
 
-1. **GUI** – valg av uttrekk og operasjoner, fremdrift og resultater.
+1. **Bruker-/styringsgrensesnitt** – desktop-GUI i dag, og planlagt CLI/programmatisk styring og senere eksterne grensesnitt mot samme underliggende jobb-/workflowmodell.
 2. **Kilde-/kontekstmodell** – beskriver Noark 5-uttrekket og hvilke kilder som finnes.
 3. **Operasjoner** – avgrensede funksjoner som analyserer eller behandler uttrekket.
 4. **Kjørebackend** – bestemmer hvor en operasjon faktisk kjøres.
@@ -14,11 +14,69 @@ Arkitekturen skiller mellom:
 
 Dette skillet gjør det mulig å beholde samme operasjonsmodell når serverkjøring senere innføres.
 
+## Bruker- og styringsgrensesnitt
+
+Desktop-GUI-et er dagens implementerte menneskelige brukergrensesnitt, men Workflow Manager skal ikke være arkitektonisk avhengig av GUI-et.
+
+Jobber, jobblister, workflow-kjøring, kontrollpunkter, status og resultater skal kunne håndteres gjennom samme underliggende jobb-/workflow-/executorlag fra flere innganger.
+
+Planlagt prinsipp:
+
+```text
+Desktop GUI --------+
+CLI ----------------+--> delt jobb-/workflowlag --> Executor --> Operations
+framtidig API ------+
+```
+
+En lokal CLI er en naturlig første maskinrettet inngang og skal kunne brukes uten at desktop-GUI-et er startet. Et framtidig nettverks-API, servergrensesnitt eller annen ekstern stimulus skal bygge videre på samme jobb- og kommandomodell, ikke etablere en parallell workflow-implementasjon.
+
+Grunnprinsippet er at en jobb på sikt skal kunne opprettes, lastes, kjøres, fortsettes og følges uten aktivt GUI.
+
+Konkrete CLI-kommandoer, serialiseringsformater og API-kontrakter er ikke låst ennå. Slike kontrakter dokumenteres i `INTERFACE.md` når de er tilstrekkelig avklart.
+
 ## Bevaringsprinsipp for Noark 5-kilden
 
 Mottatt Noark 5-uttrekk betraktes som bevis. Analyse, validering og kontroll skal som hovedregel være read-only. Dersom fremtidige operasjoner lager konverterte eller avledede representasjoner, skal original og avledet objekt skilles tydelig og dokumenteres.
 
 DIAS SIP/AIC er et separat pakkenivå. Pakking kan beskrive og supplere pakken uten å omskrive kildeuttrekket.
+
+DIAS skal forstås som et pakkelag **over** uttrekksformatet. DIAS-elementer er ikke en del av Noark 5- eller SIARD-nivået i seg selv. For Noark 5 består DIAS-leveransen prinsipielt av selve uttrekket i TAR og en separat DIAS-metadata-XML på pakkenivået. Workflow Manager skal derfor ikke lete etter DIAS-metadatafilen inne i Noark 5-TAR-en. Samme nivåskille gjelder når innholdet er SIARD.
+
+Noark 5-uttrekksformatet er i stor grad selvdokumenterende gjennom metadata, struktur, skjemaer, referanser og sjekksummer. AIP-/AIC-laget bør derfor ikke uten et konkret behov duplisere dokumentasjon som allerede finnes i uttrekket. Pakkelaget kan i stedet tilføre nødvendig proveniens, mottaks-/valideringsdokumentasjon, transformasjonshistorikk og forvaltningsinformasjon.
+
+### TAR som direkte lesbar kilde
+
+En eksisterende Noark 5-TAR skal kunne behandles som en direkte lesbar datakilde. Full uttrekking skal ikke være et automatisk krav.
+
+Operasjoner bør kunne lese medlemsliste, XML, skjemaer, sjekksummer og annet relevant innhold direkte fra TAR når kontrollen tillater det. Enkeltfiler eller hele uttrekket trekkes ut når en konkret kontroll eller et eksternt verktøy krever fysisk filtilgang.
+
+Dette er særlig viktig for store uttrekk, der unødvendig full uttrekking kan gi et svært stort ekstra behov for arbeidslagring.
+
+### Valideringsmodell
+
+Følgende nivåer er klare mål for den interne valideringsarkitekturen:
+
+1. kontroll av forventede elementer og struktur
+2. validering av XML mot tilhørende XSD-skjema
+3. logisk validering mot Noark 5-regler og relevante opptellinger
+4. validering av pekere/referanser fra XML til dokumentfiler
+
+Følgende områder er aktuelle, men trenger videre gjennomgang før de låses som komplette funksjonskrav:
+
+- full validering av dokumentfiler og dokumentformater
+- PDF/A-validering av arkivversjoner
+- valg og integrasjon av ekstern dokument-/PDF/A-validator, for eksempel veraPDF eller tilsvarende
+- grenseflaten mot funksjonalitet som Arkade 5 tilbyr eller planlegger
+
+### Normalisering og repakking
+
+Original mottatt SIP/TAR skal som hovedregel kunne bevares urørt. Repakking er en eksplisitt transformasjon, ikke normal behandling.
+
+Normalisering må likevel støttes når mottatt intern struktur ikke passer valgt bevarings-/arbeidsstrategi eller verktøykrav. Kjente eksempler er at Noark 5-roten ligger ett nivå for dypt, som `content/content/...`, eller at flere separate Noark 5-uttrekk ligger som undermapper i samme `content`.
+
+Normalformen for denne arbeidsflyten er ett Noark 5-uttrekk med roten direkte i `content` på DIAS-nivået. Dette samsvarer også med strukturen som brukes ved Arkade 5-testing.
+
+En repakking skal være sporbar og dokumentere mottatt kilde, hva som ble endret, relevante sjekksummer og produsert resultat. Dersom flere uttrekk splittes til separate SIP-er, skal koblingen til mottatt kilde dokumenteres.
 
 ## Workflow-logg, rapporter og PREMIS
 
@@ -43,6 +101,32 @@ PREMIS-mekanismen ligger sentralt i `noark5_workflow/core/premis_logger.py`. Ope
 Operasjoner angir om de kan kjøres `local`, `server` eller `either`.
 
 **Windows desktop er dagens testede kjøremiljø.** Plattformstatus, Windows Server/RDS, Linux, macOS, headless worker/server, web og mobile alternativer dokumenteres i `RUNTIME-ENVIRONMENTS.md`.
+
+## Lokal persistens og ekstern dataintegrasjon
+
+Workflow Manager er tenkt distribuert og trenger lokal persistent lagring for applikasjons- og arbeidsflytdata som må overleve mellom kjøringer og kunne brukes under behandling.
+
+**SQLite er foretrukket kandidat** for denne lokale applikasjonsdatabasen, men konkret databaseskjema er ikke låst.
+
+Den interne datamodellen skal være generisk og skal ikke modelleres etter ett bestemt lokalt regneark, CRM eller fagsystem. Eksterne datakilder skal kobles gjennom adaptere/grensesnitt som mapper mellom den eksterne modellen og Workflow Managers egne begreper.
+
+```text
+Excel / CSV / database / API / fagsystem
+                 |
+              adapter
+                 |
+                 v
+      generisk intern datamodell
+                 |
+                 v
+          lokal persistens
+```
+
+Lokal persistens kan blant annet holde jobbtilstand, behandlingsstatus, checkpoints, nødvendige eksterne identifikatorer, valideringsresultater, pakkeidentifikatorer og import-/eksportstatus.
+
+En organisasjons eksisterende master-regneark kan brukes som test- eller migreringskilde, men skal ikke definere produktets datamodell.
+
+Følgende er fortsatt åpne designspørsmål: endelig SQLite-skjema, obligatoriske generiske metadatafelt, autoritative kilder per felt, synkroniserings- og konfliktregler, offline-/online-modell, framtidig sentralt API og hvilke resultater/statusendringer som skal utveksles tilbake.
 
 ## Anbefalt fremtidig servermodell
 

@@ -1,10 +1,12 @@
 # Grensesnitt og kontrakter
 
-Dette dokumentet beskriver stabile programkontrakter og brukergrensesnittregler som andre deler av Noark 5 Workflow Manager skal kunne bygge på.
+Dette dokumentet beskriver stabile programkontrakter og grensesnitt/datautveksling som andre deler av Noark 5 Workflow Manager eller eksterne systemer skal kunne bygge på.
+
+Arkitektur og ansvarsdeling beskrives i `ARCHITECTURE.md`. GUI-konvensjoner og generell innstillingsadferd dokumenteres i `DEVELOPMENT.md` og relevante spesialdokumenter.
 
 ## Operasjoner
 
-Operasjoner registreres i `OperationRegistry`, mottar en `OperationContext` og returnerer et `OperationResult`. GUI skal ikke omgå executorlaget for å kjøre operasjoner direkte.
+Operasjoner registreres i `OperationRegistry`, mottar en `OperationContext` og returnerer et `OperationResult`. GUI eller andre klientgrensesnitt skal ikke omgå executorlaget for å kjøre operasjoner direkte.
 
 ### PREMIS-kontrakt for operasjoner
 
@@ -33,7 +35,7 @@ Operasjonen skal **ikke** skrive workflow-PREMIS XML selv. `LocalExecutor` bruke
 
 ## Workflow
 
-Workflow-modellen eier rekkefølgen på valgte operasjoner. GUI-komponentene presenterer denne tilstanden, men skal ikke være eneste lagringssted for den.
+Workflow-modellen eier rekkefølgen på valgte operasjoner. GUI-komponentene presenterer denne tilstanden, men skal ikke være eneste lagringssted for den. Samme prinsipp gjelder planlagte CLI-/API-klienter.
 
 ## LocalExecutor
 
@@ -59,61 +61,35 @@ DIAS-dialogen produserer parametere til DIAS-operasjonen. Valgt Noark 5-uttrekk 
 
 `DiasPackageOperation` returnerer den valgte DIAS-utdatamappen som PREMIS-mål. Dermed skrives `<uttrekksnavn>_premis.xml` i eksplisitt utdataområde, ikke ved siden av Noark 5-kilden.
 
-## Knappestiler og handlingshierarki
+## Programmatisk styringsgrensesnitt
 
-Knappfarge skal uttrykke handlingens rolle konsekvent i hele applikasjonen.
+Workflow Manager skal ha et maskinrettet styringsgrensesnitt ved siden av desktop-GUI-et. Første naturlige eksponering er en CLI; senere kan samme underliggende kontrakt eksponeres gjennom nettverks-API, tjeneste eller annen ekstern stimulus.
 
-- **Primær (blå):** hovedhandlingen som fullfører eller starter aktuell oppgave, for eksempel `Legg til i workflow`, `Kjør workflow`, `Start alle` eller `Lagre` i en bekreftelsesdialog.
-- **Sekundær (mørk):** støttehandlinger som valg, import, åpning, redigering, oppdatering og navigasjon.
-- **Stopp/fare:** egen tydelig stil brukes bare når handlingen stopper, sletter eller har en konsekvens som bør fremheves.
-- En dialog skal normalt ha bare én visuelt primær handling.
-- Farge skal ikke være eneste signal for fare eller status; knappetekst og kontekst skal også være tydelig.
+Grensesnittet skal bygges over jobb-/workflowlaget og skal kunne utvikles mot operasjoner som:
 
-## Operasjonsmodenhet
+- opprette eller importere en jobb
+- åpne/importere en jobbliste
+- starte én jobb
+- starte en jobbliste/batch
+- fortsette en jobb fra kontrollpunkt
+- stoppe/avbryte der executor støtter det
+- hente jobbstatus, fremdrift og resultat-/loggreferanser
 
-Operasjoner har eksplisitt modenhetsnivå definert i `config/operations.json`.
+CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et.
 
-- `Alpha`: eksperimentell og kan endres betydelig.
-- `Beta`: funksjonell, men fortsatt under utvikling og testing.
-- `Stabil`: klar for normal bruk.
+Endelig kommandomodell, CLI-syntaks, serialiseringsformat, exit-koder, autentisering og nettverks-API er åpne designspørsmål.
 
-Innstillingen for operasjonssynlighet bruker `Alle (inkl. Alpha)`, `Beta og stabile` og `Kun stabile`. Internt kan verdiene `0`, `1` og `2` beholdes for bakoverkompatibilitet.
+## Eksterne datakilder
 
-Workflow-listen bruker kompakt modenhetsmerking på én rad:
+Workflow Manager skal kunne utveksle data med eksterne kilder gjennom adaptere fremfor å bindes til ett bestemt regneark, database- eller CRM-skjema.
 
-- `(S)` = Stabil
-- `(B)` = Beta
-- `(A)` = Alpha
+Prinsipiell grense:
 
-## Huskede mapper
+```text
+Ekstern kilde <-> adapter <-> generisk Workflow Manager-modell
+```
 
-Dialoger som åpner eller lagrer filer og mapper skal huske siste relevante lokasjon med egne, tydelig navngitte innstillinger.
-
-- `last_noark_source_dir`
-- `last_dias_output_dir`
-- `last_mets_import_dir`
-- `last_dias_add_file_dir`
-- `last_dias_add_folder_dir`
-- `last_setup_dir`
-- `last_job_list_dir`
-- `last_job_list_file`
-
-Ved import av setup skal `last_setup_dir` settes til mappen setup-filen faktisk ble lest fra på denne maskinen.
-
-## Standardmapper og sist brukte mapper
-
-Konfigurerte standardmapper og sist brukte dialogmapper er forskjellige begreper.
-
-- `setup_dir` bestemmer standardplassering for setup.
-- `job_list_dir` bestemmer standardplassering for jobblister.
-- `run_log_dir` bestemmer standardplassering for overordnede kjørelogger.
-- `last_setup_dir` og `last_job_list_dir` beskriver hvor brukeren sist faktisk åpnet eller lagret noe.
-
-Tom eksplisitt standardverdi eller `Bruk standard` betyr fallback under `temp_dir`:
-
-- kjørelogg: `<temp_dir>/logs/runs`
-- setup: `<temp_dir>/setup`
-- jobblister: `<temp_dir>/joblists`
+Ekstern identitet og intern Workflow Manager-jobbidentitet skal kunne holdes adskilt. Den konkrete adapterkontrakten, obligatoriske metadatafelt, synkronisering og framtidig sentralt API er ikke ferdig spesifisert.
 
 ## Planlagte generiske kontrakter
 
@@ -124,6 +100,8 @@ En transfer-operasjon skal minst beskrive eksplisitt kilde, destinasjon, lagring
 ### External validator adapter
 
 Et eksternt verktøy som Arkade 5 CLI skal kapsles som en normal operasjon og returnere `OperationResult` med exit-status, rapport-/loggreferanser og normaliserte funn der dette er tilgjengelig.
+
+Samme adapterprinsipp kan brukes for framtidige dokument-/PDF/A-validatorer. Valg av slikt verktøy er ikke låst.
 
 ### Batch/recursive controller
 

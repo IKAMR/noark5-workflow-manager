@@ -18,6 +18,8 @@ Normal prosedyre er:
 
 At Python-kjernen kan være portabel betyr ikke at et annet operativsystem regnes som støttet før installasjon, oppstart og testregime er etablert og praktisk verifisert der.
 
+Planlagt lokal CLI/programmatisk styring er en arkitekturretning, men er ikke implementert eller en støttet brukerflate i dagens baseline.
+
 ## Plattformbindinger i dagens løsning
 
 Selve applikasjonskjernen er i liten grad bundet til Windows.
@@ -59,6 +61,16 @@ Målet for videre opprydding er én plattformuavhengig mekanisme, for eksempel `
 
 Brukerinnstillinger som i dag ligger i lokal `config.json` bør på sikt bruke samme prinsipp, særlig før flerbrukerdrift på Terminal Server/RDS.
 
+En framtidig lokal SQLite-database for jobb-/arbeidsflytdata skal følge samme prinsipp og ligge i egnet applikasjonsdataområde, ikke i repository/installasjonsmappen. SQLite er foretrukket kandidat, men skjema er ikke låst.
+
+## Lokal headless/CLI-kjøring
+
+Planlagt CLI/programmatisk styring skal skilles fra framtidig remote server/worker.
+
+En lokal CLI skal kunne bruke samme lokale jobb-/workflow-/`LocalExecutor`-lag uten at desktop-GUI-et er startet. Dette kan gi scriptbar og automatiserbar kjøring på en enkelt maskin uten at nettverksserver, autentisering eller remote worker er nødvendig.
+
+CLI må få eget installasjons-/oppstarts-/testløp før den dokumenteres som støttet.
+
 ## Windows Server, RDS og Terminal Server
 
 ### GUI på Windows Server/RDS
@@ -98,6 +110,8 @@ En framtidig serverløsning må blant annet håndtere:
 
 For store arkivuttrekk skal klienten normalt sende jobbreferanser og stabile lagringsreferanser, ikke laste hele uttrekket gjennom GUI/API.
 
+Den framtidige server-/API-modellen bør gjenbruke samme jobb-/kommandomodell som lokal GUI/CLI der det er praktisk, men lokal CLI er ikke avhengig av at serverdelen først implementeres.
+
 ## Linux
 
 Linux desktop vurderes som realistisk uten redesign av core.
@@ -118,7 +132,7 @@ Det som minst må etableres og testes:
 
 Linux skal ikke beskrives som støttet før denne kjeden er praktisk testet.
 
-Linux er også en naturlig kandidat for framtidig headless worker/server og containerisert backend.
+Linux er også en naturlig kandidat for framtidig lokal CLI, headless worker/server og containerisert backend.
 
 ## macOS
 
@@ -132,6 +146,8 @@ Det må blant annet etableres/testes:
 - filstier og rettigheter
 - packaging, signering/notarization dersom programmet distribueres som vanlig macOS-applikasjon
 - eksterne verktøy
+
+En framtidig CLI kan i prinsippet være enklere å portere enn desktop-GUI-et, men skal ikke omtales som støttet på macOS før den er testet der.
 
 ## Android og andre mobile plattformer
 
@@ -171,7 +187,7 @@ Webklient forutsetter server/API og er derfor et senere lag, ikke en erstatning 
 
 Containerisering vurderes som mest relevant for framtidig backend/worker, særlig på Linux.
 
-Desktop-GUI skal ikke containeriseres bare for å oppnå portabilitet. Core, operations og headless worker er de naturlige containergrensene.
+Desktop-GUI skal ikke containeriseres bare for å oppnå portabilitet. Core, operations og headless worker er de naturlige containergrensene. En framtidig CLI kan også være relevant i container-/headless-sammenheng.
 
 ## Pakket Windows-applikasjon
 
@@ -187,20 +203,22 @@ Ved ny utvikling skal vi:
 2. bruke `pathlib` og plattformuavhengige Python-API-er når mulig
 3. holde `.bat`, `.sh` og eventuell packaging utenfor domenelogikken
 4. holde core/operations uavhengig av GUI
-5. kapsle eksterne programmer i adaptere med konfigurerbar executable/path
-6. lagre runtime-state og brukerinnstillinger utenfor source repository/installasjonsmappe
-7. bevare operations/executor-kontrakten slik at lokal og senere remote kjøring kan bruke samme operasjoner
-8. teste et miljø før dokumentasjonen kaller det støttet
+5. holde jobb-/workflowfunksjoner i et delt lag som kan brukes av GUI, CLI og senere API
+6. kapsle eksterne programmer i adaptere med konfigurerbar executable/path
+7. lagre runtime-state og brukerinnstillinger utenfor source repository/installasjonsmappe
+8. bevare operations/executor-kontrakten slik at lokal og senere remote kjøring kan bruke samme operasjoner
+9. teste et miljø eller grensesnitt før dokumentasjonen kaller det støttet
 
 ## Prioritert retning
 
 En naturlig utviklingsrekkefølge er:
 
 1. Windows desktop
-2. Windows RDS/Terminal Server
-3. headless worker/server på Windows og/eller Linux
-4. webklient
-5. Linux/macOS desktop dersom behovet tilsier det
-6. native mobilklient bare dersom webklient ikke dekker behovet
+2. lokal CLI/programmatisk styring når jobb-/workflowlaget er klart for det
+3. Windows RDS/Terminal Server
+4. headless worker/server på Windows og/eller Linux
+5. webklient
+6. Linux/macOS desktop dersom behovet tilsier det
+7. native mobilklient bare dersom webklient ikke dekker behovet
 
-Se også `ARCHITECTURE.md` for kjørebackend og servermodell og `TESTING.md` for dagens testregime.
+Se også `ARCHITECTURE.md` for kjørebackend og servermodell, `INTERFACE.md` for planlagte grensesnitt og `TESTING.md` for dagens testregime.
