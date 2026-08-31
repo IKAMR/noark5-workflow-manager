@@ -55,7 +55,6 @@ Loggen inneholder overordnet informasjon, ikke detaljene som allerede finnes i d
 
 Detaljert operasjonslogg og PREMIS forblir knyttet til jobb/output.
 
-
 ## Tilbake til standardmappe
 
 I Innstillinger har de tre konfigurerbare standardmappene knappene `Velg…` og `Bruk standard`.
@@ -70,17 +69,15 @@ Workspace-strukturen opprettes ved oppstart og etter endring av `temp_dir`.
 
 Ved åpning/lagring av jobblister brukes den effektive `job_list_dir` som standardlokasjon. Setup eksport/import bruker den effektive `setup_dir`.
 
-
 ## Robusthet ved eldre/importerte jobblister
 
 En jobb med lagret status `Kjører` kan ikke ha en levende worker etter at jobblista er lastet inn på nytt. Før ny kjøring normaliseres derfor stale `RUNNING` til `Klar`. Ugyldig execution cursor fra eldre/importerte data normaliseres også defensivt.
 
 Den overordnede run-loggen opprettes før første jobb starter og har eksplisitt run-status. Dersom batch-worker feiler før første jobb, skal loggen fortsatt avsluttes med `Status: FEIL`, sluttid og feilmelding. Dermed kan en ufullført logg skilles fra en faktisk pågående kjøring.
 
-
 ## Batchfaser og limbo-diagnostikk
 
-Fra a2.15.5 registrerer den overordnede run-loggen også aktuell batchfase. Eksempler:
+Den overordnede run-loggen registrerer aktuell batchfase. Eksempler:
 
 - `Batch opprettet - worker ikke startet ennå`
 - `Worker startet`

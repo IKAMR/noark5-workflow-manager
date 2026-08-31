@@ -69,13 +69,13 @@ Dette dokumentet samler konkrete åpne punkter og beslutninger som skal følges 
 - Generell konfigurasjon og policy legges under `config/`.
 - `noark5_workflow/` skal bare brukes for Noark 5-spesifikk logikk.
 - `settings.py` og `version.py` kan vurderes flyttet senere som en egen bevisst refaktorering, ikke midt i et funksjonelt fix-trinn.
-- Midlertidige versjons-wrappere bør ryddes når a2 stabiliseres; canonical runtime-filer foretrekkes.
+- Midlertidige versjons-wrappere bør ryddes ved en kontrollert konsolidering; canonical runtime-filer foretrekkes.
 
 ## UI-konsistens
 
 - Bruk knappereglene i `INTERFACE.md` konsekvent i nye dialoger.
 - Gjennomgå resterende GUI ved senere UI-opprydding slik at primær, sekundær og stopp/fare har samme semantikk overalt.
-- DIAS-dialog: rydd senere plassering av `Utdatamappe` / `Velg mappe…` / METS uten å bruke mer a2-tid på kosmetisk ombygging.
+- DIAS-dialog: rydd senere plassering av `Utdatamappe` / `Velg mappe…` / METS uten å prioritere kosmetisk ombygging foran funksjonelt arbeid.
 - Workflow-listen skal fortsatt være kompakt med én rad per operasjon.
 
 ## Kjøremiljø og videre arkitektur
