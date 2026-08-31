@@ -33,8 +33,9 @@ class RememberedFoldersA214Tests(unittest.TestCase):
         self.assertIn("last_job_list_file", DEFAULT_CONFIG)
 
     def test_documentation_lists_remembered_folders(self):
-        text = (ROOT / "docs" / "INTERFACE.md").read_text(encoding="utf-8")
-        self.assertIn("## Huskede mapper", text)
+        # Mappeadferd er en utviklings-/GUI-konvensjon, ikke en interface-kontrakt.
+        text = (ROOT / "docs" / "DEVELOPMENT.md").read_text(encoding="utf-8")
+        self.assertIn("## Innstillinger og mappeadferd", text)
         self.assertIn("last_setup_dir", text)
         self.assertIn("last_job_list_dir", text)
 

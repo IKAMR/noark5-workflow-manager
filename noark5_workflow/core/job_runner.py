@@ -1,0 +1,196 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Callable
+
+from noark5_workflow.core.context import OperationContext
+from noark5_workflow.core.job import Job, JobStatus
+from noark5_workflow.core.output_lock import OutputLock, OutputLockedError
+from noark5_workflow.sources.noark5_extraction import Noark5Extraction
+
+
+_TERMINAL_STATUSES = {JobStatus.OK, JobStatus.FAILED, JobStatus.SKIPPED}
+
+
+@dataclass(frozen=True)
+class JobRunOutcome:
+    ok: bool
+    persist_recommended: bool = False
+
+
+class JobRunner:
+    """GUI-independent execution of one Job through an executor.
+
+    The runner owns execution semantics only. UI threading, dialogs, job-list
+    persistence and widget refresh remain responsibilities of the calling client.
+    """
+
+    def __init__(
+        self,
+        registry,
+        executor,
+        settings: dict,
+        *,
+        source_factory=Noark5Extraction.detect,
+    ) -> None:
+        self.registry = registry
+        self.executor = executor
+        self.settings = settings
+        self.source_factory = source_factory
+
+    def _configure_operation_for_job(self, job: Job, operation_id: str):
+        operation = self.registry.get(operation_id)
+        params = job.get_operation_params(operation_id)
+        configure = getattr(operation, "configure", None)
+        if params and callable(configure):
+            configure(params)
+        return operation
+
+    def run(
+        self,
+        job: Job,
+        *,
+        progress_cb: Callable[[float, str], None] | None = None,
+        log_cb: Callable[[str], None] | None = None,
+        cancelled_cb: Callable[[], bool] | None = None,
+        state_cb: Callable[[Job], None] | None = None,
+    ) -> JobRunOutcome:
+        def log(message: str) -> None:
+            if log_cb:
+                log_cb(message)
+
+        def state_changed() -> None:
+            if state_cb:
+                state_cb(job)
+
+        op_ids = list(job.workflow_ids)
+        if not op_ids:
+            job.status = JobStatus.SKIPPED
+            job.message = "Ingen operasjoner i workflow"
+            log("HOPPET OVER: Ingen operasjoner i workflow")
+            state_changed()
+            return JobRunOutcome(True, False)
+
+        start_index = job.next_operation_index if job.status == JobStatus.WAITING else 0
+        start_index = max(0, min(start_index, len(op_ids)))
+
+        if job.status in _TERMINAL_STATUSES:
+            start_index = 0
+            job.next_operation_index = 0
+            job.progress = 0.0
+
+        if start_index >= len(op_ids):
+            start_index = 0
+            job.next_operation_index = 0
+            job.progress = 0.0
+
+        resuming = start_index > 0
+        job.status = JobStatus.RUNNING
+        job.message = (
+            f"Workflow fortsetter fra operasjon {start_index + 1}"
+            if resuming
+            else "Workflow startet"
+        )
+        log(job.message)
+        state_changed()
+
+        output_lock = None
+        try:
+            if job.output_root:
+                output_lock = OutputLock(job.output_root, job.job_id)
+                output_lock.acquire()
+                log(f"Utdata låst: {job.output_root}")
+
+            source = self.source_factory(job.source_root)
+            ctx = OperationContext(
+                extraction_root=job.source_root,
+                source=source,
+                settings=self.settings,
+                progress_cb=progress_cb,
+                log_cb=log_cb,
+                cancelled_cb=cancelled_cb,
+            )
+
+            total = len(op_ids)
+            all_ok = True
+
+            for zero_index in range(start_index, total):
+                op_id = op_ids[zero_index]
+
+                if cancelled_cb and cancelled_cb():
+                    job.status = JobStatus.SKIPPED
+                    job.message = "Avbrutt"
+                    log("AVBRUTT før neste operasjon")
+                    state_changed()
+                    return JobRunOutcome(False, False)
+
+                operation = self._configure_operation_for_job(job, op_id)
+
+                if op_id == "dias_package":
+                    params = job.get_operation_params(op_id)
+                    configured_output = str(params.get("output_dir", "") or "").strip()
+                    job_output = str(job.output_root) if job.output_root is not None else ""
+                    if job_output and configured_output != job_output:
+                        params["output_dir"] = job_output
+                        job.set_operation_params(op_id, params)
+                        operation.configure(params)
+                        log(f"DIAS-utdata synkronisert fra jobb: {job_output}")
+
+                log(f"START: {operation.definition.name}")
+                result = self.executor.execute(operation, ctx)
+                all_ok = all_ok and result.ok
+                log(result.message)
+
+                for warning in result.warnings:
+                    log(f"ADVARSEL: {warning}")
+                if result.data:
+                    log(json.dumps(result.data, ensure_ascii=False, indent=2))
+
+                log(f"{'OK' if result.ok else 'FEIL'}: {operation.definition.name}")
+                job.message = result.message
+
+                if not result.ok:
+                    job.next_operation_index = zero_index
+                    job.progress = zero_index / total
+                    state_changed()
+                    break
+
+                job.mark_operation_completed(zero_index)
+                state_changed()
+
+                if job.has_checkpoint(op_id) and zero_index < total - 1:
+                    job.status = JobStatus.WAITING
+                    job.message = f"Venter ved kontrollpunkt etter {operation.definition.name}"
+                    log(job.message)
+                    state_changed()
+                    return JobRunOutcome(True, True)
+
+            if all_ok:
+                job.status = JobStatus.OK
+                job.progress = 1.0
+                job.next_operation_index = total
+                job.message = "Workflow fullført"
+            else:
+                job.status = JobStatus.FAILED
+                job.message = "Workflow stoppet med feil"
+
+            log(job.message)
+            state_changed()
+            return JobRunOutcome(all_ok, True)
+
+        except OutputLockedError as exc:
+            job.status = JobStatus.FAILED
+            job.message = str(exc)
+            log(f"FEIL: {exc}")
+            state_changed()
+            return JobRunOutcome(False, False)
+        except Exception as exc:
+            job.status = JobStatus.FAILED
+            job.message = str(exc)
+            log(f"FEIL: {exc}")
+            state_changed()
+            return JobRunOutcome(False, False)
+        finally:
+            if output_lock is not None:
+                output_lock.release()
