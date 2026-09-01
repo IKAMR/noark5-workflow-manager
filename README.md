@@ -2,8 +2,8 @@
 
 Arbeidsflytverktøy for analyse, validering og behandling av Noark
 5-uttrekk. Programmet har et CustomTkinter-basert desktop-GUI og fra
-v0.1.2-a7 også et lokalt CLI-grensesnitt (`n5wf`) for headless kontroll
-og kjøring av eksisterende jobblister. Jobb-, workflow- og
+v0.1.2-a7 også et lokalt CLI-grensesnitt (`n5wf`) for headless kontroll,
+statuslesing og kjøring av eksisterende jobblister. Jobb-, workflow- og
 operasjonslogikken holdes uavhengig av grensesnittet, slik at GUI, CLI og
 senere server-/API-grensesnitt kan bruke samme underliggende modell.
 
@@ -39,7 +39,7 @@ bevares urørt.
 Programmet har blant annet:
 
 -   CustomTkinter-basert desktop-GUI
--   lokal CLI (`n5wf`) for kontroll og kjøring av eksisterende `.n5jobs`-jobblister
+-   lokal CLI (`n5wf`) for kontroll, statuslesing og kjøring av eksisterende `.n5jobs`-jobblister
 -   valg og automatisk deteksjon av Noark 5-uttrekk
 -   kategorisert operasjonspalett og workflow
 -   lokal kjøring gjennom `LocalExecutor`
@@ -106,6 +106,7 @@ Eksempler:
 ```text
 n5wf --help
 n5wf jobs check <file.n5jobs>
+n5wf jobs status <file.n5jobs>
 n5wf jobs run <file.n5jobs>
 ```
 

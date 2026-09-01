@@ -7,7 +7,7 @@ from pathlib import Path
 from app.run_overview_log import RunOverviewLog
 from noark5_workflow.app import build_registry
 from noark5_workflow.core.batch_runner import BatchRunner
-from noark5_workflow.core.job import Job, JobStatus
+from noark5_workflow.core.job import Job
 from noark5_workflow.core.job_runner import JobRunner
 from noark5_workflow.core.job_store import JobListFormatError, load_job_list, save_job_list
 from noark5_workflow.core.preflight import JobPreflight
@@ -20,6 +20,7 @@ EXIT_USAGE = 2
 EXIT_PREFLIGHT = 3
 EXIT_RUN_FAILED = 4
 EXIT_WAITING = 5
+EXIT_NOT_FOUND = 6
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -32,6 +33,15 @@ def _parser() -> argparse.ArgumentParser:
 
     check = actions.add_parser("check", help="Check a job list without running it")
     check.add_argument("joblist", type=Path)
+
+    status = actions.add_parser("status", help="Show job-list or single-job status")
+    status.add_argument("joblist", type=Path)
+    status.add_argument(
+        "--job",
+        dest="job_id",
+        metavar="JOB-ID",
+        help="Show detailed status for one job in the job list",
+    )
 
     run = actions.add_parser("run", help="Run a job list without the GUI")
     run.add_argument("joblist", type=Path)
@@ -59,6 +69,73 @@ def _print_report(report) -> None:
         )
     if report.rerun_jobs:
         print("RERUN required: " + ", ".join(job.job_id for job in report.rerun_jobs))
+
+
+def _progress_percent(job: Job) -> str:
+    return f"{max(0.0, min(1.0, float(job.progress))) * 100:.0f}%"
+
+
+def _status_summary(path: Path, loaded) -> int:
+    jobs = loaded.batch.jobs()
+    print(f"{APP_NAME} {VERSION}")
+    print(f"Job list: {path}")
+    print(f"Jobs: {len(jobs)}")
+    if loaded.active_job_id:
+        print(f"Active job: {loaded.active_job_id}")
+    if loaded.modified_at:
+        print(f"Modified: {loaded.modified_at}")
+    print()
+
+    if not jobs:
+        print("Jobblisten er tom.")
+        return EXIT_OK
+
+    id_width = max(len("Job ID"), *(len(job.job_id) for job in jobs))
+    status_width = max(len("Status"), *(len(job.status.value) for job in jobs))
+    progress_width = len("Progress")
+    print(f"{'Job ID':<{id_width}}  {'Status':<{status_width}}  {'Progress':>{progress_width}}  Name")
+    print(f"{'-' * id_width}  {'-' * status_width}  {'-' * progress_width}  {'-' * 4}")
+    for job in jobs:
+        print(
+            f"{job.job_id:<{id_width}}  {job.status.value:<{status_width}}  "
+            f"{_progress_percent(job):>{progress_width}}  {job.name}"
+        )
+    return EXIT_OK
+
+
+def _status_job(path: Path, loaded, job_id: str) -> int:
+    job = loaded.batch.get(job_id)
+    if job is None:
+        print(f"ERROR: Jobb-ID finnes ikke i jobblisten: {job_id}", file=sys.stderr)
+        return EXIT_NOT_FOUND
+
+    total = len(job.workflow_ids)
+    next_index = max(0, min(int(job.next_operation_index), total))
+    next_operation = job.workflow_ids[next_index] if next_index < total else "-"
+
+    print(f"{APP_NAME} {VERSION}")
+    print(f"Job list: {path}")
+    print(f"Job ID: {job.job_id}")
+    print(f"Name: {job.name}")
+    print(f"Status: {job.status.value}")
+    print(f"Progress: {_progress_percent(job)}")
+    print(f"Source: {job.source_root}")
+    print(f"Output: {job.output_root if job.output_root is not None else '-'}")
+    print(f"Worker: {job.worker or '-'}")
+    print(f"Workflow operations: {total}")
+    print(f"Next operation index: {next_index}")
+    print(f"Next operation: {next_operation}")
+    print("Checkpoints: " + (", ".join(job.checkpoint_after) if job.checkpoint_after else "-"))
+    print(f"Message: {job.message or '-'}")
+    return EXIT_OK
+
+
+def _status(path: Path, *, job_id: str | None = None) -> int:
+    # Status is deliberately read-only: no preflight normalization and no save.
+    loaded = _load(path)
+    if job_id:
+        return _status_job(path, loaded, job_id)
+    return _status_summary(path, loaded)
 
 
 def _check(path: Path) -> int:
@@ -164,6 +241,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.object == "jobs" and args.action == "check":
             return _check(args.joblist)
+        if args.object == "jobs" and args.action == "status":
+            return _status(args.joblist, job_id=args.job_id)
         if args.object == "jobs" and args.action == "run":
             return _run(args.joblist, allow_rerun=args.rerun)
     except JobListFormatError as exc:

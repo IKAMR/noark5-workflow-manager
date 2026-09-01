@@ -65,7 +65,7 @@ DIAS-dialogen produserer parametere til DIAS-operasjonen. Valgt Noark 5-uttrekk 
 
 Workflow Manager har fra v0.1.2-a7 et lokalt maskinrettet CLI-grensesnitt (`n5wf`) ved siden av desktop-GUI-et. CLI-et er første implementerte eksponering av det delte jobb-/workflowlaget. Senere kan samme underliggende kontrakt eksponeres gjennom nettverks-API, tjeneste eller annen ekstern stimulus.
 
-Implementert CLI-omfang i a7 er kontroll og kjøring av eksisterende `.n5jobs`-jobblister. Kommandoer, argumenter, flags og exit codes som faktisk er støttet, dokumenteres i `CLI.md` og skal ikke dupliseres her.
+CLI-et ble først implementert i v0.1.2-a7 for kontroll og kjøring av eksisterende `.n5jobs`-jobblister, og er senere utvidet innen samme delte jobb-/workflowmodell. Kommandoer, argumenter, flags og exit codes som faktisk er støttet, dokumenteres i `CLI.md` og skal ikke dupliseres her.
 
 Det videre styringsgrensesnittet skal kunne utvikles mot operasjoner som:
 
@@ -79,6 +79,8 @@ Det videre styringsgrensesnittet skal kunne utvikles mot operasjoner som:
 
 Listen over beskriver retning, ikke at alle handlingene allerede finnes som offentlige CLI-kommandoer.
 
+Fra v0.1.2-a9 kan status leses for en jobbliste eller én jobb innen en eksplisitt angitt `.n5jobs`-fil. Dagens `JOB-001`-lignende jobb-ID er ikke global; ulike jobblister kan inneholde samme jobb-ID. Inntil en eventuell workspace/database/global identitetsmodell finnes, skal CLI-design derfor ikke anta at en løs jobb-ID alene kan identifisere en jobb sikkert.
+
 ### Mulig framtidig CLI-syntaks
 
 Som arbeidshypotese kan noen av operasjonene ovenfor senere eksponeres med kommandoer som:
@@ -90,6 +92,13 @@ n5wf job continue <job-id>
 n5wf job stop <job-id>
 
 n5wf jobs status <file.n5jobs>
+```
+
+De løse `n5wf job ... <job-id>`-eksemplene forutsetter en framtidig identitets-/workspace-modell som gjør jobb-ID-en entydig. Med dagens modell er mer realistiske arbeidshypoteser for valgt jobb:
+
+```text
+n5wf jobs run <file.n5jobs> --job <job-id>
+n5wf jobs continue <file.n5jobs> --job <job-id>
 ```
 
 Mulige framtidige options kan blant annet være:
@@ -106,7 +115,7 @@ Navn, syntaks og semantikk over er **ikke låst** og betyr ikke at funksjonene e
 
 CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et. I dagens lokale kjørevei brukes `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor`.
 
-For a7 er CLI-syntaks og exit codes for implementerte kommandoer låst i `CLI.md`. Serialiseringsformat utover dagens `.n5jobs`, autentisering, nettverks-API og ytterligere kommandoer er fortsatt åpne designområder.
+Implementert CLI-syntaks og exit codes er låst og dokumentert i `CLI.md`. Serialiseringsformat utover dagens `.n5jobs`, autentisering, nettverks-API og ytterligere kommandoer er fortsatt åpne designområder.
 
 ## Eksterne datakilder
 

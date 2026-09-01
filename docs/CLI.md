@@ -1,6 +1,6 @@
 # Command-Line Interface (CLI)
 
-`n5wf` er kommandolinjegrensesnittet til Noark 5 Workflow Manager. Det gjør det mulig å kontrollere og kjøre eksisterende `.n5jobs`-jobblister uten å starte GUI-et.
+`n5wf` er kommandolinjegrensesnittet til Noark 5 Workflow Manager. Det gjør det mulig å kontrollere, lese status for og kjøre eksisterende `.n5jobs`-jobblister uten å starte GUI-et.
 
 ## Hurtig bruk
 
@@ -13,14 +13,24 @@ Etter at CLI er installert, åpne en ny PowerShell-, CMD- eller Windows Terminal
 | `n5wf --help` | – | Vis hjelp |
 | `n5wf --version` | – | Vis versjon |
 | `n5wf jobs check <file.n5jobs>` | – | Kontroller jobblisten uten å kjøre den |
+| `n5wf jobs status <file.n5jobs>` | `[--job JOB-ID]` | Vis status for jobblista eller én jobb |
 | `n5wf jobs run <file.n5jobs>` | `[--rerun]` | Kjør jobblisten |
 
 ### Options
 
+`--job JOB-ID`
+: Vis detaljert status for én jobb i den angitte `.n5jobs`-jobblista. Gjelder `n5wf jobs status` fra v0.1.2-a9.
+
 `--rerun`
 : Tillater eksplisitt ny kjøring av jobber som ellers krever godkjenning. Gjelder `n5wf jobs run`.
 
-Den kan skrives både etter og før filargumentet. Den dokumenterte standardformen er:
+Den kan skrives både etter og før filargumentet. Den dokumenterte standardformen er at jobblista står før option:
+
+```text
+n5wf jobs status <file.n5jobs> --job JOB-001
+```
+
+For `--rerun` er standardformen:
 
 ```text
 n5wf jobs run <file.n5jobs> --rerun
@@ -55,6 +65,28 @@ n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --rerun
 ```
 
 Detaljer om kontroll, kjøring, exit codes og automatisering står nedenfor.
+
+## Status
+
+Vis status for hele jobblista:
+
+```text
+n5wf jobs status <file.n5jobs>
+```
+
+Vis detaljert status for én jobb:
+
+```text
+n5wf jobs status <file.n5jobs> --job <job-id>
+```
+
+`status` er read-only: kommandoen kjører ikke preflight-normalisering og lagrer ikke jobblista. Visningen er en statuslesing av den persistente `.n5jobs`-modellen, ikke live overvåking av en annen kjørende prosess.
+
+En jobb-ID som `JOB-001` er foreløpig bare entydig innen den aktuelle `.n5jobs`-fila. Derfor må jobblista inngå i adresséringen.
+
+Detaljvisningen viser blant annet status, fremdrift, source, output, worker, antall workflow-operasjoner, neste operasjon, checkpoints og melding.
+
+Hvis angitt jobb-ID ikke finnes, returneres exit code `6`.
 
 ## Installasjon
 
@@ -184,6 +216,7 @@ CLI-et bruker exit codes slik at BAT-, PowerShell- og andre systemer kan avgjør
 | `3` | Preflight feilet eller kjøring krever eksplisitt godkjenning |
 | `4` | Jobb-/batchkjøringen feilet |
 | `5` | En eller flere jobber venter ved kontrollpunkt |
+| `6` | Etterspurt jobb-ID finnes ikke i angitt jobbliste |
 
 Eksempel i BAT:
 
@@ -235,17 +268,25 @@ Brukerrettet status- og loggtekst kan være norsk selv om den stabile maskinrett
 
 ## Omfang
 
-Følgende offentlige CLI-kall er implementert fra v0.1.2-a7:
+Følgende offentlige CLI-kall er implementert per v0.1.2-a9:
 
 ```text
 n5wf --help
 n5wf --version
 n5wf jobs check <file.n5jobs>
+n5wf jobs status <file.n5jobs>
+n5wf jobs status <file.n5jobs> --job <job-id>
 n5wf jobs run <file.n5jobs>
 n5wf jobs run <file.n5jobs> --rerun
 ```
 
-CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen. Første CLI-versjon er bevisst begrenset til kontroll og kjøring av eksisterende `.n5jobs`-jobblister.
+CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen og kjører foreløpig ikke én valgt jobb separat. Første CLI-versjon er bevisst begrenset til kontroll og kjøring av eksisterende `.n5jobs`-jobblister.
+
+## Videre CLI-/styringsdesign
+
+Videre planlagt programmatisk styring og mulige framtidige CLI-kommandoer/options er beskrevet i `INTERFACE.md`. Overordnet framtidsdesign for jobb-, batch- og workflowstyring er beskrevet i `JOBS-BATCH-FUTURE-DESIGN.md`.
+
+Ved analyse av videre CLI-utvikling skal `CLI.md` og `INTERFACE.md` leses sammen; ved funksjonelle jobb-/batch-/workflowendringer skal også `JOBS-BATCH-FUTURE-DESIGN.md` kontrolleres.
 
 ## Dokumentasjonsregel
 
