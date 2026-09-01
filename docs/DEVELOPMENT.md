@@ -54,6 +54,13 @@ Workflow-listen bruker kompakt modenhetsmerking på én rad:
 - `(B)` = Beta
 - `(A)` = Alpha
 
+### Jobbliste
+
+- Rekkefølgen på jobbene i `.n5jobs` er den sekvensielle batchrekkefølgen. GUI-et kan endre denne rekkefølgen med Opp/Ned.
+- Sletting av en jobb fjerner bare jobbposten fra jobblista. Kilde, utdata og tidligere resultatmapper på disk skal ikke slettes som sideeffekt.
+- Flytting og sletting av jobber er deaktivert mens batch kjører.
+- Når en tidligere kjørt jobb redigeres slik at gjeldende konfigurasjon må kjøres på nytt, kan den interne statusen være `Klar`. GUI-et skal samtidig synliggjøre dette som `Klar – endret etter kjøring`. Kravet om eksplisitt rerun-godkjenning beholdes.
+
 ## Innstillinger og mappeadferd
 
 Dialoger som åpner eller lagrer filer og mapper skal huske siste relevante lokasjon med egne, tydelig navngitte innstillinger.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from typing import Callable
 
 import customtkinter as ctk
@@ -9,6 +9,9 @@ import customtkinter as ctk
 from noark5_workflow.core.job import Job, JobBatch, JobStatus
 from settings import load_config, save_config
 from . import theme
+
+
+_CHANGED_AFTER_RUN = "Konfigurasjon endret - klar for ny kjøring"
 
 
 class JobsWindow(ctk.CTkToplevel):
@@ -44,8 +47,8 @@ class JobsWindow(ctk.CTkToplevel):
         self.settings = load_config()
         self._batch_running = False
         self.title("Jobber - Noark 5 Workflow Manager")
-        self.geometry("1380x780")
-        self.minsize(1080, 640)
+        self.geometry("1480x780")
+        self.minsize(1120, 640)
         self.configure(fg_color=theme.APP_BG)
         self.transient(master)
 
@@ -97,7 +100,10 @@ class JobsWindow(ctk.CTkToplevel):
         )
         self.save_as_button.pack(side="left", padx=(4, 14))
 
-        self.new_button = ctk.CTkButton(buttons, text="+ Ny jobb", command=self._new_job, width=100, fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER)
+        self.new_button = ctk.CTkButton(
+            buttons, text="+ Ny jobb", command=self._new_job, width=100,
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER
+        )
         self.new_button.pack(side="left", padx=(0, 6))
         self.start_all_button = ctk.CTkButton(
             buttons, text="Start alle", command=self.on_start_all, width=100,
@@ -120,7 +126,9 @@ class JobsWindow(ctk.CTkToplevel):
         self.list_frame.grid(row=3, column=0, padx=18, pady=(0, 8), sticky="nsew")
         self.list_frame.grid_columnconfigure(0, weight=1)
 
-        self.summary = ctk.CTkLabel(self, text="", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB)
+        self.summary = ctk.CTkLabel(
+            self, text="", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB
+        )
         self.summary.grid(row=4, column=0, padx=18, pady=(2, 14), sticky="w")
         self.refresh()
 
@@ -155,6 +163,61 @@ class JobsWindow(ctk.CTkToplevel):
     def _save_list_as(self) -> None:
         if not self._batch_running and self.on_save_list_as():
             self.refresh()
+
+    def _persist_list_change(self) -> None:
+        if self.get_list_path() is not None:
+            self.on_save_list()
+
+    def _move_up(self, job: Job) -> None:
+        if self._batch_running:
+            return
+        if self.batch.move_up(job.job_id):
+            self._persist_list_change()
+            self.refresh()
+
+    def _move_down(self, job: Job) -> None:
+        if self._batch_running:
+            return
+        if self.batch.move_down(job.job_id):
+            self._persist_list_change()
+            self.refresh()
+
+    def _delete(self, job: Job) -> None:
+        if self._batch_running:
+            return
+
+        jobs = self.batch.jobs()
+        if len(jobs) == 1 and self.get_active_job_id() == job.job_id:
+            messagebox.showinfo(
+                "Noark 5 Workflow Manager",
+                "Dette er siste aktive jobb i jobblista.\n\n"
+                "Bruk «Ny jobbliste» dersom du vil tømme hele jobblista.",
+            )
+            return
+
+        if not messagebox.askyesno(
+            "Noark 5 Workflow Manager",
+            f"Slette {job.job_id} fra jobblista?\n\n"
+            "Kilde, utdata og tidligere resultatmapper på disk slettes ikke.",
+        ):
+            return
+
+        active = self.get_active_job_id() == job.job_id
+        replacement = None
+        if active:
+            index = next((i for i, item in enumerate(jobs) if item.job_id == job.job_id), 0)
+            remaining = [item for item in jobs if item.job_id != job.job_id]
+            if remaining:
+                replacement = remaining[min(index, len(remaining) - 1)]
+
+        if not self.batch.remove(job.job_id):
+            return
+
+        if replacement is not None:
+            self.on_open_job(replacement)
+
+        self._persist_list_change()
+        self.refresh()
 
     def _new_job(self) -> None:
         kwargs = {"title": "Velg rotmappe for ny Noark 5-jobb"}
@@ -193,7 +256,13 @@ class JobsWindow(ctk.CTkToplevel):
             ).grid(row=0, column=0, padx=20, pady=80)
         else:
             for row, job in enumerate(jobs):
-                self._row(row, job, active=(job.job_id == active_job_id))
+                self._row(
+                    row,
+                    job,
+                    active=(job.job_id == active_job_id),
+                    can_move_up=(row > 0),
+                    can_move_down=(row < len(jobs) - 1),
+                )
 
         counts = self.batch.counts()
         waiting = counts.get(JobStatus.WAITING, 0)
@@ -207,7 +276,15 @@ class JobsWindow(ctk.CTkToplevel):
         )
         self.set_batch_running(self._batch_running)
 
-    def _row(self, row: int, job: Job, *, active: bool = False) -> None:
+    def _row(
+        self,
+        row: int,
+        job: Job,
+        *,
+        active: bool = False,
+        can_move_up: bool = True,
+        can_move_down: bool = True,
+    ) -> None:
         card_color = theme.BLUE_DIM if active else theme.CARD_BG
         card = ctk.CTkFrame(self.list_frame, fg_color=card_color, corner_radius=6)
         card.grid(row=row, column=0, padx=5, pady=4, sticky="ew")
@@ -224,31 +301,69 @@ class JobsWindow(ctk.CTkToplevel):
         id_text = f"{job.job_id}  • AKTIV" if active else job.job_id
         id_color = theme.BLUE if active else theme.TEXT_SUB
         ctk.CTkLabel(
-            top,
-            text=id_text,
-            width=130,
-            anchor="w",
-            font=theme.font(theme.SMALL_SIZE, "bold"),
-            text_color=id_color,
+            top, text=id_text, width=130, anchor="w",
+            font=theme.font(theme.SMALL_SIZE, "bold"), text_color=id_color,
         ).grid(row=0, column=0, padx=(0, 8), sticky="w")
 
         ctk.CTkLabel(
-            top,
-            text=job.name,
-            anchor="w",
+            top, text=job.name, anchor="w",
             font=theme.font(theme.SMALL_SIZE, "bold"),
             text_color=theme.BLUE if active else theme.TEXT_SUB,
         ).grid(row=0, column=1, sticky="ew")
 
-        ctk.CTkLabel(top, text=job.status.value, width=110, anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=status_color).grid(row=0, column=2, padx=8, sticky="w")
-        ctk.CTkLabel(top, text=f"{job.progress:.0%}", width=55, font=theme.font(theme.SMALL_SIZE)).grid(row=0, column=3, padx=8)
-        ctk.CTkLabel(top, text=job.worker, width=145, anchor="w", font=theme.font(theme.SMALL_SIZE)).grid(row=0, column=4, padx=8, sticky="w")
-        ctk.CTkButton(top, text="Åpne", width=70, height=27, state="disabled" if self._batch_running else "normal", command=lambda j=job: self._open(j), fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER).grid(row=0, column=5, padx=(8, 0))
+        status_text = job.status.value
+        if job.status == JobStatus.READY and job.message == _CHANGED_AFTER_RUN:
+            status_text = "Klar – endret etter kjøring"
+
+        ctk.CTkLabel(
+            top, text=status_text, width=185, anchor="w",
+            font=theme.font(theme.SMALL_SIZE), text_color=status_color
+        ).grid(row=0, column=2, padx=8, sticky="w")
+        ctk.CTkLabel(
+            top, text=f"{job.progress:.0%}", width=55, font=theme.font(theme.SMALL_SIZE)
+        ).grid(row=0, column=3, padx=8)
+        ctk.CTkLabel(
+            top, text=job.worker, width=145, anchor="w",
+            font=theme.font(theme.SMALL_SIZE)
+        ).grid(row=0, column=4, padx=8, sticky="w")
+
+        state = "disabled" if self._batch_running else "normal"
+        ctk.CTkButton(
+            top, text="↑", width=32, height=27,
+            state=state if can_move_up else "disabled",
+            command=lambda j=job: self._move_up(j),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER
+        ).grid(row=0, column=5, padx=(6, 2))
+        ctk.CTkButton(
+            top, text="↓", width=32, height=27,
+            state=state if can_move_down else "disabled",
+            command=lambda j=job: self._move_down(j),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER
+        ).grid(row=0, column=6, padx=2)
+        ctk.CTkButton(
+            top, text="Slett", width=58, height=27, state=state,
+            command=lambda j=job: self._delete(j),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER
+        ).grid(row=0, column=7, padx=2)
+        ctk.CTkButton(
+            top, text="Åpne", width=70, height=27, state=state,
+            command=lambda j=job: self._open(j),
+            fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER
+        ).grid(row=0, column=8, padx=(2, 0))
 
         details = ctk.CTkFrame(card, fg_color="transparent")
         details.grid(row=1, column=0, columnspan=2, padx=8, pady=(2, 7), sticky="ew")
         details.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(details, text=f"Kilde: {job.source_root}", anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(row=0, column=0, padx=(0, 18), sticky="w")
-        ctk.CTkLabel(details, text=f"Utdata: {job.output_root or '(ikke valgt)'}", anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(row=0, column=1, sticky="ew")
+        ctk.CTkLabel(
+            details, text=f"Kilde: {job.source_root}", anchor="w",
+            font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED
+        ).grid(row=0, column=0, padx=(0, 18), sticky="w")
+        ctk.CTkLabel(
+            details, text=f"Utdata: {job.output_root or '(ikke valgt)'}", anchor="w",
+            font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED
+        ).grid(row=0, column=1, sticky="ew")
         if job.message:
-            ctk.CTkLabel(details, text=job.message, anchor="w", font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB).grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")
+            ctk.CTkLabel(
+                details, text=job.message, anchor="w",
+                font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_SUB
+            ).grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")

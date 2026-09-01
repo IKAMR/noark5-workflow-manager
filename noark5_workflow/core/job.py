@@ -32,9 +32,6 @@ class Job:
     message: str = ""
     log_entries: list[str] = field(default_factory=list)
 
-    # v0.1.2-a2: planned stops and persistent execution cursor.
-    # checkpoint_after contains operation IDs after which execution shall pause.
-    # next_operation_index points to the next operation to execute (0-based).
     checkpoint_after: list[str] = field(default_factory=list)
     next_operation_index: int = 0
 
@@ -63,7 +60,6 @@ class Job:
         old_workflow = list(self.workflow_ids)
         self.workflow_ids = list(operation_ids)
 
-        # Preserve checkpoints for operations that still exist.
         valid = set(self.workflow_ids)
         self.checkpoint_after = [
             operation_id
@@ -71,7 +67,6 @@ class Job:
             if operation_id in valid
         ]
 
-        # Structural workflow edits invalidate an execution cursor.
         if self.workflow_ids != old_workflow:
             self.next_operation_index = 0
             if self.status == JobStatus.WAITING:
@@ -109,7 +104,6 @@ class Job:
         self.message = message
 
     def mark_operation_completed(self, operation_index: int) -> None:
-        """Store cursor after a successfully completed 0-based operation index."""
         self.next_operation_index = max(
             0,
             min(operation_index + 1, len(self.workflow_ids)),
@@ -177,6 +171,26 @@ class JobBatch:
             if job.job_id == job_id:
                 del self._jobs[index]
                 return True
+        return False
+
+    def move_up(self, job_id: str) -> bool:
+        for index, job in enumerate(self._jobs):
+            if job.job_id != job_id:
+                continue
+            if index == 0:
+                return False
+            self._jobs[index - 1], self._jobs[index] = self._jobs[index], self._jobs[index - 1]
+            return True
+        return False
+
+    def move_down(self, job_id: str) -> bool:
+        for index, job in enumerate(self._jobs):
+            if job.job_id != job_id:
+                continue
+            if index >= len(self._jobs) - 1:
+                return False
+            self._jobs[index], self._jobs[index + 1] = self._jobs[index + 1], self._jobs[index]
+            return True
         return False
 
     def get(self, job_id: str) -> Job | None:

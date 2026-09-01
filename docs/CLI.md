@@ -14,35 +14,25 @@ Etter at CLI er installert, åpne en ny PowerShell-, CMD- eller Windows Terminal
 | `n5wf --version` | – | Vis versjon |
 | `n5wf jobs check <file.n5jobs>` | – | Kontroller jobblisten uten å kjøre den |
 | `n5wf jobs status <file.n5jobs>` | `[--job JOB-ID]` | Vis status for jobblista eller én jobb |
-| `n5wf jobs run <file.n5jobs>` | `[--rerun]` | Kjør jobblisten |
+| `n5wf jobs run <file.n5jobs>` | `[--job JOB-ID] [--rerun]` | Kjør hele jobblista eller én valgt jobb |
 
 ### Options
 
 `--job JOB-ID`
-: Vis detaljert status for én jobb i den angitte `.n5jobs`-jobblista. Gjelder `n5wf jobs status` fra v0.1.2-a9.
+: Velger én jobb i den angitte `.n5jobs`-jobblista. Gjelder `status` fra v0.1.2-a9 og `run` fra v0.1.2-a10.
 
 `--rerun`
-: Tillater eksplisitt ny kjøring av jobber som ellers krever godkjenning. Gjelder `n5wf jobs run`.
+: Tillater eksplisitt ny kjøring av en valgt eller flere jobber som ellers krever godkjenning. Gjelder `n5wf jobs run`.
 
-Den kan skrives både etter og før filargumentet. Den dokumenterte standardformen er at jobblista står før option:
+Den dokumenterte standardformen er at jobblista står før options:
 
 ```text
 n5wf jobs status <file.n5jobs> --job JOB-001
+n5wf jobs run <file.n5jobs> --job JOB-001
+n5wf jobs run <file.n5jobs> --job JOB-001 --rerun
 ```
 
-For `--rerun` er standardformen:
-
-```text
-n5wf jobs run <file.n5jobs> --rerun
-```
-
-Følgende form er også gyldig:
-
-```text
-n5wf jobs run --rerun <file.n5jobs>
-```
-
-`<file.n5jobs>` er et obligatorisk posisjonelt argument til `run`; det er ikke definert som en generell «parameter 3».
+Options kan også skrives før filargumentet.
 
 ### Vanlige eksempler
 
@@ -52,19 +42,29 @@ Kontroller en jobbliste:
 n5wf jobs check "G:\arkiv\jobblister\kommune.n5jobs"
 ```
 
-Kjør jobblisten:
+Vis detaljstatus for én jobb:
+
+```text
+n5wf jobs status "G:\arkiv\jobblister\kommune.n5jobs" --job JOB-002
+```
+
+Kjør bare én jobb:
+
+```text
+n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --job JOB-002
+```
+
+Kjør bare én tidligere ferdig/feilet/hoppet-over jobb på nytt:
+
+```text
+n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --job JOB-002 --rerun
+```
+
+Kjør hele jobblisten:
 
 ```text
 n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs"
 ```
-
-Kjør den på nytt når rerun-godkjenning kreves:
-
-```text
-n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --rerun
-```
-
-Detaljer om kontroll, kjøring, exit codes og automatisering står nedenfor.
 
 ## Status
 
@@ -82,52 +82,13 @@ n5wf jobs status <file.n5jobs> --job <job-id>
 
 `status` er read-only: kommandoen kjører ikke preflight-normalisering og lagrer ikke jobblista. Visningen er en statuslesing av den persistente `.n5jobs`-modellen, ikke live overvåking av en annen kjørende prosess.
 
+Når en tidligere kjørt jobb er redigert og derfor er klar for en ny kjøring, vises status som `Klar – endret etter kjøring` i både jobbliste- og enkeltjobbvisning. Dette er en brukerrettet presisering av `Klar`; CLI-et viser samtidig om eksplisitt rerun-godkjenning kreves og hvorfor.
+
 En jobb-ID som `JOB-001` er foreløpig bare entydig innen den aktuelle `.n5jobs`-fila. Derfor må jobblista inngå i adresséringen.
-
-Detaljvisningen viser blant annet status, fremdrift, source, output, worker, antall workflow-operasjoner, neste operasjon, checkpoints og melding.
-
-Hvis angitt jobb-ID ikke finnes, returneres exit code `6`.
 
 ## Installasjon
 
-Fra v0.1.2-a8 kan CLI installeres alene eller sammen med GUI.
-
-Interaktivt fra rotmappen til Noark 5 Workflow Manager:
-
-```bat
-install.bat
-```
-
-Velg `GUI + CLI` eller `CLI`. Installasjonen kan også startes direkte uten meny:
-
-```bat
-install.bat all
-install.bat cli
-```
-
-Core er en felles logisk komponent for GUI og CLI. Installer lagrer per-user profilstatus slik at senere installasjon eller deinstallasjon av GUI/CLI ikke unødvendig fjerner den andre profilen.
-
-CLI-installasjonen oppretter en stabil `n5wf`-launcher og registrerer launcher-mappen i brukerens Windows `PATH`.
-
-Hvis `n5wf` ikke finnes i `PATH`, kan CLI-et brukes direkte via Python launcher som fallback:
-
-```text
-py -m noark5_workflow.cli --help
-```
-
-Dette er primært en fallback for feilsøking. Den normale brukerkommandoen er `n5wf`.
-
-### Deinstallasjon av CLI
-
-CLI kan fjernes med:
-
-```bat
-deinstall.bat cli
-```
-
-eller gjennom den interaktive menyen i `deinstall.bat`. Deinstallasjon krever eksplisitt `Ja` før den utføres.
-
-Dersom GUI fortsatt er registrert installert, beholdes Core-status. Deinstallasjon fjerner ikke jobblister, logger, config, repository eller generelle Python-pakker som kan være delt med andre programmer.
+Fra v0.1.2-a8 kan CLI installeres alene eller sammen med GUI. Bruk `install.bat`, eller direkte `install.bat all` / `install.bat cli`.
 
 ## Kontrollere en jobbliste
 
@@ -135,79 +96,43 @@ Dersom GUI fortsatt er registrert installert, beholdes Core-status. Deinstallasj
 n5wf jobs check <file.n5jobs>
 ```
 
-Eksempel:
+`check` kjører GUI-uavhengig preflight og kjører ikke jobbene.
 
-```text
-n5wf jobs check "G:\arkiv\jobblister\kommune.n5jobs"
-```
+## Kjøre jobber
 
-Kommandoen:
-
-- leser jobblisten
-- kjører GUI-uavhengig preflight
-- normaliserer sikre tilstander der dette er støttet
-- kontrollerer konflikter mellom output-mapper
-- identifiserer jobber som krever eksplisitt godkjenning for ny kjøring
-- kjører ikke jobbene
-
-## Kjøre en jobbliste
+Hele jobblista:
 
 ```text
 n5wf jobs run <file.n5jobs>
 ```
 
-Eksempel:
+Én valgt jobb fra jobblista:
 
 ```text
-n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs"
+n5wf jobs run <file.n5jobs> --job <job-id>
 ```
 
-Kommandoen:
+Selektiv kjøring bruker `JobRunner` direkte for den valgte jobben. Andre jobber i jobblista kjøres ikke og skal ikke få endret status som følge av kjøringen.
 
-1. leser `.n5jobs`
-2. kjører preflight
-3. stopper hvis preflight finner blokkerende feil
-4. stopper hvis jobber krever eksplisitt rerun-godkjenning
-5. kjører jobbene sekvensielt via den samme kjernelogikken som GUI-et
-6. oppdaterer jobblisten under kjøringen
-7. skriver overordnet kjørelogg
-8. returnerer en exit code som kan brukes av skript og andre systemer
+Preflight for valgt jobb kontrollerer den valgte jobbens rerun-status og kontrollerer dens output mot øvrige jobber i samme jobbliste. En output-konflikt som involverer den valgte jobben blokkerer kjøringen.
 
-Kjøreveien er:
+Hvis valgt jobb allerede er `Ferdig`, `Feil` eller `Hoppet over`, kreves eksplisitt `--rerun`.
 
-```text
-CLI
- |
- +--> JobPreflight
-       |
-       +--> BatchRunner
-             |
-             +--> JobRunner
-                   |
-                   +--> LocalExecutor
-```
+Det samme gjelder en tidligere kjørt jobb som senere er redigert og derfor igjen står som `Klar`. CLI-et forklarer da at konfigurasjonen er endret etter tidligere kjøring. `Klar` beskriver gjeldende execution-state; `--rerun` beskytter historikken fra tidligere kjøring.
 
-CLI-et implementerer dermed ikke en separat workflow-motor.
-
-## Eksplisitt ny kjøring
-
-Hvis jobblisten inneholder jobber som allerede har nådd en terminal status, må ny kjøring godkjennes eksplisitt:
-
-```text
-n5wf jobs run <file.n5jobs> --rerun
-```
+For detaljert `jobs status ... --job` vises også om rerun-godkjenning kreves og hvorfor.
 
 Eksempel:
 
 ```text
-n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --rerun
+n5wf jobs run <file.n5jobs> --job <job-id> --rerun
 ```
 
-`--rerun` gjør det mulig å kjøre slike jobber på nytt uten et GUI-spørsmål. Dette er nødvendig fordi CLI-et skal kunne brukes uten interaktiv dialog.
+Hvis valgt jobb står `Venter ved kontrollpunkt`, bruker `JobRunner` eksisterende execution cursor og fortsetter fra neste operasjon. Dette er eksisterende Core-semantikk; en egen offentlig `continue`-kommando er fortsatt ikke implementert.
+
+Kjøring lagrer oppdatert status for den valgte jobben tilbake i samme `.n5jobs`-fil og setter den som aktiv jobb.
 
 ## Exit codes
-
-CLI-et bruker exit codes slik at BAT-, PowerShell- og andre systemer kan avgjøre resultatet av kommandoen.
 
 | Exit code | Betydning |
 |---:|---|
@@ -215,60 +140,16 @@ CLI-et bruker exit codes slik at BAT-, PowerShell- og andre systemer kan avgjør
 | `2` | Ugyldig kommando eller ugyldige argumenter |
 | `3` | Preflight feilet eller kjøring krever eksplisitt godkjenning |
 | `4` | Jobb-/batchkjøringen feilet |
-| `5` | En eller flere jobber venter ved kontrollpunkt |
+| `5` | En eller flere jobber / valgt jobb venter ved kontrollpunkt |
 | `6` | Etterspurt jobb-ID finnes ikke i angitt jobbliste |
-
-Eksempel i BAT:
-
-```bat
-n5wf jobs check "D:\jobs\nightly.n5jobs"
-if errorlevel 1 exit /b %errorlevel%
-
-n5wf jobs run "D:\jobs\nightly.n5jobs"
-```
 
 ## GUI og CLI
 
-GUI-et startes som før:
-
-```bat
-start.bat
-```
-
-CLI-et startes med:
-
-```text
-n5wf ...
-```
-
-De er to innganger til samme applikasjon:
-
-```text
-start.bat                         GUI
-n5wf jobs check <file.n5jobs>     CLI preflight
-n5wf jobs run <file.n5jobs>       CLI execution
-```
-
-En jobb eller jobbliste skal kunne kontrolleres og kjøres fra CLI uten at GUI-et er startet.
-
-## Kommando- og navnekonvensjoner
-
-CLI-kommandoer, subcommands, argumentnavn og flags skal være korte, presise og på engelsk.
-
-Eksempler:
-
-```text
-jobs
-check
-run
---rerun
-```
-
-Brukerrettet status- og loggtekst kan være norsk selv om den stabile maskinrettede kommandosyntaksen er engelsk.
+GUI-et startes med `start.bat`. CLI-et startes med `n5wf ...`. De bruker samme underliggende jobb-/workflowmodell.
 
 ## Omfang
 
-Følgende offentlige CLI-kall er implementert per v0.1.2-a9:
+Følgende offentlige CLI-kall er implementert per v0.1.2-a10:
 
 ```text
 n5wf --help
@@ -278,9 +159,11 @@ n5wf jobs status <file.n5jobs>
 n5wf jobs status <file.n5jobs> --job <job-id>
 n5wf jobs run <file.n5jobs>
 n5wf jobs run <file.n5jobs> --rerun
+n5wf jobs run <file.n5jobs> --job <job-id>
+n5wf jobs run <file.n5jobs> --job <job-id> --rerun
 ```
 
-CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen og kjører foreløpig ikke én valgt jobb separat. Første CLI-versjon er bevisst begrenset til kontroll og kjøring av eksisterende `.n5jobs`-jobblister.
+CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen. En egen `continue`- eller `stop`-kommando er ikke implementert.
 
 ## Videre CLI-/styringsdesign
 
@@ -291,5 +174,3 @@ Ved analyse av videre CLI-utvikling skal `CLI.md` og `INTERFACE.md` leses sammen
 ## Dokumentasjonsregel
 
 Denne filen er den autoritative brukerreferansen for det offentlige `n5wf`-grensesnittet.
-
-Når nye CLI-kommandoer, subcommands, argumenter, flags eller exit codes blir offentlig støttet, skal de dokumenteres her.

@@ -43,8 +43,14 @@ def _parser() -> argparse.ArgumentParser:
         help="Show detailed status for one job in the job list",
     )
 
-    run = actions.add_parser("run", help="Run a job list without the GUI")
+    run = actions.add_parser("run", help="Run a job list or one selected job without the GUI")
     run.add_argument("joblist", type=Path)
+    run.add_argument(
+        "--job",
+        dest="job_id",
+        metavar="JOB-ID",
+        help="Run only one job from the job list",
+    )
     run.add_argument(
         "--rerun",
         action="store_true",
@@ -57,6 +63,21 @@ def _load(path: Path):
     if not path.is_file():
         raise JobListFormatError(f"Jobblisten finnes ikke: {path}")
     return load_job_list(path)
+
+
+_CHANGED_AFTER_RUN = "Konfigurasjon endret - klar for ny kjøring"
+
+
+def _rerun_reason(job: Job) -> str:
+    if job.message == _CHANGED_AFTER_RUN:
+        return "configuration_changed"
+    return "previous_terminal_run"
+
+
+def _display_status(job: Job) -> str:
+    if job.status.value == "Klar" and job.message == _CHANGED_AFTER_RUN:
+        return "Klar – endret etter kjøring"
+    return job.status.value
 
 
 def _print_report(report) -> None:
@@ -91,13 +112,13 @@ def _status_summary(path: Path, loaded) -> int:
         return EXIT_OK
 
     id_width = max(len("Job ID"), *(len(job.job_id) for job in jobs))
-    status_width = max(len("Status"), *(len(job.status.value) for job in jobs))
+    status_width = max(len("Status"), *(len(_display_status(job)) for job in jobs))
     progress_width = len("Progress")
     print(f"{'Job ID':<{id_width}}  {'Status':<{status_width}}  {'Progress':>{progress_width}}  Name")
     print(f"{'-' * id_width}  {'-' * status_width}  {'-' * progress_width}  {'-' * 4}")
     for job in jobs:
         print(
-            f"{job.job_id:<{id_width}}  {job.status.value:<{status_width}}  "
+            f"{job.job_id:<{id_width}}  {_display_status(job):<{status_width}}  "
             f"{_progress_percent(job):>{progress_width}}  {job.name}"
         )
     return EXIT_OK
@@ -117,7 +138,7 @@ def _status_job(path: Path, loaded, job_id: str) -> int:
     print(f"Job list: {path}")
     print(f"Job ID: {job.job_id}")
     print(f"Name: {job.name}")
-    print(f"Status: {job.status.value}")
+    print(f"Status: {_display_status(job)}")
     print(f"Progress: {_progress_percent(job)}")
     print(f"Source: {job.source_root}")
     print(f"Output: {job.output_root if job.output_root is not None else '-'}")
@@ -127,11 +148,22 @@ def _status_job(path: Path, loaded, job_id: str) -> int:
     print(f"Next operation: {next_operation}")
     print("Checkpoints: " + (", ".join(job.checkpoint_after) if job.checkpoint_after else "-"))
     print(f"Message: {job.message or '-'}")
+    rerun_required = (
+        job.status.value in {"Ferdig", "Feil", "Hoppet over"}
+        or job.message == _CHANGED_AFTER_RUN
+    )
+    print(f"Rerun approval required: {'yes' if rerun_required else 'no'}")
+    if rerun_required:
+        reason = (
+            "configuration changed after previous run"
+            if job.message == _CHANGED_AFTER_RUN
+            else "job has previous terminal run"
+        )
+        print(f"Rerun reason: {reason}")
     return EXIT_OK
 
 
 def _status(path: Path, *, job_id: str | None = None) -> int:
-    # Status is deliberately read-only: no preflight normalization and no save.
     loaded = _load(path)
     if job_id:
         return _status_job(path, loaded, job_id)
@@ -153,8 +185,102 @@ def _check(path: Path) -> int:
     return EXIT_OK
 
 
-def _run(path: Path, *, allow_rerun: bool) -> int:
+def _selected_preflight(loaded, selected: Job):
+    preflight = JobPreflight()
+    report = preflight.check([selected])
+    all_conflicts = preflight.check_outputs(loaded.batch.jobs())
+    report.output_conflicts = [
+        conflict
+        for conflict in all_conflicts
+        if selected.job_id in {conflict.first_job_id, conflict.second_job_id}
+    ]
+    return report
+
+
+def _run_one(path: Path, loaded, selected: Job, *, allow_rerun: bool) -> int:
+    report = _selected_preflight(loaded, selected)
+
+    print(f"{APP_NAME} {VERSION}")
+    print(f"Job list: {path}")
+    print(f"Selected job: {selected.job_id}")
+    _print_report(report)
+
+    if not report.ok:
+        print("Run blocked by preflight errors.")
+        return EXIT_PREFLIGHT
+    if report.rerun_required and not allow_rerun:
+        if _rerun_reason(selected) == "configuration_changed":
+            print("Run blocked: job configuration changed after a previous run.")
+            print("Use --rerun to approve a new run with the updated configuration.")
+        else:
+            print("Run blocked: selected job has already reached a terminal state.")
+            print("Use --rerun to approve running the selected job again.")
+        return EXIT_PREFLIGHT
+
+    settings = load_config()
+    runner = JobRunner(build_registry(), LocalExecutor(), settings)
+    overview = RunOverviewLog(
+        settings,
+        run_type="job",
+        app_version=VERSION,
+        job_list_path=path,
+        planned_jobs=1,
+    )
+    overview.set_phase(f"CLI job started: {selected.job_id}")
+    overview.start_job(selected)
+
+    def log(message: str) -> None:
+        print(f"{selected.job_id}: {message}")
+
+    def state_changed(job: Job) -> None:
+        save_job_list(
+            path,
+            loaded.batch,
+            active_job_id=job.job_id,
+            app_version=VERSION,
+        )
+
+    try:
+        outcome = runner.run(
+            selected,
+            log_cb=log,
+            state_cb=state_changed,
+        )
+        overview.finish_job(selected)
+        status = "FEIL" if not outcome.ok else (
+            "VENTER" if selected.status.value == "Venter ved kontrollpunkt" else "FERDIG"
+        )
+        overview.finish(status)
+        save_job_list(
+            path,
+            loaded.batch,
+            active_job_id=selected.job_id,
+            app_version=VERSION,
+        )
+    except Exception as exc:
+        overview.fail(exc)
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_RUN_FAILED
+
+    print(f"{selected.job_id} -> {selected.status.value}")
+    print(f"Run log: {overview.path}")
+    if not outcome.ok:
+        return EXIT_RUN_FAILED
+    if selected.status.value == "Venter ved kontrollpunkt":
+        return EXIT_WAITING
+    return EXIT_OK
+
+
+def _run(path: Path, *, allow_rerun: bool, job_id: str | None = None) -> int:
     loaded = _load(path)
+
+    if job_id:
+        selected = loaded.batch.get(job_id)
+        if selected is None:
+            print(f"ERROR: Jobb-ID finnes ikke i jobblisten: {job_id}", file=sys.stderr)
+            return EXIT_NOT_FOUND
+        return _run_one(path, loaded, selected, allow_rerun=allow_rerun)
+
     jobs = loaded.batch.jobs()
     preflight = JobPreflight()
     report = preflight.check(jobs)
@@ -244,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.object == "jobs" and args.action == "status":
             return _status(args.joblist, job_id=args.job_id)
         if args.object == "jobs" and args.action == "run":
-            return _run(args.joblist, allow_rerun=args.rerun)
+            return _run(args.joblist, allow_rerun=args.rerun, job_id=args.job_id)
     except JobListFormatError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return EXIT_PREFLIGHT

@@ -81,6 +81,8 @@ Listen over beskriver retning, ikke at alle handlingene allerede finnes som offe
 
 Fra v0.1.2-a9 kan status leses for en jobbliste eller én jobb innen en eksplisitt angitt `.n5jobs`-fil. Dagens `JOB-001`-lignende jobb-ID er ikke global; ulike jobblister kan inneholde samme jobb-ID. Inntil en eventuell workspace/database/global identitetsmodell finnes, skal CLI-design derfor ikke anta at en løs jobb-ID alene kan identifisere en jobb sikkert.
 
+Fra v0.1.2-a10 kan én valgt jobb kjøres innen en eksplisitt angitt `.n5jobs`-fil. Adresseringen er fortsatt kombinasjonen jobbliste + jobb-ID; dette innfører ikke global jobbidentitet.
+
 ### Mulig framtidig CLI-syntaks
 
 Som arbeidshypotese kan noen av operasjonene ovenfor senere eksponeres med kommandoer som:
@@ -94,10 +96,11 @@ n5wf job stop <job-id>
 n5wf jobs status <file.n5jobs>
 ```
 
-De løse `n5wf job ... <job-id>`-eksemplene forutsetter en framtidig identitets-/workspace-modell som gjør jobb-ID-en entydig. Med dagens modell er mer realistiske arbeidshypoteser for valgt jobb:
+De løse `n5wf job ... <job-id>`-eksemplene forutsetter en framtidig identitets-/workspace-modell som gjør jobb-ID-en entydig.
+
+Valgt kjøring med dagens identitetsmodell er implementert og dokumentert autoritativt i `CLI.md`. En mulig framtidig fortsett-kommando kan følge samme adresseringsprinsipp:
 
 ```text
-n5wf jobs run <file.n5jobs> --job <job-id>
 n5wf jobs continue <file.n5jobs> --job <job-id>
 ```
 
