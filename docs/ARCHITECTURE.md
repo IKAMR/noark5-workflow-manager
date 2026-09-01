@@ -6,7 +6,7 @@ Noark 5 Workflow Manager skal være et arbeidsflytramverk for analyse, validerin
 
 Arkitekturen skiller mellom:
 
-1. **Bruker-/styringsgrensesnitt** – desktop-GUI i dag, og planlagt CLI/programmatisk styring og senere eksterne grensesnitt mot samme underliggende jobb-/workflowmodell.
+1. **Bruker-/styringsgrensesnitt** – desktop-GUI og lokal CLI i dag, og senere eksterne grensesnitt mot samme underliggende jobb-/workflowmodell.
 2. **Kilde-/kontekstmodell** – beskriver Noark 5-uttrekket og hvilke kilder som finnes.
 3. **Operasjoner** – avgrensede funksjoner som analyserer eller behandler uttrekket.
 4. **Kjørebackend** – bestemmer hvor en operasjon faktisk kjøres.
@@ -16,23 +16,23 @@ Dette skillet gjør det mulig å beholde samme operasjonsmodell når serverkjør
 
 ## Bruker- og styringsgrensesnitt
 
-Desktop-GUI-et er dagens implementerte menneskelige brukergrensesnitt, men Workflow Manager skal ikke være arkitektonisk avhengig av GUI-et.
+Desktop-GUI-et er det implementerte menneskelige brukergrensesnittet. Fra v0.1.2-a7 finnes også lokal CLI (`n5wf`) for headless kontroll og kjøring av eksisterende `.n5jobs`-jobblister. Workflow Manager er ikke arkitektonisk avhengig av GUI-et.
 
-Jobber, jobblister, workflow-kjøring, kontrollpunkter, status og resultater skal kunne håndteres gjennom samme underliggende jobb-/workflow-/executorlag fra flere innganger.
+Jobber, jobblister, workflow-kjøring, kontrollpunkter, status og resultater skal håndteres gjennom samme underliggende jobb-/workflow-/executorlag fra flere innganger.
 
-Planlagt prinsipp:
+Gjeldende prinsipp:
 
 ```text
 Desktop GUI --------+
-CLI ----------------+--> delt jobb-/workflowlag --> Executor --> Operations
+CLI ----------------+--> Preflight / BatchRunner / JobRunner --> Executor --> Operations
 framtidig API ------+
 ```
 
-En lokal CLI er en naturlig første maskinrettet inngang og skal kunne brukes uten at desktop-GUI-et er startet. Et framtidig nettverks-API, servergrensesnitt eller annen ekstern stimulus skal bygge videre på samme jobb- og kommandomodell, ikke etablere en parallell workflow-implementasjon.
+CLI-et bruker `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor` uten at desktop-GUI-et er startet. Et framtidig nettverks-API, servergrensesnitt eller annen ekstern stimulus skal bygge videre på samme jobb- og kommandomodell, ikke etablere en parallell workflow-implementasjon.
 
-Grunnprinsippet er at en jobb på sikt skal kunne opprettes, lastes, kjøres, fortsettes og følges uten aktivt GUI.
+CLI-et i v0.1.2-a7 dekker kontroll og kjøring av eksisterende jobblister. Grunnprinsippet er fortsatt at jobb-/workflowfunksjoner gradvis skal kunne opprettes, lastes, kjøres, fortsettes og følges uten aktivt GUI, men funksjoner som ikke er dokumentert i `CLI.md` skal ikke regnes som implementert CLI-funksjonalitet.
 
-Konkrete CLI-kommandoer, serialiseringsformater og API-kontrakter er ikke låst ennå. Slike kontrakter dokumenteres i `INTERFACE.md` når de er tilstrekkelig avklart.
+Den offentlige CLI-syntaksen, argumenter, flags og exit codes dokumenteres autoritativt i `CLI.md`. Generelle programkontrakter og framtidige API-/datautvekslingsgrenser dokumenteres i `INTERFACE.md`.
 
 ## Bevaringsprinsipp for Noark 5-kilden
 
@@ -93,6 +93,9 @@ PREMIS-mekanismen ligger sentralt i `noark5_workflow/core/premis_logger.py`. Ope
 ### Nå
 
 - `LocalExecutor`: kjører operasjonen lokalt og håndterer sentral PREMIS-registrering.
+- `JobPreflight`: GUI-uavhengige kontroller og sikker normalisering før jobb-/batchkjøring.
+- `JobRunner`: GUI-uavhengig kjøring av én jobb.
+- `BatchRunner`: GUI-uavhengig sekvensiell kjøring av jobber/jobblister.
 
 ### Senere
 
@@ -100,7 +103,7 @@ PREMIS-mekanismen ligger sentralt i `noark5_workflow/core/premis_logger.py`. Ope
 
 Operasjoner angir om de kan kjøres `local`, `server` eller `either`.
 
-**Windows desktop er dagens testede kjøremiljø.** Plattformstatus, Windows Server/RDS, Linux, macOS, headless worker/server, web og mobile alternativer dokumenteres i `RUNTIME-ENVIRONMENTS.md`.
+**Windows desktop er dagens testede hovedmiljø. Lokal headless CLI er også praktisk verifisert på Windows.** Plattformstatus, Windows Server/RDS, Linux, macOS, headless worker/server, web og mobile alternativer dokumenteres i `RUNTIME-ENVIRONMENTS.md`.
 
 ## Lokal persistens og ekstern dataintegrasjon
 
@@ -195,4 +198,4 @@ Arkade 5 CLI skal kunne kobles inn gjennom en adapter/operasjon som starter prog
 
 Pipeline er et orkestreringslag over eksisterende operasjoner. Recursive/batch-jobber er et separat orkestreringslag for mange kandidater og skal bruke samme operations/executor-kontrakt.
 
-Se `CODE-MAP.md`, `SHARED-ROADMAP.md`, `JOBS-AND-BATCHES.md`, `JOBS-BATCH-FUTURE-DESIGN.md` og `RUNTIME-ENVIRONMENTS.md`.
+Se `CODE-MAP.md`, `CLI.md`, `SHARED-ROADMAP.md`, `JOBS-AND-BATCHES.md`, `JOBS-BATCH-FUTURE-DESIGN.md` og `RUNTIME-ENVIRONMENTS.md`.

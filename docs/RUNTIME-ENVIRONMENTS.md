@@ -6,9 +6,9 @@ Dette dokumentet er autoritativt for hvilke kjøremiljøer Noark 5 Workflow Mana
 
 ### Testet og støttet
 
-Dagens utviklings- og testbaseline er **Windows desktop**.
+Dagens utviklings- og testbaseline er **Windows desktop**. Lokal headless/CLI-kjøring med `n5wf` er også implementert og praktisk verifisert på Windows i v0.1.2-a7.
 
-Normal prosedyre er:
+Normal GUI-prosedyre er:
 
 1. `install.bat` når avhengigheter er nye eller endret.
 2. `test.bat`.
@@ -16,9 +16,17 @@ Normal prosedyre er:
 4. `start.bat`.
 5. Praktisk test av relevante GUI-/workflow-funksjoner.
 
-At Python-kjernen kan være portabel betyr ikke at et annet operativsystem regnes som støttet før installasjon, oppstart og testregime er etablert og praktisk verifisert der.
+CLI installeres via samme nåværende `install.bat` og kan etter installasjon brukes fra terminal uten at GUI-et startes, for eksempel:
 
-Planlagt lokal CLI/programmatisk styring er en arkitekturretning, men er ikke implementert eller en støttet brukerflate i dagens baseline.
+```text
+n5wf --help
+n5wf jobs check <file.n5jobs>
+n5wf jobs run <file.n5jobs>
+```
+
+Den autoritative kommandoreferansen ligger i `CLI.md`.
+
+At Python-kjernen kan være portabel betyr ikke at et annet operativsystem regnes som støttet før installasjon, oppstart og testregime er etablert og praktisk verifisert der.
 
 ## Plattformbindinger i dagens løsning
 
@@ -33,8 +41,10 @@ I hovedsak plattformuavhengig:
 - SHA-256 og annen filbasert kontroll
 - DIAS-logikk
 - Job/Batch-modell
+- `JobPreflight`, `JobRunner` og `BatchRunner`
 - `.n5jobs`-format
 - operations/executor-kontrakten
+- selve CLI-logikken i `noark5_workflow/cli.py`
 - `customtkinter`, `lxml` og `psutil` finnes for flere desktop-plattformer
 
 Windows-spesifikt i dagens distribusjon:
@@ -42,7 +52,8 @@ Windows-spesifikt i dagens distribusjon:
 - `install.bat`
 - `start.bat`
 - `test.bat`
-- bruk av Windows `py` launcher i disse skriptene
+- bruk av Windows `py` launcher i disse skriptene og dagens Windows CLI-launcher
+- registrering av CLI-launcher i brukerens Windows `PATH`
 - enkelte konvensjoner for bruker-/applikasjonsdata
 
 `.bat`-filene skal betraktes som launchere og test-/installasjonshjelp, ikke som applikasjonslogikk. Ny core- eller operations-kode skal ikke gjøres Windows-avhengig uten et dokumentert behov.
@@ -65,11 +76,13 @@ En framtidig lokal SQLite-database for jobb-/arbeidsflytdata skal følge samme p
 
 ## Lokal headless/CLI-kjøring
 
-Planlagt CLI/programmatisk styring skal skilles fra framtidig remote server/worker.
+Lokal CLI/programmatisk styring skal skilles fra framtidig remote server/worker.
 
-En lokal CLI skal kunne bruke samme lokale jobb-/workflow-/`LocalExecutor`-lag uten at desktop-GUI-et er startet. Dette kan gi scriptbar og automatiserbar kjøring på en enkelt maskin uten at nettverksserver, autentisering eller remote worker er nødvendig.
+Fra v0.1.2-a7 finnes `n5wf` som lokal CLI på Windows. Den bruker samme lokale jobb-/workflow-/`LocalExecutor`-lag uten at desktop-GUI-et er startet. Dette gir scriptbar og automatiserbar kjøring på en enkelt maskin uten at nettverksserver, autentisering eller remote worker er nødvendig.
 
-CLI må få eget installasjons-/oppstarts-/testløp før den dokumenteres som støttet.
+Implementert a7-omfang er kontroll og kjøring av eksisterende `.n5jobs`-jobblister. CLI-støtte på andre operativsystemer og et separat CLI-only installasjonsløp er ikke etablert ennå.
+
+Se `CLI.md` for gjeldende kommandoer og exit codes.
 
 ## Windows Server, RDS og Terminal Server
 
@@ -93,7 +106,7 @@ Citrix, Azure Virtual Desktop og VMware Horizon ligger konseptuelt nær samme mo
 
 ### Headless server/worker
 
-Dagens program har `LocalExecutor`. Arkitekturen har en eksplisitt grense for senere `RemoteExecutor`, men en komplett headless workflow-server/worker er **ikke implementert**.
+Dagens program har `LocalExecutor` og lokal headless CLI. Dette er ikke det samme som en nettverksbasert headless workflow-server/worker. Arkitekturen har en eksplisitt grense for senere `RemoteExecutor`, men en komplett server/worker er **ikke implementert**.
 
 En framtidig serverløsning må blant annet håndtere:
 
@@ -132,7 +145,7 @@ Det som minst må etableres og testes:
 
 Linux skal ikke beskrives som støttet før denne kjeden er praktisk testet.
 
-Linux er også en naturlig kandidat for framtidig lokal CLI, headless worker/server og containerisert backend.
+CLI-kjernen er en naturlig kandidat for Linux/headless bruk, men `n5wf` er foreløpig bare installasjons- og brukertestet på Windows.
 
 ## macOS
 
@@ -147,7 +160,7 @@ Det må blant annet etableres/testes:
 - packaging, signering/notarization dersom programmet distribueres som vanlig macOS-applikasjon
 - eksterne verktøy
 
-En framtidig CLI kan i prinsippet være enklere å portere enn desktop-GUI-et, men skal ikke omtales som støttet på macOS før den er testet der.
+CLI-kjernen kan i prinsippet være enklere å portere enn desktop-GUI-et, men skal ikke omtales som støttet på macOS før den er testet der.
 
 ## Android og andre mobile plattformer
 
@@ -187,7 +200,7 @@ Webklient forutsetter server/API og er derfor et senere lag, ikke en erstatning 
 
 Containerisering vurderes som mest relevant for framtidig backend/worker, særlig på Linux.
 
-Desktop-GUI skal ikke containeriseres bare for å oppnå portabilitet. Core, operations og headless worker er de naturlige containergrensene. En framtidig CLI kan også være relevant i container-/headless-sammenheng.
+Desktop-GUI skal ikke containeriseres bare for å oppnå portabilitet. Core, operations og headless worker er de naturlige containergrensene. CLI-kjernen kan også være relevant i container-/headless-sammenheng når installasjon og drift for slikt miljø er etablert.
 
 ## Pakket Windows-applikasjon
 
@@ -211,14 +224,15 @@ Ved ny utvikling skal vi:
 
 ## Prioritert retning
 
-En naturlig utviklingsrekkefølge er:
+En naturlig utviklingsrekkefølge er nå:
 
 1. Windows desktop
-2. lokal CLI/programmatisk styring når jobb-/workflowlaget er klart for det
-3. Windows RDS/Terminal Server
-4. headless worker/server på Windows og/eller Linux
-5. webklient
-6. Linux/macOS desktop dersom behovet tilsier det
-7. native mobilklient bare dersom webklient ikke dekker behovet
+2. lokal CLI/programmatisk styring på Windows – første nivå implementert i v0.1.2-a7
+3. forbedret installasjonsmodell for GUI + CLI / GUI only / CLI only
+4. Windows RDS/Terminal Server
+5. headless worker/server på Windows og/eller Linux
+6. webklient
+7. Linux/macOS desktop dersom behovet tilsier det
+8. native mobilklient bare dersom webklient ikke dekker behovet
 
-Se også `ARCHITECTURE.md` for kjørebackend og servermodell, `INTERFACE.md` for planlagte grensesnitt og `TESTING.md` for dagens testregime.
+Se også `ARCHITECTURE.md` for kjørebackend og servermodell, `CLI.md` for implementert CLI, `INTERFACE.md` for generelle og planlagte grensesnitt og `TESTING.md` for dagens testregime.

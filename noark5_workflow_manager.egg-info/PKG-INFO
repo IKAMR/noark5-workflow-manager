@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: noark5-workflow-manager
-Version: 0.1.2a7
-Summary: Noark 5 Workflow Manager
-Requires-Python: >=3.10
-License-File: LICENCE
-Dynamic: license-file

@@ -5,45 +5,69 @@ Målet med dette dokumentet er at en utvikler eller AI raskt skal finne riktig l
 ## Nåværende hovedflyt
 
 ```text
-GUI
-  gui/app.py
-      |
-      v
-OperationRegistry / Workflow
-  noark5_workflow/core/
-      |
-      v
-Executor boundary
-  noark5_workflow/executors/
-      |
-      v
-Operation
-  noark5_workflow/operations/
-      |
-      +--> Noark source model
-      |    noark5_workflow/sources/
-      |
-      +--> output/report/package
-      |
-      +--> central PREMIS logger
-           noark5_workflow/core/premis_logger.py
+Desktop GUI -------------------+
+                               |
+CLI: noark5_workflow/cli.py ---+
+                               |
+                               v
+                     JobPreflight
+              noark5_workflow/core/preflight.py
+                               |
+                               v
+                      BatchRunner / JobRunner
+       noark5_workflow/core/batch_runner.py
+         noark5_workflow/core/job_runner.py
+                               |
+                               v
+                     Executor boundary
+              noark5_workflow/executors/
+                               |
+                               v
+                         Operation
+              noark5_workflow/operations/
+                               |
+                               +--> Noark source model
+                               |    noark5_workflow/sources/
+                               |
+                               +--> output/report/package
+                               |
+                               +--> central PREMIS logger
+                                    noark5_workflow/core/premis_logger.py
 ```
 
-GUI skal ikke implementere analyse eller pakking direkte. Operasjoner skal ikke omgå executorlaget når de kjøres gjennom workflow.
+GUI og CLI skal ikke implementere analyse eller pakking direkte. Operasjoner skal ikke omgå executorlaget når de kjøres gjennom workflow.
 
-## Planlagt flergrensesnitt-flyt
+## Flergrensesnitt-flyt
 
-Dagens konkrete inngang er GUI-et. Planlagt CLI/programmatisk styring og senere API skal bruke samme underliggende jobb-/workflow-/executorlag.
+GUI og CLI er nå konkrete innganger. Senere API-/servergrensesnitt skal bruke samme underliggende jobb-/workflow-/executorlag.
 
 ```text
 Desktop GUI --------+
-CLI ----------------+--> delt command/job service --> Workflow / Job --> Executor --> Operation
+CLI ----------------+--> Preflight / BatchRunner / JobRunner --> Workflow / Job --> Executor --> Operation
 framtidig API ------+
 ```
 
-Det delte command/job service-laget er en arkitekturretning; konkret modulplassering er ikke låst. Jobb-, jobbliste- og workflowfunksjoner som skal være tilgjengelige fra flere klienter skal ikke implementeres bare i GUI-handlere.
+`JobPreflight`, `BatchRunner` og `JobRunner` er den implementerte delte kjøregrensen for lokal jobb-/batchkjøring. Jobb-, jobbliste- og workflowfunksjoner som skal være tilgjengelige fra flere klienter skal ikke implementeres bare i GUI- eller CLI-handlere.
+
+Den offentlige `n5wf`-kommandomodellen dokumenteres i `CLI.md`.
 
 ## Viktige moduler
+
+### `noark5_workflow/cli.py`
+
+CLI-adapteren. Leser kommandoer/argumenter, laster `.n5jobs`, bruker `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor`, skriver terminalstatus og returnerer definerte exit codes. Skal ikke utvikles til en separat workflow-motor.
+
+### `noark5_workflow/core/preflight.py`
+
+GUI-uavhengig preflight for jobb-/batchkjøring. Håndterer sikre normaliseringer og rapporterer blant annet output-konflikter og behov for eksplisitt rerun-beslutning.
+
+### `noark5_workflow/core/job_runner.py`
+
+GUI-uavhengig kjøring av én `Job` gjennom executorlaget, inkludert execution cursor, checkpoints, output lock og status/resultat.
+
+### `noark5_workflow/core/batch_runner.py`
+
+GUI-uavhengig sekvensiell kjøring av en samling jobber ved å gjenbruke `JobRunner`.
 
 ### `noark5_workflow/core/context.py`
 
@@ -59,7 +83,7 @@ Sentral workflow-PREMIS, portert/adapted fra SIARD Workflow Manager. Denne skal 
 
 ### `noark5_workflow/executors/`
 
-Kjøregrense. `LocalExecutor` brukes nå. Fremtidig `RemoteExecutor` eller batch-executor skal bevare samme operasjonskontrakt.
+Kjøregrense. `LocalExecutor` brukes nå. Fremtidig `RemoteExecutor` skal bevare samme operasjonskontrakt.
 
 ### `noark5_workflow/operations/dias_package.py`
 
@@ -138,22 +162,25 @@ PRESERVATION_STORAGE
 
 Kilde og destinasjon skal alltid være eksplisitte. Når bruker har valgt output, skal generert materiale ikke falle tilbake til kildens mappe.
 
-## Planlagt batch/recursive-flyt
+## Batch og framtidig recursive-flyt
+
+Den sekvensielle kjernen for en eksisterende jobbliste er implementert i `BatchRunner` og kan startes fra både GUI og CLI. Recursive discovery av nye kandidater er fortsatt planlagt.
 
 ```text
-Batch controller
+Recursive controller (planlagt)
    |
    +--> discover candidates
    +--> prequalify each candidate
-   +--> construct normal workflow/context
-   +--> execute through normal executor
-   +--> collect per-job results
-   +--> aggregate summary
+   +--> construct normal Job / workflow
+   |
+   v
+BatchRunner
+   |
+   v
+JobRunner -> Executor -> Operations
 ```
 
 Batchlaget skal orkestrere eksisterende operasjoner, ikke ha egne skjulte kopier av validator-/rapportkode.
-
-Den samme batchmodellen skal på sikt kunne startes fra GUI, CLI eller senere API uten at batchkjøringen implementeres på nytt i hvert grensesnitt.
 
 ## SIARD-kode som referanse
 

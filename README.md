@@ -1,11 +1,11 @@
 # Noark 5 Workflow Manager
 
 Arbeidsflytverktøy for analyse, validering og behandling av Noark
-5-uttrekk. Dagens brukergrensesnitt er et CustomTkinter-basert
-desktop-GUI. Arkitekturen skal samtidig holde jobb-, workflow- og
-operasjonslogikken uavhengig av GUI-et, slik at programmatisk
-styring/CLI og senere server-/API-grensesnitt kan bruke samme
-underliggende modell.
+5-uttrekk. Programmet har et CustomTkinter-basert desktop-GUI og fra
+v0.1.2-a7 også et lokalt CLI-grensesnitt (`n5wf`) for headless kontroll
+og kjøring av eksisterende jobblister. Jobb-, workflow- og
+operasjonslogikken holdes uavhengig av grensesnittet, slik at GUI, CLI og
+senere server-/API-grensesnitt kan bruke samme underliggende modell.
 
 ## Forhold til SIARD Workflow Manager
 
@@ -39,12 +39,14 @@ bevares urørt.
 Programmet har blant annet:
 
 -   CustomTkinter-basert desktop-GUI
+-   lokal CLI (`n5wf`) for kontroll og kjøring av eksisterende `.n5jobs`-jobblister
 -   valg og automatisk deteksjon av Noark 5-uttrekk
 -   kategorisert operasjonspalett og workflow
 -   lokal kjøring gjennom `LocalExecutor`
 -   eksplisitt grensesnitt for framtidig serverkjøring gjennom
     `RemoteExecutor`
 -   Job/Batch-modell med flere isolerte jobber
+-   GUI-uavhengig `JobPreflight`, `JobRunner` og `BatchRunner`
 -   sekvensiell `Start alle`
 -   separat workflow, operasjonsparametre og output per jobb
 -   output/resource locking
@@ -60,31 +62,40 @@ Programmet har blant annet:
 -   vedvarende sist brukte mapper
 -   `test.bat` med rapport til `docs/test-results/`
 
-Planlagt videre retning inkluderer et programmatisk styringsgrensesnitt,
-naturlig først som CLI, slik at jobber og jobblister kan opprettes,
-startes og følges uten at desktop-GUI-et er startet. Dette er en
-arkitekturretning og skal ikke forstås som implementert funksjonalitet i
-dagens status.
+CLI-et i v0.1.2-a7 er bevisst avgrenset til kontroll og kjøring av
+eksisterende jobblister. Oppretting/redigering av jobber fra CLI,
+fortsettelse/stopp som egne CLI-kommandoer og senere server-/API-styring
+er videre utviklingsretning.
 
-Se `docs/JOBS-AND-BATCHES.md` og `docs/JOBS-BATCH-FUTURE-DESIGN.md` for
+Se [docs/CLI.md](docs/CLI.md) for den autoritative CLI-referansen og
+`docs/JOBS-AND-BATCHES.md` / `docs/JOBS-BATCH-FUTURE-DESIGN.md` for
 jobbmodellen og videre retning.
 
 ## Kjøremiljø
 
-**Windows desktop er dagens testede og støttede baseline.**
+**Windows desktop er dagens testede og støttede baseline. Lokal `n5wf`
+CLI er også praktisk verifisert på Windows.**
 
 Normal bruk på Windows:
 
 1.  Kjør `install.bat` ved første installasjon eller når avhengigheter
     endres.
 2.  Kjør `test.bat` og kontroller at alle tester består.
-3.  Start programmet med `start.bat`.
+3.  Start GUI med `start.bat`, eller bruk CLI med `n5wf ...`.
 
-Python-kjernen er i stor grad plattformuavhengig, og Linux/macOS,
-Windows RDS/Terminal Server, lokal headless/CLI-kjøring, headless
-server/worker, webklient og andre miljøer er realistiske framtidige mål.
-De skal ikke omtales som støttet før relevante
-installasjons-/oppstarts-/testløp er etablert og praktisk verifisert.
+Eksempler:
+
+```text
+n5wf --help
+n5wf jobs check <file.n5jobs>
+n5wf jobs run <file.n5jobs>
+```
+
+Python-kjernen er i stor grad plattformuavhengig. Linux/macOS,
+Windows RDS/Terminal Server, headless server/worker, webklient og andre
+miljøer er realistiske framtidige mål. De skal ikke omtales som støttet
+før relevante installasjons-/oppstarts-/testløp er etablert og praktisk
+verifisert.
 
 Se [docs/RUNTIME-ENVIRONMENTS.md](docs/RUNTIME-ENVIRONMENTS.md) for
 gjeldende status, plattformbindinger og framtidige muligheter.
@@ -102,10 +113,10 @@ Gjeldende ikke-manuelt-lagrede arbeidsstatus kan lagres automatisk per
 bruker utenfor repository/installasjonsmappen slik at arbeid kan
 gjenopprettes etter ny programstart.
 
-Jobb- og jobblistemodellen skal ikke være avhengig av desktop-GUI-et.
-GUI er dagens klient mot modellen; planlagt CLI/programmatisk styring og
-eventuelle senere API-klienter skal bruke samme jobb-, workflow- og
-executorlag.
+Jobb- og jobblistemodellen er ikke avhengig av desktop-GUI-et. GUI og
+den implementerte CLI-en bruker samme underliggende jobb-, workflow- og
+executorlag. Eventuelle senere API-klienter skal bygge videre på samme
+modell.
 
 ## Workflow logging og PREMIS-proveniens
 
@@ -135,6 +146,7 @@ innholdet. Detaljene og grensene for normalisering/repakking beskrives i
 
 -   Python 3.10 eller nyere
 -   Windows desktop er dagens testede baseline
+-   lokal `n5wf` CLI er praktisk verifisert på Windows
 -   Python-avhengigheter installeres via `install.bat` /
     `requirements.txt`
 
@@ -145,7 +157,7 @@ gjøres til støttede plattformer.
 
 En operasjon arver fra `BaseOperation` og implementerer:
 
-``` python
+```python
 run(ctx) -> OperationResult
 ```
 
@@ -159,16 +171,17 @@ I dagens implementasjon brukes `LocalExecutor`. `RemoteExecutor` er
 arkitekturgrensen for senere klient/server-støtte.
 
 GUI-et skal ikke eie domenelogikk som er nødvendig for å opprette, kjøre
-eller følge jobber. Planlagt CLI/programmatisk styring og senere
-API-/servergrensesnitt skal bruke samme Job/Workflow/Executor-kontrakter
-som GUI-et, ikke parallelle implementasjoner av workflow-logikken.
+eller følge jobber. Den implementerte CLI-en bruker samme delte
+Job/Workflow/Executor-kontrakter som GUI-et, og senere API-/servergrensesnitt
+skal fortsette dette prinsippet i stedet for å etablere parallelle
+workflow-implementasjoner.
 
 For store bevaringsuttrekk er anbefalt framtidig servermodell delt
 lagring + jobbreferanser, ikke opplasting av hele uttrekket gjennom
 klientgrensesnittet.
 
-Se [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) og
-[docs/INTERFACE.md](docs/INTERFACE.md).
+Se [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/INTERFACE.md](docs/INTERFACE.md) og [docs/CLI.md](docs/CLI.md).
 
 ## Testing
 
@@ -184,6 +197,7 @@ Før større endringer, se:
 -   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 -   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 -   [docs/INTERFACE.md](docs/INTERFACE.md)
+-   [docs/CLI.md](docs/CLI.md)
 -   [docs/DEFINITIONS.md](docs/DEFINITIONS.md)
 -   [docs/CODE-MAP.md](docs/CODE-MAP.md)
 -   [docs/SHARED-DEVELOPMENT.md](docs/SHARED-DEVELOPMENT.md)

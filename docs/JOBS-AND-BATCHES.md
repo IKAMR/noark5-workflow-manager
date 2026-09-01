@@ -10,7 +10,7 @@ Introduced in v0.1.1. Job persistence, editing, checkpoints and controlled rerun
 
 Scheduler og Worker er tekniske lag og skal normalt vises som status, ikke som egne hovedvinduer.
 
-Denne hierarkien beskriver dagens brukerflate, men Job/Jobbliste/Workflow-modellen skal ikke være avhengig av desktop-GUI-et. Planlagt CLI/programmatisk styring og senere API skal kunne bruke de samme jobbobjektene og samme executor-/workflowsemantikk.
+Denne hierarkien beskriver GUI-flaten, men Job/Jobbliste/Workflow-modellen er ikke avhengig av desktop-GUI-et. Fra v0.1.2-a7 bruker lokal CLI de samme jobbobjektene og samme executor-/workflowsemantikk for kontroll og kjøring av eksisterende jobblister. Senere API skal bygge videre på samme modell.
 
 ## Core model
 
@@ -33,7 +33,7 @@ Jobblista er brukerens eksplisitte, varige lagring. Store Noark 5-uttrekk bygges
 
 Full crash-safe autosave/recovery av ulagrede endringer er ikke implementert ennå. Det er planlagt separat under app-workspace.
 
-`.n5jobs` skal også kunne være en naturlig inngang for framtidig programmatisk/CLI-basert behandling, uten at filformatet gjøres GUI-spesifikt.
+`.n5jobs` er også den implementerte inngangen for CLI-basert kontroll og batchkjøring i v0.1.2-a7. Filformatet er ikke GUI-spesifikt.
 
 ## Redigering og ny kjøring
 
@@ -41,7 +41,7 @@ Eksisterende jobber kan redigeres. Endring av workflow eller relevant operasjons
 
 En tidligere ferdig eller feilet jobb kan kjøres på nytt etter eksplisitt bekreftelse. Ny kjøring skal ikke stille slette eller overskrive tidligere historikk.
 
-Ved framtidig CLI/API må samme sikkerhetssemantikk representeres gjennom eksplisitte kommando-/parameterregler i stedet for å være avhengig av en GUI-dialog.
+GUI bruker brukerbekreftelse. CLI-et bruker eksplisitt `--rerun` for jobblister som inneholder terminale jobber. Samme sikkerhetsprinsipp skal bevares ved senere API-styring. Se `CLI.md` for gjeldende CLI-kontrakt.
 
 ## Kontrollpunkter og fortsettelse
 
@@ -56,19 +56,24 @@ Når et kontrollpunkt nås:
 
 Praktisk ende-til-ende-test av stopp, restart og fortsettelse krever minst to reelle operasjoner i samme workflow.
 
-Planlagt CLI/programmatisk styring skal kunne uttrykke den samme fortsettelseshandlingen gjennom jobb-/workflowlaget uten å kreve aktivt GUI.
+Den underliggende `JobRunner` støtter execution cursor/checkpoint-semantikken uten GUI-avhengighet. En egen offentlig CLI-kommando for å fortsette en bestemt jobb er ikke implementert i a7 og skal ikke regnes som støttet før den er dokumentert i `CLI.md`.
 
-## Start alle
+## Start alle og BatchRunner
 
-`Start alle` kjører jobbene sekvensielt på lokal worker.
+`Start alle` kjører jobbene sekvensielt på lokal worker. Den samme underliggende batchsemantikken ligger fra v0.1.2-a5 i GUI-uavhengig `BatchRunner`, som også brukes av CLI-et i a7.
 
 - Hver jobb har egen status, fremdrift, melding og jobbspesifikk logg.
 - Aktiv jobb skal være tydelig i hovedvindu og Jobber-vindu.
 - Batch kan inneholde jobber som ender `Ferdig`, `Feil`, `Venter` eller `Hoppet over`.
-- `Stopp` skal hindre at nye jobber startes etter at aktiv kjøring er avbrutt.
+- `Stopp` i GUI skal hindre at nye jobber startes etter at aktiv kjøring er avbrutt.
 - Overordnet run-logg beskrives i `APP-WORKSPACE-AND-RUN-LOGS.md`.
+- CLI kan kontrollere og kjøre eksisterende `.n5jobs` med `n5wf jobs check` og `n5wf jobs run`.
 
-Den underliggende batchsemantikken skal ikke være bundet til `Start alle`-knappen; samme batchkjøring skal senere kunne initieres programmatisk.
+## Preflight
+
+`JobPreflight` er GUI-uavhengig og brukes til sikre kontroller/normaliseringer før kjøring. Dette omfatter blant annet stale `RUNNING`, execution cursor, output-konflikter og identifisering av jobber som krever eksplisitt rerun-beslutning.
+
+GUI bestemmer hvordan brukeren spørres. CLI representerer den samme beslutningen maskinrettet, blant annet gjennom `--rerun`.
 
 ## Per-jobb konfigurasjon og jobbisolasjon
 
@@ -88,7 +93,7 @@ Ved normal avslutning fjernes låsen automatisk. Etter maskin-/prosesskrasj kan 
 
 Locking erstatter ikke kravet om forskjellig `output_root` for forskjellige jobber.
 
-Locking-reglene skal gjelde uavhengig av om jobben senere startes fra GUI, CLI eller remote/server-grensesnitt.
+Locking-reglene gjelder uavhengig av om jobben startes fra GUI eller CLI, og skal også gjelde ved senere remote/server-grensesnitt.
 
 ## Historikk og resultater
 
@@ -96,7 +101,7 @@ PREMIS og andre historikkdata skal ikke overskrives stille ved rerun. Gjentatte 
 
 Arbeidsresultater og testhistorikk er ikke det samme som innhold som senere finaliseres til AIC. Se `WORK-RESULTS-AND-AIC-FINALIZATION.md`.
 
-## Planned execution layers
+## Execution layers
 
 ```text
 Workflow -> Job -> Batch -> Scheduler -> Worker
@@ -107,12 +112,15 @@ Nåværende scheduler er lokal og sekvensiell. Parallellitet, prioritet, retry, 
 Klient-/styringslaget ligger konseptuelt foran denne kjeden:
 
 ```text
-GUI / planlagt CLI / framtidig API
-                |
-                v
-        Job / Workflow layer
-                |
-                v
+GUI / CLI / framtidig API
+          |
+          v
+  JobPreflight / JobRunner / BatchRunner
+          |
+          v
+   Job / Workflow layer
+          |
+          v
 Workflow -> Job -> Batch -> Scheduler -> Worker
 ```
 
@@ -123,4 +131,4 @@ Workflow -> Job -> Batch -> Scheduler -> Worker
 - Original/received sources er i utgangspunktet read-only.
 - Hver jobb skal ha isolert output/proveniens.
 - Remote/server execution skal bruke job specifications og storage references fremfor å sende store payloads gjennom GUI-et.
-- Jobb- og workflowfunksjoner som skal være tilgjengelige fra flere grensesnitt skal ikke implementeres bare i GUI-handlere.
+- Jobb- og workflowfunksjoner som skal være tilgjengelige fra flere grensesnitt skal ikke implementeres bare i GUI- eller CLI-handlere.

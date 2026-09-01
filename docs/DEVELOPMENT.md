@@ -5,12 +5,13 @@ Før analyse eller endring av kode i dette repositoriet:
 1. Les `docs/DEVELOPMENT.md`.
 2. Les `docs/ARCHITECTURE.md` der den er relevant.
 3. Les `docs/INTERFACE.md` ved endringer i grensesnitt eller kontrakter.
-4. Les `docs/DEFINITIONS.md` ved endringer som berører begreper og lagdeling.
-5. Les `docs/TESTING.md` ved endringer som krever ny eller endret validering.
-6. Les `docs/CODE-MAP.md` for å finne riktig lag og dataflyt.
-7. Les `docs/RUNTIME-ENVIRONMENTS.md` ved endringer i installasjon, oppstart, filstier, brukerdata, eksterne programmer, packaging, server/worker eller plattformstøtte.
-8. Les `docs/SHARED-DEVELOPMENT.md` og `docs/SHARED-ROADMAP.md` før generiske workflow-/depotendringer som også kan være relevante for SIARD Workflow Manager.
-9. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
+4. Les `docs/CLI.md` ved endringer i offentlig CLI-syntaks, argumenter, flags, exit codes eller CLI-brukeradferd.
+5. Les `docs/DEFINITIONS.md` ved endringer som berører begreper og lagdeling.
+6. Les `docs/TESTING.md` ved endringer som krever ny eller endret validering.
+7. Les `docs/CODE-MAP.md` for å finne riktig lag og dataflyt.
+8. Les `docs/RUNTIME-ENVIRONMENTS.md` ved endringer i installasjon, oppstart, filstier, brukerdata, eksterne programmer, packaging, server/worker eller plattformstøtte.
+9. Les `docs/SHARED-DEVELOPMENT.md` og `docs/SHARED-ROADMAP.md` før generiske workflow-/depotendringer som også kan være relevante for SIARD Workflow Manager.
+10. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
 
 ## Endringsprinsipp
 
@@ -19,7 +20,7 @@ Før analyse eller endring av kode i dette repositoriet:
 - Noark 5-uttrekket og DIAS SIP/AIC er separate lag.
 - Mottatt Noark 5-uttrekk behandles som bevaringsbevis og skal som hovedregel analyseres, valideres og dokumenteres uten å endres.
 - Nye funksjoner skal ha automatiserte tester når det er praktisk mulig.
-- Før commit av en alpha: kjør `test.bat`, deretter praktisk test via `start.bat`.
+- Før commit av en alpha: kjør `test.bat`, deretter praktisk test via relevante implementerte grensesnitt. GUI-endringer testes via `start.bat`; CLI-endringer testes også med relevante `n5wf`-kommandoer.
 
 Nye tanker eller framtidsretninger skal normalt legges til som avgrensede arkitektur-/designpresiseringer. Eksisterende dokumentasjon skal ikke omskrives bredt dersom den fortsatt er korrekt.
 
@@ -83,9 +84,17 @@ Tom eksplisitt standardverdi eller `Bruk standard` betyr fallback under `temp_di
 
 Se også `APP-WORKSPACE-AND-RUN-LOGS.md`.
 
+## CLI-konvensjoner
+
+- Offentlige CLI-kommandoer, subcommands, argumenter og flags skal være korte, presise og på engelsk.
+- `docs/CLI.md` er autoritativ brukerreferanse for implementert `n5wf`-syntaks og exit codes.
+- `noark5_workflow/cli.py` skal være et klient-/adapterlag over delte tjenester/core, ikke en parallell workflow-implementasjon.
+- Jobb-, preflight- og batchsemantikk som både GUI og CLI trenger skal ligge i delte komponenter som `JobPreflight`, `JobRunner` og `BatchRunner`.
+- Menneskelesbar terminaltekst kan være lokalisert selv om kommandosyntaksen er stabil og engelsk.
+
 ## Kjøremiljø og portabilitet
 
-- Windows desktop er dagens testede baseline.
+- Windows desktop er dagens testede hovedbaseline; lokal `n5wf` CLI er også praktisk verifisert på Windows.
 - Ikke dokumenter Linux, macOS, server eller andre miljøer som støttet før installasjon, oppstart og relevant praktisk test er etablert.
 - Ikke legg ny domenelogikk i `.bat`, `.sh` eller packaging.
 - Unngå hardkodede Windows-stier i core/operations.
@@ -93,7 +102,7 @@ Se også `APP-WORKSPACE-AND-RUN-LOGS.md`.
 - Runtime-state og brukerinnstillinger skal på sikt ligge i egnet per-user application-data-område, ikke være avhengig av repository/installasjonsmappen.
 - Eksterne programmer skal kapsles i adaptere med konfigurerbar executable/path.
 - Core/operations skal ikke avhenge av GUI.
-- Jobb- og workflowfunksjoner som skal brukes fra GUI, CLI og senere API skal ligge i delte tjenester/core og ikke bare i GUI-handlere.
+- Jobb- og workflowfunksjoner som skal brukes fra GUI, CLI og senere API skal ligge i delte tjenester/core og ikke bare i GUI- eller CLI-handlere.
 - Lokal og framtidig remote kjøring skal bevare samme operations/executor-kontrakt.
 
 Se `docs/RUNTIME-ENVIRONMENTS.md`.

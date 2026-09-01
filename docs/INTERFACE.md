@@ -2,7 +2,7 @@
 
 Dette dokumentet beskriver stabile programkontrakter og grensesnitt/datautveksling som andre deler av Noark 5 Workflow Manager eller eksterne systemer skal kunne bygge på.
 
-Arkitektur og ansvarsdeling beskrives i `ARCHITECTURE.md`. GUI-konvensjoner og generell innstillingsadferd dokumenteres i `DEVELOPMENT.md` og relevante spesialdokumenter.
+Arkitektur og ansvarsdeling beskrives i `ARCHITECTURE.md`. Den offentlige `n5wf`-kommando-/brukerkontrakten beskrives autoritativt i `CLI.md`. GUI-konvensjoner og generell innstillingsadferd dokumenteres i `DEVELOPMENT.md` og relevante spesialdokumenter.
 
 ## Operasjoner
 
@@ -35,7 +35,7 @@ Operasjonen skal **ikke** skrive workflow-PREMIS XML selv. `LocalExecutor` bruke
 
 ## Workflow
 
-Workflow-modellen eier rekkefølgen på valgte operasjoner. GUI-komponentene presenterer denne tilstanden, men skal ikke være eneste lagringssted for den. Samme prinsipp gjelder planlagte CLI-/API-klienter.
+Workflow-modellen eier rekkefølgen på valgte operasjoner. GUI-komponentene presenterer denne tilstanden, men skal ikke være eneste lagringssted for den. Samme prinsipp gjelder den implementerte CLI-en og senere API-klienter.
 
 ## LocalExecutor
 
@@ -63,9 +63,11 @@ DIAS-dialogen produserer parametere til DIAS-operasjonen. Valgt Noark 5-uttrekk 
 
 ## Programmatisk styringsgrensesnitt
 
-Workflow Manager skal ha et maskinrettet styringsgrensesnitt ved siden av desktop-GUI-et. Første naturlige eksponering er en CLI; senere kan samme underliggende kontrakt eksponeres gjennom nettverks-API, tjeneste eller annen ekstern stimulus.
+Workflow Manager har fra v0.1.2-a7 et lokalt maskinrettet CLI-grensesnitt (`n5wf`) ved siden av desktop-GUI-et. CLI-et er første implementerte eksponering av det delte jobb-/workflowlaget. Senere kan samme underliggende kontrakt eksponeres gjennom nettverks-API, tjeneste eller annen ekstern stimulus.
 
-Grensesnittet skal bygges over jobb-/workflowlaget og skal kunne utvikles mot operasjoner som:
+Implementert CLI-omfang i a7 er kontroll og kjøring av eksisterende `.n5jobs`-jobblister. Kommandoer, argumenter, flags og exit codes som faktisk er støttet, dokumenteres i `CLI.md` og skal ikke dupliseres her.
+
+Det videre styringsgrensesnittet skal kunne utvikles mot operasjoner som:
 
 - opprette eller importere en jobb
 - åpne/importere en jobbliste
@@ -75,9 +77,11 @@ Grensesnittet skal bygges over jobb-/workflowlaget og skal kunne utvikles mot op
 - stoppe/avbryte der executor støtter det
 - hente jobbstatus, fremdrift og resultat-/loggreferanser
 
-CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et.
+Listen over beskriver retning, ikke at alle handlingene allerede finnes som offentlige CLI-kommandoer.
 
-Endelig kommandomodell, CLI-syntaks, serialiseringsformat, exit-koder, autentisering og nettverks-API er åpne designspørsmål.
+CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et. I dagens lokale kjørevei brukes `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor`.
+
+For a7 er CLI-syntaks og exit codes for implementerte kommandoer låst i `CLI.md`. Serialiseringsformat utover dagens `.n5jobs`, autentisering, nettverks-API og ytterligere kommandoer er fortsatt åpne designområder.
 
 ## Eksterne datakilder
 
@@ -105,4 +109,4 @@ Samme adapterprinsipp kan brukes for framtidige dokument-/PDF/A-validatorer. Val
 
 ### Batch/recursive controller
 
-Batchlaget oppdager og prequalifier kandidater, men kjører den faktiske jobben gjennom ordinær workflow/executor. Dermed finnes ikke to separate implementasjoner av samme validering.
+Sekvensiell batchkjøring av eksisterende jobblister er implementert gjennom `BatchRunner`. Framtidig recursive discovery skal oppdage og prequalifisere kandidater, men kjøre den faktiske jobben gjennom ordinær jobb-/workflow-/executor-kjede. Dermed finnes ikke to separate implementasjoner av samme validering.
