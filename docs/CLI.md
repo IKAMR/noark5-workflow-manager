@@ -1,25 +1,81 @@
 # Command-Line Interface (CLI)
 
-`n5wf` er kommandolinjegrensesnittet til Noark 5 Workflow Manager.
+`n5wf` er kommandolinjegrensesnittet til Noark 5 Workflow Manager. Det gjør det mulig å kontrollere og kjøre eksisterende `.n5jobs`-jobblister uten å starte GUI-et.
 
-CLI-et er laget for kjøring uten GUI, blant annet fra PowerShell, CMD, Windows Terminal, BAT-/PowerShell-skript og automatiserte kjøremiljøer. GUI og CLI skal bruke de samme underliggende jobb-, preflight- og kjørekomponentene.
+## Hurtig bruk
+
+Etter at CLI er installert, åpne en ny PowerShell-, CMD- eller Windows Terminal-økt.
+
+### Kommandoreferanse
+
+| Kommando | Options | Formål |
+|---|---|---|
+| `n5wf --help` | – | Vis hjelp |
+| `n5wf --version` | – | Vis versjon |
+| `n5wf jobs check <file.n5jobs>` | – | Kontroller jobblisten uten å kjøre den |
+| `n5wf jobs run <file.n5jobs>` | `[--rerun]` | Kjør jobblisten |
+
+### Options
+
+`--rerun`
+: Tillater eksplisitt ny kjøring av jobber som ellers krever godkjenning. Gjelder `n5wf jobs run`.
+
+Den kan skrives både etter og før filargumentet. Den dokumenterte standardformen er:
+
+```text
+n5wf jobs run <file.n5jobs> --rerun
+```
+
+Følgende form er også gyldig:
+
+```text
+n5wf jobs run --rerun <file.n5jobs>
+```
+
+`<file.n5jobs>` er et obligatorisk posisjonelt argument til `run`; det er ikke definert som en generell «parameter 3».
+
+### Vanlige eksempler
+
+Kontroller en jobbliste:
+
+```text
+n5wf jobs check "G:\arkiv\jobblister\kommune.n5jobs"
+```
+
+Kjør jobblisten:
+
+```text
+n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs"
+```
+
+Kjør den på nytt når rerun-godkjenning kreves:
+
+```text
+n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --rerun
+```
+
+Detaljer om kontroll, kjøring, exit codes og automatisering står nedenfor.
 
 ## Installasjon
 
-Kjør fra rotmappen til Noark 5 Workflow Manager:
+Fra v0.1.2-a8 kan CLI installeres alene eller sammen med GUI.
+
+Interaktivt fra rotmappen til Noark 5 Workflow Manager:
 
 ```bat
 install.bat
 ```
 
-Installasjonen installerer avhengigheter og registrerer `n5wf` som console command.
+Velg `GUI + CLI` eller `CLI`. Installasjonen kan også startes direkte uten meny:
 
-Etter installasjon bør en ny PowerShell-, CMD- eller Windows Terminal-økt kunne kjøre:
-
-```text
-n5wf --help
-n5wf --version
+```bat
+install.bat all
+install.bat cli
 ```
+
+Core er en felles logisk komponent for GUI og CLI. Installer lagrer per-user profilstatus slik at senere installasjon eller deinstallasjon av GUI/CLI ikke unødvendig fjerner den andre profilen.
+
+CLI-installasjonen oppretter en stabil `n5wf`-launcher og registrerer launcher-mappen i brukerens Windows `PATH`.
 
 Hvis `n5wf` ikke finnes i `PATH`, kan CLI-et brukes direkte via Python launcher som fallback:
 
@@ -29,29 +85,19 @@ py -m noark5_workflow.cli --help
 
 Dette er primært en fallback for feilsøking. Den normale brukerkommandoen er `n5wf`.
 
-## Kommandooversikt
+### Deinstallasjon av CLI
 
-### Hjelp
+CLI kan fjernes med:
 
-```text
-n5wf --help
+```bat
+deinstall.bat cli
 ```
 
-Viser tilgjengelige kommandoer og argumenter.
+eller gjennom den interaktive menyen i `deinstall.bat`. Deinstallasjon krever eksplisitt `Ja` før den utføres.
 
-### Versjon
+Dersom GUI fortsatt er registrert installert, beholdes Core-status. Deinstallasjon fjerner ikke jobblister, logger, config, repository eller generelle Python-pakker som kan være delt med andre programmer.
 
-```text
-n5wf --version
-```
-
-Viser installert versjon av Noark 5 Workflow Manager CLI.
-
-## Jobblister
-
-CLI-et i v0.1.2-a7 arbeider med eksisterende `.n5jobs`-jobblister.
-
-### Kontrollere en jobbliste
+## Kontrollere en jobbliste
 
 ```text
 n5wf jobs check <file.n5jobs>
@@ -72,7 +118,7 @@ Kommandoen:
 - identifiserer jobber som krever eksplisitt godkjenning for ny kjøring
 - kjører ikke jobbene
 
-### Kjøre en jobbliste
+## Kjøre en jobbliste
 
 ```text
 n5wf jobs run <file.n5jobs>
@@ -111,7 +157,7 @@ CLI
 
 CLI-et implementerer dermed ikke en separat workflow-motor.
 
-### Eksplisitt ny kjøring
+## Eksplisitt ny kjøring
 
 Hvis jobblisten inneholder jobber som allerede har nådd en terminal status, må ny kjøring godkjennes eksplisitt:
 
@@ -187,9 +233,9 @@ run
 
 Brukerrettet status- og loggtekst kan være norsk selv om den stabile maskinrettede kommandosyntaksen er engelsk.
 
-## Omfang i v0.1.2-a7
+## Omfang
 
-Følgende offentlige CLI-kall er implementert i a7:
+Følgende offentlige CLI-kall er implementert fra v0.1.2-a7:
 
 ```text
 n5wf --help

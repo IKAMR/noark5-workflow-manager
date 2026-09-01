@@ -79,6 +79,31 @@ Det videre styringsgrensesnittet skal kunne utvikles mot operasjoner som:
 
 Listen over beskriver retning, ikke at alle handlingene allerede finnes som offentlige CLI-kommandoer.
 
+### Mulig framtidig CLI-syntaks
+
+Som arbeidshypotese kan noen av operasjonene ovenfor senere eksponeres med kommandoer som:
+
+```text
+n5wf job run <job-id>
+n5wf job status <job-id>
+n5wf job continue <job-id>
+n5wf job stop <job-id>
+
+n5wf jobs status <file.n5jobs>
+```
+
+Mulige framtidige options kan blant annet være:
+
+```text
+--job-id
+--from
+--until
+--force
+--output
+```
+
+Navn, syntaks og semantikk over er **ikke låst** og betyr ikke at funksjonene er implementert. Eksemplene beholdes som konkrete arbeidshypoteser og utgangspunkt for senere CLI-design. Når en offentlig kommando eller option faktisk implementeres og låses, dokumenteres den autoritativt i `CLI.md`.
+
 CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et. I dagens lokale kjørevei brukes `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor`.
 
 For a7 er CLI-syntaks og exit codes for implementerte kommandoer låst i `CLI.md`. Serialiseringsformat utover dagens `.n5jobs`, autentisering, nettverks-API og ytterligere kommandoer er fortsatt åpne designområder.

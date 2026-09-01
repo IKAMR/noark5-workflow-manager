@@ -76,12 +76,30 @@ jobbmodellen og videre retning.
 **Windows desktop er dagens testede og støttede baseline. Lokal `n5wf`
 CLI er også praktisk verifisert på Windows.**
 
+Fra v0.1.2-a8 kan Windows-installasjonen velges som `GUI + CLI`, `GUI`
+eller `CLI`. Core er en felles logisk komponent og holdes aktiv så lenge
+minst ett av grensesnittene er registrert installert. `install.bat` og
+`deinstall.bat` lagrer denne statusen per bruker under `%LOCALAPPDATA%`.
+Generelle Python-pakker avinstalleres ikke automatisk, siden de kan være
+delt med andre Python-programmer.
+
 Normal bruk på Windows:
 
 1.  Kjør `install.bat` ved første installasjon eller når avhengigheter
-    endres.
+    endres. Velg GUI + CLI, GUI eller CLI.
 2.  Kjør `test.bat` og kontroller at alle tester består.
 3.  Start GUI med `start.bat`, eller bruk CLI med `n5wf ...`.
+
+Installasjonen kan også styres uten meny:
+
+```text
+install.bat all
+install.bat gui
+install.bat cli
+```
+
+Deinstallasjon bruker tilsvarende `all`, `gui` eller `cli` og krever
+eksplisitt `Ja` før den utføres.
 
 Eksempler:
 
@@ -147,8 +165,8 @@ innholdet. Detaljene og grensene for normalisering/repakking beskrives i
 -   Python 3.10 eller nyere
 -   Windows desktop er dagens testede baseline
 -   lokal `n5wf` CLI er praktisk verifisert på Windows
--   Python-avhengigheter installeres via `install.bat` /
-    `requirements.txt`
+-   Python-avhengigheter installeres via `install.bat` og de delte
+    requirements-filene i repository-roten
 
 Se `docs/RUNTIME-ENVIRONMENTS.md` før andre kjøremiljøer beskrives eller
 gjøres til støttede plattformer.

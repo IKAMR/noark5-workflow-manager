@@ -92,6 +92,19 @@ Se også `APP-WORKSPACE-AND-RUN-LOGS.md`.
 - Jobb-, preflight- og batchsemantikk som både GUI og CLI trenger skal ligge i delte komponenter som `JobPreflight`, `JobRunner` og `BatchRunner`.
 - Menneskelesbar terminaltekst kan være lokalisert selv om kommandosyntaksen er stabil og engelsk.
 
+## Installasjonskonvensjoner
+
+- Brukeren velger `GUI + CLI`, `GUI` eller `CLI`; Core er en intern felleskomponent og ikke et separat menyvalg.
+- Installering av GUI eller CLI skal bevare den andre allerede installerte profilen.
+- Core regnes som aktiv så lenge minst én av GUI/CLI er installert.
+- Installert profilstatus lagres per bruker i `install-state.json` under Workflow Managers `%LOCALAPPDATA%`-område.
+- Installasjonsstatus er teknisk metadata og skal ikke blandes med jobb-/workflowdata.
+- Deinstallasjon skal kreve eksplisitt `Ja` før endringer utføres.
+- Deinstallasjon av ett grensesnitt skal beholde Core dersom det andre fortsatt er installert.
+- Generelle Python-avhengigheter (`lxml`, `psutil`, `customtkinter` osv.) skal ikke avinstalleres automatisk fordi de kan være delt med andre programmer.
+- Installer/deinstaller skal ikke slette repository, jobblister, logger, config eller andre brukerdata.
+- `install.bat`, `deinstall.bat`, `requirements*.txt` og `pyproject.toml` beholdes i repository-roten.
+
 ## Kjøremiljø og portabilitet
 
 - Windows desktop er dagens testede hovedbaseline; lokal `n5wf` CLI er også praktisk verifisert på Windows.

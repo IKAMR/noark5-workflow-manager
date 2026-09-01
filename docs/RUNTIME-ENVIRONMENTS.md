@@ -8,6 +8,16 @@ Dette dokumentet er autoritativt for hvilke kjøremiljøer Noark 5 Workflow Mana
 
 Dagens utviklings- og testbaseline er **Windows desktop**. Lokal headless/CLI-kjøring med `n5wf` er også implementert og praktisk verifisert på Windows i v0.1.2-a7.
 
+Fra v0.1.2-a8 har Windows-installasjonen tre brukerprofiler:
+
+- GUI + CLI
+- GUI
+- CLI
+
+Core er felles for GUI og CLI og er ikke et separat brukervalg. Installert profilstatus lagres per bruker i `%LOCALAPPDATA%\Programs\Noark5WorkflowManager\install-state.json`. Core regnes som aktiv så lenge GUI eller CLI er registrert installert. Deinstallasjon av ett grensesnitt beholder derfor Core dersom det andre fortsatt er installert.
+
+Generelle Python-avhengigheter avinstalleres ikke automatisk. De kan være delt med andre Python-programmer og eies derfor ikke eksklusivt av Workflow Manager-installasjonen.
+
 Normal GUI-prosedyre er:
 
 1. `install.bat` når avhengigheter er nye eller endret.
@@ -16,7 +26,17 @@ Normal GUI-prosedyre er:
 4. `start.bat`.
 5. Praktisk test av relevante GUI-/workflow-funksjoner.
 
-CLI installeres via samme nåværende `install.bat` og kan etter installasjon brukes fra terminal uten at GUI-et startes, for eksempel:
+Installer kan brukes interaktivt eller direkte:
+
+```text
+install.bat all
+install.bat gui
+install.bat cli
+```
+
+`deinstall.bat` har de samme profilvalgene og krever eksplisitt `Ja` før endringer utføres.
+
+CLI kan etter CLI/all-installasjon brukes fra terminal uten at GUI-et startes, for eksempel:
 
 ```text
 n5wf --help
@@ -50,10 +70,12 @@ I hovedsak plattformuavhengig:
 Windows-spesifikt i dagens distribusjon:
 
 - `install.bat`
+- `deinstall.bat`
 - `start.bat`
 - `test.bat`
 - bruk av Windows `py` launcher i disse skriptene og dagens Windows CLI-launcher
 - registrering av CLI-launcher i brukerens Windows `PATH`
+- installasjonsstatus under `%LOCALAPPDATA%`
 - enkelte konvensjoner for bruker-/applikasjonsdata
 
 `.bat`-filene skal betraktes som launchere og test-/installasjonshjelp, ikke som applikasjonslogikk. Ny core- eller operations-kode skal ikke gjøres Windows-avhengig uten et dokumentert behov.
@@ -63,6 +85,8 @@ Windows-spesifikt i dagens distribusjon:
 Runtime-data skal ikke være avhengig av Git-repository eller installasjonsmappen.
 
 Automatisk arbeidsstatus/jobbliste skal lagres per bruker i et egnet application-data-område. På Windows brukes normalt et område under `%LOCALAPPDATA%`.
+
+Installasjonsstatus (`install-state.json`) er teknisk installasjonsmetadata og skal holdes adskilt fra jobblister, runtime-state, logger og brukerens faglige data. `deinstall.bat` skal ikke slette slike brukerdata.
 
 Målet for videre opprydding er én plattformuavhengig mekanisme, for eksempel `get_app_data_dir()`, som velger riktig plassering:
 
@@ -80,7 +104,7 @@ Lokal CLI/programmatisk styring skal skilles fra framtidig remote server/worker.
 
 Fra v0.1.2-a7 finnes `n5wf` som lokal CLI på Windows. Den bruker samme lokale jobb-/workflow-/`LocalExecutor`-lag uten at desktop-GUI-et er startet. Dette gir scriptbar og automatiserbar kjøring på en enkelt maskin uten at nettverksserver, autentisering eller remote worker er nødvendig.
 
-Implementert a7-omfang er kontroll og kjøring av eksisterende `.n5jobs`-jobblister. CLI-støtte på andre operativsystemer og et separat CLI-only installasjonsløp er ikke etablert ennå.
+Fra v0.1.2-a8 kan CLI installeres som egen profil (`install.bat cli`) eller sammen med GUI (`install.bat all`). CLI-deinstallasjon fjerner `n5wf`-launcheren, PATH-registreringen og Workflow Managers installerbare CLI-pakke, men ikke generelle Python-avhengigheter. Dersom GUI fortsatt er registrert installert, beholdes Core-status.
 
 Se `CLI.md` for gjeldende kommandoer og exit codes.
 
@@ -228,7 +252,7 @@ En naturlig utviklingsrekkefølge er nå:
 
 1. Windows desktop
 2. lokal CLI/programmatisk styring på Windows – første nivå implementert i v0.1.2-a7
-3. forbedret installasjonsmodell for GUI + CLI / GUI only / CLI only
+3. profilbasert Windows-installasjon for GUI + CLI / GUI / CLI – implementert i v0.1.2-a8
 4. Windows RDS/Terminal Server
 5. headless worker/server på Windows og/eller Linux
 6. webklient
