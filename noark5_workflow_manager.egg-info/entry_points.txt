@@ -1,0 +1,2 @@
+[console_scripts]
+n5wf = noark5_workflow.cli:main
