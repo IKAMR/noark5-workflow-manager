@@ -56,6 +56,19 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Allow jobs that have already reached a terminal state to run again",
     )
+
+    continue_cmd = actions.add_parser(
+        "continue",
+        help="Continue one selected job from its current checkpoint",
+    )
+    continue_cmd.add_argument("joblist", type=Path)
+    continue_cmd.add_argument(
+        "--job",
+        dest="job_id",
+        metavar="JOB-ID",
+        required=True,
+        help="Continue one waiting job from the job list",
+    )
     return parser
 
 
@@ -271,6 +284,78 @@ def _run_one(path: Path, loaded, selected: Job, *, allow_rerun: bool) -> int:
     return EXIT_OK
 
 
+def _continue_one(path: Path, loaded, selected: Job) -> int:
+    print(f"{APP_NAME} {VERSION}")
+    print(f"Job list: {path}")
+    print(f"Selected job: {selected.job_id}")
+
+    settings = load_config()
+    runner = JobRunner(build_registry(), LocalExecutor(), settings)
+    overview = RunOverviewLog(
+        settings,
+        run_type="job",
+        app_version=VERSION,
+        job_list_path=path,
+        planned_jobs=1,
+    )
+    overview.set_phase(f"CLI job continue started: {selected.job_id}")
+    overview.start_job(selected)
+
+    def log(message: str) -> None:
+        print(f"{selected.job_id}: {message}")
+
+    def state_changed(job: Job) -> None:
+        save_job_list(
+            path,
+            loaded.batch,
+            active_job_id=job.job_id,
+            app_version=VERSION,
+        )
+
+    try:
+        outcome = runner.continue_job(
+            selected,
+            log_cb=log,
+            state_cb=state_changed,
+        )
+        overview.finish_job(selected)
+        status = "FEIL" if not outcome.ok else (
+            "VENTER" if selected.status.value == "Venter ved kontrollpunkt" else "FERDIG"
+        )
+        overview.finish(status)
+        save_job_list(
+            path,
+            loaded.batch,
+            active_job_id=selected.job_id,
+            app_version=VERSION,
+        )
+    except ValueError as exc:
+        overview.fail(exc)
+        print(f"Continue blocked: {exc}")
+        return EXIT_PREFLIGHT
+    except Exception as exc:
+        overview.fail(exc)
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_RUN_FAILED
+
+    print(f"{selected.job_id} -> {selected.status.value}")
+    print(f"Run log: {overview.path}")
+    if not outcome.ok:
+        return EXIT_RUN_FAILED
+    if selected.status.value == "Venter ved kontrollpunkt":
+        return EXIT_WAITING
+    return EXIT_OK
+
+
+def _continue(path: Path, *, job_id: str) -> int:
+    loaded = _load(path)
+    selected = loaded.batch.get(job_id)
+    if selected is None:
+        print(f"ERROR: Jobb-ID finnes ikke i jobblisten: {job_id}", file=sys.stderr)
+        return EXIT_NOT_FOUND
+    return _continue_one(path, loaded, selected)
+
+
 def _run(path: Path, *, allow_rerun: bool, job_id: str | None = None) -> int:
     loaded = _load(path)
 
@@ -371,6 +456,8 @@ def main(argv: list[str] | None = None) -> int:
             return _status(args.joblist, job_id=args.job_id)
         if args.object == "jobs" and args.action == "run":
             return _run(args.joblist, allow_rerun=args.rerun, job_id=args.job_id)
+        if args.object == "jobs" and args.action == "continue":
+            return _continue(args.joblist, job_id=args.job_id)
     except JobListFormatError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return EXIT_PREFLIGHT

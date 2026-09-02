@@ -19,6 +19,10 @@ class JobRunOutcome:
     persist_recommended: bool = False
 
 
+class JobContinueError(RuntimeError):
+    """Raised when an explicit continue request is invalid for the job state."""
+
+
 class JobRunner:
     """GUI-independent execution of one Job through an executor.
 
@@ -46,6 +50,47 @@ class JobRunner:
         if params and callable(configure):
             configure(params)
         return operation
+
+    def continue_job(
+        self,
+        job: Job,
+        *,
+        progress_cb: Callable[[float, str], None] | None = None,
+        log_cb: Callable[[str], None] | None = None,
+        cancelled_cb: Callable[[], bool] | None = None,
+        state_cb: Callable[[Job], None] | None = None,
+    ) -> JobRunOutcome:
+        """Continue a job that is explicitly waiting at a valid checkpoint.
+
+        The actual execution remains owned by ``run()``. This method only
+        validates the explicit continue intent before delegating to the existing
+        execution/cursor semantics.
+        """
+        if job.status != JobStatus.WAITING:
+            raise JobContinueError(
+                f"Jobben kan ikke fortsettes fra status: {job.status.value}"
+            )
+
+        total = len(job.workflow_ids)
+        next_index = max(0, min(int(job.next_operation_index), total))
+        if next_index <= 0 or next_index >= total:
+            raise JobContinueError(
+                "Jobben har ikke en gyldig neste operasjon å fortsette med"
+            )
+
+        previous_operation_id = job.workflow_ids[next_index - 1]
+        if not job.has_checkpoint(previous_operation_id):
+            raise JobContinueError(
+                "Jobben står som ventende, men execution cursor følger ikke et kontrollpunkt"
+            )
+
+        return self.run(
+            job,
+            progress_cb=progress_cb,
+            log_cb=log_cb,
+            cancelled_cb=cancelled_cb,
+            state_cb=state_cb,
+        )
 
     def run(
         self,

@@ -77,20 +77,21 @@ Det videre styringsgrensesnittet skal kunne utvikles mot operasjoner som:
 - stoppe/avbryte der executor støtter det
 - hente jobbstatus, fremdrift og resultat-/loggreferanser
 
-Listen over beskriver retning, ikke at alle handlingene allerede finnes som offentlige CLI-kommandoer.
+Listen over beskriver retning; enkelte handlinger er allerede implementert og låst gjennom `CLI.md`.
 
 Fra v0.1.2-a9 kan status leses for en jobbliste eller én jobb innen en eksplisitt angitt `.n5jobs`-fil. Dagens `JOB-001`-lignende jobb-ID er ikke global; ulike jobblister kan inneholde samme jobb-ID. Inntil en eventuell workspace/database/global identitetsmodell finnes, skal CLI-design derfor ikke anta at en løs jobb-ID alene kan identifisere en jobb sikkert.
 
 Fra v0.1.2-a10 kan én valgt jobb kjøres innen en eksplisitt angitt `.n5jobs`-fil. Adresseringen er fortsatt kombinasjonen jobbliste + jobb-ID; dette innfører ikke global jobbidentitet.
 
+Fra v0.1.2-a11 kan én jobb som står ved kontrollpunkt fortsettes eksplisitt med samme adresseringsmodell. `JobRunner.continue_job()` er den delte Core-kontrakten for denne styringshandlingen og brukes av både CLI og GUI. Den validerer at jobben faktisk står `Venter ved kontrollpunkt`, at execution cursor peker på en gjenværende operasjon, og at ventetilstanden er forankret i et reelt kontrollpunkt før ordinær `JobRunner.run()` gjenbrukes.
+
 ### Mulig framtidig CLI-syntaks
 
-Som arbeidshypotese kan noen av operasjonene ovenfor senere eksponeres med kommandoer som:
+Som arbeidshypotese kan noen av de fortsatt ikke implementerte operasjonene ovenfor senere eksponeres med kommandoer som:
 
 ```text
 n5wf job run <job-id>
 n5wf job status <job-id>
-n5wf job continue <job-id>
 n5wf job stop <job-id>
 
 n5wf jobs status <file.n5jobs>
@@ -98,7 +99,7 @@ n5wf jobs status <file.n5jobs>
 
 De løse `n5wf job ... <job-id>`-eksemplene forutsetter en framtidig identitets-/workspace-modell som gjør jobb-ID-en entydig.
 
-Valgt kjøring med dagens identitetsmodell er implementert og dokumentert autoritativt i `CLI.md`. En mulig framtidig fortsett-kommando kan følge samme adresseringsprinsipp:
+Fortsettelse med dagens identitetsmodell er implementert og dokumentert autoritativt i `CLI.md`:
 
 ```text
 n5wf jobs continue <file.n5jobs> --job <job-id>
@@ -114,7 +115,7 @@ Mulige framtidige options kan blant annet være:
 --output
 ```
 
-Navn, syntaks og semantikk over er **ikke låst** og betyr ikke at funksjonene er implementert. Eksemplene beholdes som konkrete arbeidshypoteser og utgangspunkt for senere CLI-design. Når en offentlig kommando eller option faktisk implementeres og låses, dokumenteres den autoritativt i `CLI.md`.
+Navn, syntaks og semantikk for de framtidige eksemplene over er **ikke låst** og betyr ikke at funksjonene er implementert. Når en offentlig kommando eller option faktisk implementeres og låses, dokumenteres den autoritativt i `CLI.md`.
 
 CLI og framtidig API skal ikke ha egen workflow-implementasjon. De skal bruke samme underliggende jobb-/workflowtjenester som GUI-et. I dagens lokale kjørevei brukes `JobPreflight`, `BatchRunner`, `JobRunner` og `LocalExecutor`.
 

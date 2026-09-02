@@ -15,11 +15,12 @@ Etter at CLI er installert, åpne en ny PowerShell-, CMD- eller Windows Terminal
 | `n5wf jobs check <file.n5jobs>` | – | Kontroller jobblisten uten å kjøre den |
 | `n5wf jobs status <file.n5jobs>` | `[--job JOB-ID]` | Vis status for jobblista eller én jobb |
 | `n5wf jobs run <file.n5jobs>` | `[--job JOB-ID] [--rerun]` | Kjør hele jobblista eller én valgt jobb |
+| `n5wf jobs continue <file.n5jobs>` | `--job JOB-ID` | Fortsett én jobb som venter ved kontrollpunkt |
 
 ### Options
 
 `--job JOB-ID`
-: Velger én jobb i den angitte `.n5jobs`-jobblista. Gjelder `status` fra v0.1.2-a9 og `run` fra v0.1.2-a10.
+: Velger én jobb i den angitte `.n5jobs`-jobblista. Gjelder `status` fra v0.1.2-a9, `run` fra v0.1.2-a10 og `continue` fra v0.1.2-a11.
 
 `--rerun`
 : Tillater eksplisitt ny kjøring av en valgt eller flere jobber som ellers krever godkjenning. Gjelder `n5wf jobs run`.
@@ -30,6 +31,7 @@ Den dokumenterte standardformen er at jobblista står før options:
 n5wf jobs status <file.n5jobs> --job JOB-001
 n5wf jobs run <file.n5jobs> --job JOB-001
 n5wf jobs run <file.n5jobs> --job JOB-001 --rerun
+n5wf jobs continue <file.n5jobs> --job JOB-001
 ```
 
 Options kan også skrives før filargumentet.
@@ -52,6 +54,12 @@ Kjør bare én jobb:
 
 ```text
 n5wf jobs run "G:\arkiv\jobblister\kommune.n5jobs" --job JOB-002
+```
+
+Fortsett én jobb som venter ved kontrollpunkt:
+
+```text
+n5wf jobs continue "G:\arkiv\jobblister\kommune.n5jobs" --job JOB-002
 ```
 
 Kjør bare én tidligere ferdig/feilet/hoppet-over jobb på nytt:
@@ -128,9 +136,23 @@ Eksempel:
 n5wf jobs run <file.n5jobs> --job <job-id> --rerun
 ```
 
-Hvis valgt jobb står `Venter ved kontrollpunkt`, bruker `JobRunner` eksisterende execution cursor og fortsetter fra neste operasjon. Dette er eksisterende Core-semantikk; en egen offentlig `continue`-kommando er fortsatt ikke implementert.
+## Fortsette fra kontrollpunkt
 
-Kjøring lagrer oppdatert status for den valgte jobben tilbake i samme `.n5jobs`-fil og setter den som aktiv jobb.
+Fra v0.1.2-a11 kan en bestemt jobb som står `Venter ved kontrollpunkt` fortsettes eksplisitt:
+
+```text
+n5wf jobs continue <file.n5jobs> --job <job-id>
+```
+
+`continue` bruker den persistente execution cursoren og starter ved neste operasjon etter det kontrollpunktet som jobben faktisk venter ved. Allerede fullførte operasjoner kjøres ikke på nytt.
+
+Kommandoen er bare gyldig når jobben står `Venter ved kontrollpunkt`, cursoren peker på en gjenværende operasjon og ventetilstanden er forankret i et reelt kontrollpunkt i workflowen. Ellers avvises fortsettelsen som en ugyldig kjøretilstand.
+
+Hvis jobben møter et nytt kontrollpunkt, lagres den nye cursoren og kommandoen returnerer exit code `5`. Hvis workflowen fullføres, returneres `0`.
+
+Både CLI og GUI bruker samme eksplisitte `JobRunner.continue_job()`-kontrakt. Selve execution-logikken gjenbruker ordinær `JobRunner.run()` etter at continue-tilstanden er validert.
+
+Kjøring og fortsettelse lagrer oppdatert status for den valgte jobben tilbake i samme `.n5jobs`-fil og setter den som aktiv jobb.
 
 ## Exit codes
 
@@ -138,7 +160,7 @@ Kjøring lagrer oppdatert status for den valgte jobben tilbake i samme `.n5jobs`
 |---:|---|
 | `0` | Kommandoen ble fullført uten feil |
 | `2` | Ugyldig kommando eller ugyldige argumenter |
-| `3` | Preflight feilet eller kjøring krever eksplisitt godkjenning |
+| `3` | Preflight feilet, kjøring krever eksplisitt godkjenning eller `continue` ble avvist fordi jobben ikke kan fortsettes |
 | `4` | Jobb-/batchkjøringen feilet |
 | `5` | En eller flere jobber / valgt jobb venter ved kontrollpunkt |
 | `6` | Etterspurt jobb-ID finnes ikke i angitt jobbliste |
@@ -149,7 +171,7 @@ GUI-et startes med `start.bat`. CLI-et startes med `n5wf ...`. De bruker samme u
 
 ## Omfang
 
-Følgende offentlige CLI-kall er implementert per v0.1.2-a10:
+Følgende offentlige CLI-kall er implementert per v0.1.2-a11:
 
 ```text
 n5wf --help
@@ -161,9 +183,10 @@ n5wf jobs run <file.n5jobs>
 n5wf jobs run <file.n5jobs> --rerun
 n5wf jobs run <file.n5jobs> --job <job-id>
 n5wf jobs run <file.n5jobs> --job <job-id> --rerun
+n5wf jobs continue <file.n5jobs> --job <job-id>
 ```
 
-CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen. En egen `continue`- eller `stop`-kommando er ikke implementert.
+CLI-et oppretter eller redigerer foreløpig ikke jobber/jobblister fra kommandolinjen. En egen offentlig `stop`-kommando er ikke implementert.
 
 ## Videre CLI-/styringsdesign
 

@@ -8,7 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class EditExistingJobA1RegressionTests(unittest.TestCase):
     def test_workflow_panel_exposes_edit_for_configurable_operations(self):
         text = (ROOT / "gui" / "workflow_panel.py").read_text(encoding="utf-8")
-        self.assertIn('text="Rediger"', text)
+        self.assertIn('text="✎"', text)
+        self.assertIn('"Rediger operasjonen"', text)
         self.assertIn("self.on_edit", text)
         self.assertIn("callable(configure)", text)
 

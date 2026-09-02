@@ -10,6 +10,44 @@ from noark5_workflow.core.workflow import Workflow
 from . import theme
 
 
+class _Tooltip:
+    """Small hover tooltip for compact workflow action icons."""
+
+    def __init__(self, widget, text: str) -> None:
+        self.widget = widget
+        self.text = text
+        self.window = None
+        widget.bind("<Enter>", self._show, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+        widget.bind("<ButtonPress>", self._hide, add="+")
+
+    def _show(self, _event=None) -> None:
+        if self.window is not None or not self.text:
+            return
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4
+        self.window = tip = ctk.CTkToplevel(self.widget)
+        tip.withdraw()
+        tip.overrideredirect(True)
+        tip.attributes("-topmost", True)
+        ctk.CTkLabel(
+            tip,
+            text=self.text,
+            fg_color=theme.CARD_BG,
+            text_color=theme.TEXT_MAIN,
+            corner_radius=5,
+            font=theme.font(theme.SMALL_SIZE),
+        ).pack(padx=1, pady=1)
+        tip.update_idletasks()
+        tip.geometry(f"+{x - tip.winfo_width() // 2}+{y}")
+        tip.deiconify()
+
+    def _hide(self, _event=None) -> None:
+        if self.window is not None:
+            self.window.destroy()
+            self.window = None
+
+
 class WorkflowPanel(ctk.CTkFrame):
     def __init__(
         self,
@@ -28,6 +66,7 @@ class WorkflowPanel(ctk.CTkFrame):
         self.on_edit = on_edit
         self.on_checkpoint_toggle = on_checkpoint_toggle
         self.checkpoint_ids_provider = checkpoint_ids_provider
+        self._tooltips: list[_Tooltip] = []
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -134,7 +173,14 @@ class WorkflowPanel(ctk.CTkFrame):
     def set_run_text(self, text: str) -> None:
         self.run_button.configure(text=text)
 
+    def _add_tooltip(self, widget, text: str) -> None:
+        self._tooltips.append(_Tooltip(widget, text))
+
     def refresh(self) -> None:
+        for tooltip in self._tooltips:
+            tooltip._hide()
+        self._tooltips.clear()
+
         for child in self.items.winfo_children():
             child.destroy()
 
@@ -162,9 +208,6 @@ class WorkflowPanel(ctk.CTkFrame):
             item.grid_columnconfigure(0, weight=1)
 
             label = f"{row + 1}. ({maturity_short_label(op_id)}) {operation.definition.name}"
-            if op_id in checkpoints:
-                label += "  • kontrollpunkt"
-
             ctk.CTkLabel(
                 item,
                 text=label,
@@ -172,38 +215,53 @@ class WorkflowPanel(ctk.CTkFrame):
                 anchor="w",
             ).grid(row=0, column=0, padx=8, pady=7, sticky="ew")
 
+            action_column = 1
             configure = getattr(operation, "configure", None)
             if self.on_edit is not None and callable(configure):
-                ctk.CTkButton(
+                edit_button = ctk.CTkButton(
                     item,
-                    text="Rediger",
-                    width=62,
+                    text="✎",
+                    width=30,
                     height=26,
-                    font=theme.font(theme.SMALL_SIZE),
+                    font=theme.font(theme.NORMAL_SIZE),
                     fg_color=theme.BUTTON_BG,
                     hover_color=theme.BUTTON_HOVER,
                     command=lambda oid=op_id: self.on_edit(oid),
-                ).grid(row=0, column=1, padx=(4, 2), pady=5)
+                )
+                edit_button.grid(row=0, column=action_column, padx=2, pady=5)
+                self._add_tooltip(edit_button, "Rediger operasjonen")
+                action_column += 1
 
-            # A checkpoint after the final operation adds no useful stop;
-            # workflow completion already ends execution there.
+            # A checkpoint after the final operation adds no useful pause;
+            # workflow completion already ends execution there. The checkpoint
+            # slot is deliberately blank when inactive: no symbol means that
+            # execution continues directly to the next operation.
             if self.on_checkpoint_toggle is not None and row < len(ids) - 1:
-                ctk.CTkButton(
+                active_checkpoint = op_id in checkpoints
+                checkpoint_button = ctk.CTkButton(
                     item,
-                    text="Stopp ✓" if op_id in checkpoints else "Stopp etter",
-                    width=78,
+                    text="■" if active_checkpoint else "",
+                    width=30,
                     height=26,
-                    font=theme.font(theme.SMALL_SIZE),
+                    font=theme.font(theme.NORMAL_SIZE),
                     fg_color=theme.BUTTON_BG,
                     hover_color=theme.BUTTON_HOVER,
                     command=lambda oid=op_id: self.on_checkpoint_toggle(oid),
-                ).grid(row=0, column=2, padx=2, pady=5)
+                )
+                checkpoint_button.grid(row=0, column=action_column, padx=2, pady=5)
+                self._add_tooltip(
+                    checkpoint_button,
+                    "Fjern kontrollpunkt" if active_checkpoint else "Sett kontrollpunkt etter operasjonen",
+                )
+                action_column += 1
 
-            ctk.CTkButton(
+            remove_button = ctk.CTkButton(
                 item,
                 text="×",
                 width=28,
                 height=26,
                 font=("Consolas", 14, "bold"),
                 command=lambda oid=op_id: self.remove(oid),
-            ).grid(row=0, column=3, padx=5, pady=5)
+            )
+            remove_button.grid(row=0, column=action_column, padx=5, pady=5)
+            self._add_tooltip(remove_button, "Fjern operasjonen fra workflow")

@@ -31,7 +31,12 @@ class WorkflowApp(A2155WorkflowApp):
 
     def _execute_job(self, job: Job, *, batch_mode: bool) -> bool:
         """Thin GUI adapter around the GUI-independent JobRunner."""
-        outcome = self.job_runner.run(
+        runner_method = (
+            self.job_runner.continue_job
+            if job.status == JobStatus.WAITING
+            else self.job_runner.run
+        )
+        outcome = runner_method(
             job,
             progress_cb=lambda value, message: self._progress_callback_for_job(
                 job, value, message

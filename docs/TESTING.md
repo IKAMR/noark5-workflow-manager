@@ -64,6 +64,18 @@ Automatiske tester skal verifisere at workflow-PREMIS ikke skrives i eller ved s
 - Praktisk kontrollpunkt stop/fortsett kan først fulltestes når minst to reelle operasjoner finnes i samme workflow.
 - Crash-recovery for ulagrede jobblisteendringer er ikke implementert ennå; dette står i `TODO-ROADMAP.md`.
 
+### Praktisk kontroll av eksplisitt fortsettelse (v0.1.2-a11)
+
+Når en testjobb har minst to operasjoner og et aktivt kontrollpunkt (`■`) etter en operasjon før siste steg:
+
+1. Kjør valgt jobb til kontrollpunktet i GUI eller med `n5wf jobs run <file.n5jobs> --job <job-id>`.
+2. Kontroller med `n5wf jobs status <file.n5jobs> --job <job-id>` at jobben står `Venter ved kontrollpunkt` og at neste operasjon er bevart.
+3. Fortsett med GUI-handlingen `Fortsett workflow` og kontroller at ferdige operasjoner ikke kjøres på nytt.
+4. Gjenta fra et kontrollpunkt og bruk `n5wf jobs continue <file.n5jobs> --job <job-id>`; forvent exit code `0` når jobben fullføres, eller `5` dersom et nytt kontrollpunkt nås.
+5. Forsøk `continue` på en jobb som ikke venter ved kontrollpunkt; forvent exit code `3` og at jobben ikke kjøres.
+6. Forsøk med ukjent jobb-ID; forvent exit code `6`.
+7. Kontroller at andre jobber i samme `.n5jobs`-fil er uendret.
+
 ## Planlagte testområder
 
 Videre utvikling skal ha automatiserte tester for:

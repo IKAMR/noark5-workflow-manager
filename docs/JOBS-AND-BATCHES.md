@@ -45,7 +45,7 @@ GUI bruker brukerbekreftelse. CLI-et bruker eksplisitt `--rerun` for jobblister 
 
 ## Kontrollpunkter og fortsettelse
 
-En workflow kan ha `Stopp etter` på operasjoner.
+En workflow kan ha kontrollpunkt etter operasjoner. I workflow-raden vises et aktivt kontrollpunkt med det fylte stoppsymbolet `■`; ingen symbol betyr at workflowen går direkte videre.
 
 Når et kontrollpunkt nås:
 
@@ -56,7 +56,15 @@ Når et kontrollpunkt nås:
 
 Praktisk ende-til-ende-test av stopp, restart og fortsettelse krever minst to reelle operasjoner i samme workflow.
 
-Den underliggende `JobRunner` støtter execution cursor/checkpoint-semantikken uten GUI-avhengighet. En egen offentlig CLI-kommando for å fortsette en bestemt jobb er ikke implementert i a7 og skal ikke regnes som støttet før den er dokumentert i `CLI.md`.
+Den underliggende `JobRunner` støtter execution cursor/checkpoint-semantikken uten GUI-avhengighet. Fra v0.1.2-a11 er fortsettelse også en eksplisitt delt Core-kontrakt gjennom `JobRunner.continue_job()`. Den validerer ventestatus, execution cursor og at ventetilstanden faktisk følger et kontrollpunkt, og gjenbruker deretter ordinær `JobRunner.run()` fra neste operasjon.
+
+CLI eksponerer dette som:
+
+```text
+n5wf jobs continue <file.n5jobs> --job <job-id>
+```
+
+GUI-et bruker den samme `continue_job()`-kontrakten når aktiv jobb står `Venter ved kontrollpunkt`. Dermed har GUI og CLI samme styringssemantikk for fortsettelse.
 
 ## Start alle og BatchRunner
 
@@ -67,7 +75,7 @@ Den underliggende `JobRunner` støtter execution cursor/checkpoint-semantikken u
 - Batch kan inneholde jobber som ender `Ferdig`, `Feil`, `Venter` eller `Hoppet over`.
 - `Stopp` i GUI skal hindre at nye jobber startes etter at aktiv kjøring er avbrutt.
 - Overordnet run-logg beskrives i `APP-WORKSPACE-AND-RUN-LOGS.md`.
-- CLI kan kontrollere og kjøre eksisterende `.n5jobs` med `n5wf jobs check` og `n5wf jobs run`.
+- CLI kan kontrollere, kjøre og fortsette eksisterende `.n5jobs` med `n5wf jobs check`, `n5wf jobs run` og `n5wf jobs continue`.
 
 ## Preflight
 
