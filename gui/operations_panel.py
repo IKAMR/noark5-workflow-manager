@@ -20,7 +20,8 @@ class OperationsPanel(ctk.CTkFrame):
         )
         self.registry = registry
         self.on_add = on_add
-        self.active_category = "Pipeline"
+        categories = self.registry.categories()
+        self.active_category = categories[0] if categories else ""
         self.tab_buttons: dict[str, ctk.CTkButton] = {}
 
         self.grid_propagate(False)
@@ -39,7 +40,7 @@ class OperationsPanel(ctk.CTkFrame):
         self.tabs.grid(row=1, column=0, padx=10, pady=(0, 6), sticky="ew")
         self.tabs.grid_propagate(False)
 
-        for col, category in enumerate(theme.CATEGORIES):
+        for col, category in enumerate(categories):
             button = ctk.CTkButton(
                 self.tabs,
                 text=category,
@@ -62,7 +63,8 @@ class OperationsPanel(ctk.CTkFrame):
         self.cards.grid_propagate(False)
         self.cards.grid_columnconfigure((0, 1, 2), weight=1, uniform="card")
 
-        self.show_category(self.active_category)
+        if self.active_category:
+            self.show_category(self.active_category)
 
     def _visibility_level(self) -> int:
         settings = load_config()
@@ -72,7 +74,8 @@ class OperationsPanel(ctk.CTkFrame):
             return 2
 
     def refresh_visibility(self) -> None:
-        self.show_category(self.active_category)
+        if self.active_category:
+            self.show_category(self.active_category)
 
     def show_category(self, category: str) -> None:
         self.active_category = category
@@ -100,7 +103,7 @@ class OperationsPanel(ctk.CTkFrame):
             ).grid(row=0, column=0, padx=14, pady=20, sticky="w")
             return
 
-        accent = theme.CATEGORY_COLORS.get(category, theme.BLUE)
+        accent = self.registry.category_color(category, theme.BLUE)
         for index, operation in enumerate(operations):
             row, col = divmod(index, 3)
             card = ctk.CTkFrame(

@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Any
 
+from .source import source_root
+
 
 ProgressCallback = Callable[[float, str], None]
 LogCallback = Callable[[str], None]
@@ -18,6 +20,15 @@ class OperationContext:
     # Delt workflow-tilstand. Brukes blant annet av sentral PREMIS-proveniens.
     metadata: dict[str, Any] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def input_root(self) -> Path:
+        """Generic root for the current input/source.
+
+        extraction_root remains the persisted compatibility field while the
+        generic runtime can use input_root without assuming an extraction type.
+        """
+        return source_root(self.source, self.extraction_root)
 
     def progress(self, fraction: float, message: str = "") -> None:
         if self.progress_cb:

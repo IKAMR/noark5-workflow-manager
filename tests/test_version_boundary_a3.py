@@ -1,17 +1,23 @@
-import unittest
 from pathlib import Path
+import unittest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionBoundaryA3Tests(unittest.TestCase):
-    def test_internal_version_is_a11(self):
+    def test_internal_version_is_a12(self):
         text = (ROOT / "version.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.1.2-a11"', text)
+        self.assertIn('VERSION = "0.1.2-a12"', text)
 
     def test_alpha_state_documents_are_not_permanent(self):
-        for alpha in ("A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11"):
-            self.assertFalse((ROOT / "docs" / f"V0.1.2-{alpha}-STATE.md").exists())
+        docs = ROOT / "docs"
+        permanent_alpha_docs = [
+            path.name
+            for path in docs.glob("*a*.md")
+            if path.name.lower().startswith(("a1", "a2", "a3"))
+        ]
+        self.assertEqual(permanent_alpha_docs, [])
 
 
 if __name__ == "__main__":

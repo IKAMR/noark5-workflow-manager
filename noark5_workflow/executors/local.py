@@ -21,8 +21,8 @@ class LocalExecutor(BaseExecutor):
             ctx.log("PREMIS: ingen eksplisitt utdatamappe - workflow-PREMIS skrives ikke")
             return None
         log_dir = Path(requested_dir).resolve()
-        extraction_root = Path(getattr(ctx.source, "root", None) or ctx.extraction_root).resolve()
-        premis_key = f"{log_dir}|{extraction_root}"
+        input_root = ctx.input_root.resolve()
+        premis_key = f"{log_dir}|{input_root}"
         logger = ctx.metadata.get("premis_logger")
         logger_key = ctx.metadata.get("premis_logger_key")
         if logger is not None and logger_key == premis_key:
@@ -31,8 +31,8 @@ class LocalExecutor(BaseExecutor):
             from version import VERSION
         except Exception:
             VERSION = ""
-        logger = PremisProvenanceLogger(log_dir, extraction_root, agent_version=str(VERSION))
-        ctx.metadata["premis_object_root"] = extraction_root
+        logger = PremisProvenanceLogger(log_dir, input_root, agent_version=str(VERSION))
+        ctx.metadata["premis_object_root"] = input_root
         ctx.metadata["premis_output_dir"] = str(log_dir)
         ctx.metadata["premis_logger_key"] = premis_key
         ctx.metadata["premis_logger"] = logger
@@ -48,6 +48,6 @@ class LocalExecutor(BaseExecutor):
             premis_logger = self._premis_logger(operation, result, ctx)
             if premis_logger:
                 premis_logger.record(operation, result, ctx)
-                premis_root = ctx.metadata.get("premis_object_root", ctx.extraction_root)
+                premis_root = ctx.metadata.get("premis_object_root", ctx.input_root)
                 premis_logger.finalize(premis_root, ctx)
         return result
