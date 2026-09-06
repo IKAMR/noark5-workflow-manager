@@ -24,20 +24,9 @@ class JobContinueError(RuntimeError):
 
 
 class JobRunner:
-    """GUI-independent execution of one Job through an executor.
+    """GUI-independent execution of one Job through an executor."""
 
-    The runner owns execution semantics only. UI threading, dialogs, job-list
-    persistence and widget refresh remain responsibilities of the calling client.
-    """
-
-    def __init__(
-        self,
-        registry,
-        executor,
-        settings: dict,
-        *,
-        source_factory=Noark5Extraction.detect,
-    ) -> None:
+    def __init__(self, registry, executor, settings: dict, *, source_factory=Noark5Extraction.detect) -> None:
         self.registry = registry
         self.executor = executor
         self.settings = settings
@@ -51,56 +40,19 @@ class JobRunner:
             configure(params)
         return operation
 
-    def continue_job(
-        self,
-        job: Job,
-        *,
-        progress_cb: Callable[[float, str], None] | None = None,
-        log_cb: Callable[[str], None] | None = None,
-        cancelled_cb: Callable[[], bool] | None = None,
-        state_cb: Callable[[Job], None] | None = None,
-    ) -> JobRunOutcome:
-        """Continue a job that is explicitly waiting at a valid checkpoint.
-
-        The actual execution remains owned by ``run()``. This method only
-        validates the explicit continue intent before delegating to the existing
-        execution/cursor semantics.
-        """
+    def continue_job(self, job: Job, *, progress_cb=None, log_cb=None, cancelled_cb=None, state_cb=None) -> JobRunOutcome:
         if job.status != JobStatus.WAITING:
-            raise JobContinueError(
-                f"Jobben kan ikke fortsettes fra status: {job.status.value}"
-            )
-
+            raise JobContinueError(f"Jobben kan ikke fortsettes fra status: {job.status.value}")
         total = len(job.workflow_ids)
         next_index = max(0, min(int(job.next_operation_index), total))
         if next_index <= 0 or next_index >= total:
-            raise JobContinueError(
-                "Jobben har ikke en gyldig neste operasjon å fortsette med"
-            )
-
+            raise JobContinueError("Jobben har ikke en gyldig neste operasjon å fortsette med")
         previous_operation_id = job.workflow_ids[next_index - 1]
         if not job.has_checkpoint(previous_operation_id):
-            raise JobContinueError(
-                "Jobben står som ventende, men execution cursor følger ikke et kontrollpunkt"
-            )
+            raise JobContinueError("Jobben står som ventende, men execution cursor følger ikke et kontrollpunkt")
+        return self.run(job, progress_cb=progress_cb, log_cb=log_cb, cancelled_cb=cancelled_cb, state_cb=state_cb)
 
-        return self.run(
-            job,
-            progress_cb=progress_cb,
-            log_cb=log_cb,
-            cancelled_cb=cancelled_cb,
-            state_cb=state_cb,
-        )
-
-    def run(
-        self,
-        job: Job,
-        *,
-        progress_cb: Callable[[float, str], None] | None = None,
-        log_cb: Callable[[str], None] | None = None,
-        cancelled_cb: Callable[[], bool] | None = None,
-        state_cb: Callable[[Job], None] | None = None,
-    ) -> JobRunOutcome:
+    def run(self, job: Job, *, progress_cb=None, log_cb=None, cancelled_cb=None, state_cb=None) -> JobRunOutcome:
         def log(message: str) -> None:
             if log_cb:
                 log_cb(message)
@@ -119,12 +71,10 @@ class JobRunner:
 
         start_index = job.next_operation_index if job.status == JobStatus.WAITING else 0
         start_index = max(0, min(start_index, len(op_ids)))
-
         if job.status in _TERMINAL_STATUSES:
             start_index = 0
             job.next_operation_index = 0
             job.progress = 0.0
-
         if start_index >= len(op_ids):
             start_index = 0
             job.next_operation_index = 0
@@ -132,11 +82,7 @@ class JobRunner:
 
         resuming = start_index > 0
         job.status = JobStatus.RUNNING
-        job.message = (
-            f"Workflow fortsetter fra operasjon {start_index + 1}"
-            if resuming
-            else "Workflow startet"
-        )
+        job.message = f"Workflow fortsetter fra operasjon {start_index + 1}" if resuming else "Workflow startet"
         log(job.message)
         state_changed()
 
@@ -151,6 +97,7 @@ class JobRunner:
             ctx = OperationContext(
                 extraction_root=job.source_root,
                 source=source,
+                output_root=job.output_root,
                 settings=self.settings,
                 progress_cb=progress_cb,
                 log_cb=log_cb,
@@ -162,7 +109,6 @@ class JobRunner:
 
             for zero_index in range(start_index, total):
                 op_id = op_ids[zero_index]
-
                 if cancelled_cb and cancelled_cb():
                     job.status = JobStatus.SKIPPED
                     job.message = "Avbrutt"
@@ -186,12 +132,10 @@ class JobRunner:
                 result = self.executor.execute(operation, ctx)
                 all_ok = all_ok and result.ok
                 log(result.message)
-
                 for warning in result.warnings:
                     log(f"ADVARSEL: {warning}")
                 if result.data:
                     log(json.dumps(result.data, ensure_ascii=False, indent=2))
-
                 log(f"{'OK' if result.ok else 'FEIL'}: {operation.definition.name}")
                 job.message = result.message
 

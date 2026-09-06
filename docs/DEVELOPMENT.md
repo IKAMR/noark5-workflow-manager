@@ -11,7 +11,8 @@ Før analyse eller endring av kode i dette repositoriet:
 7. Les `docs/CODE-MAP.md` for å finne riktig lag og dataflyt.
 8. Les `docs/RUNTIME-ENVIRONMENTS.md` ved endringer i installasjon, oppstart, filstier, brukerdata, eksterne programmer, packaging, server/worker eller plattformstøtte.
 9. Les `docs/SHARED-DEVELOPMENT.md` og `docs/SHARED-ROADMAP.md` før generiske workflow-/depotendringer som også kan være relevante for SIARD Workflow Manager.
-10. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
+10. Les `docs/METHOD-OBSERVATIONS.md` ved start og avslutning av et utviklingsincrement. Nye erfaringer som kan ha generell verdi for utviklingsmetodikken registreres der uten at metodikk-repositoriet automatisk endres.
+11. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
 
 ## Endringsprinsipp
 

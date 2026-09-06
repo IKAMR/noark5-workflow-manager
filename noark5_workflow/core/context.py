@@ -13,21 +13,16 @@ LogCallback = Callable[[str], None]
 class OperationContext:
     extraction_root: Path
     source: Any = None
+    output_root: Path | None = None
     settings: dict[str, Any] = field(default_factory=dict)
     progress_cb: ProgressCallback | None = None
     log_cb: LogCallback | None = None
     cancelled_cb: Callable[[], bool] | None = None
-    # Delt workflow-tilstand. Brukes blant annet av sentral PREMIS-proveniens.
     metadata: dict[str, Any] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
 
     @property
     def input_root(self) -> Path:
-        """Generic root for the current input/source.
-
-        extraction_root remains the persisted compatibility field while the
-        generic runtime can use input_root without assuming an extraction type.
-        """
         return source_root(self.source, self.extraction_root)
 
     def progress(self, fraction: float, message: str = "") -> None:

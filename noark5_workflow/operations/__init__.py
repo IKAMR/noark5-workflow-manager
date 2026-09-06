@@ -1,11 +1,11 @@
-from .detect_extraction import DetectExtractionOperation
-from .metadata_inventory import MetadataInventoryOperation
 from .analyse_arkivstruktur import AnalyseArkivstrukturOperation
 from .dias_package import DiasPackageOperation
+from .metadata_inventory import MetadataInventoryOperation
+from .validate_xml_schema import ValidateXmlSchemaOperation
 
 __all__ = [
-    "DetectExtractionOperation",
-    "MetadataInventoryOperation",
     "AnalyseArkivstrukturOperation",
     "DiasPackageOperation",
+    "MetadataInventoryOperation",
+    "ValidateXmlSchemaOperation",
 ]

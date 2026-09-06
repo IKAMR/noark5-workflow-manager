@@ -3,6 +3,7 @@ from noark5_workflow.operations import (
     AnalyseArkivstrukturOperation,
     DiasPackageOperation,
     MetadataInventoryOperation,
+    ValidateXmlSchemaOperation,
 )
 
 
@@ -40,6 +41,7 @@ NOARK5_PROFILE = WorkflowProfile(
     operation_factories=(
         MetadataInventoryOperation,
         AnalyseArkivstrukturOperation,
+        ValidateXmlSchemaOperation,
         DiasPackageOperation,
     ),
 )

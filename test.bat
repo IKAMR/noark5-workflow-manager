@@ -3,6 +3,8 @@ chcp 65001 >nul
 title Noark 5 Workflow Manager - Tester
 mode con: cols=140 lines=45
 
+set "PYTHON_GIL=1"
+
 if exist "docs\test-results\.last-test-summary.txt" del /q "docs\test-results\.last-test-summary.txt" >nul 2>&1
 
 echo.

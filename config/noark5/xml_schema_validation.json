@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "definition_id": "noark5.xml-schema-validation.v1",
+  "validations": [
+    {
+      "id": "arkivstruktur-xsd",
+      "source_key": "arkivstruktur",
+      "source": "arkivstruktur.xml",
+      "schema": {
+        "mode": "auto",
+        "preferred_names": [
+          "arkivstruktur.xsd"
+        ]
+      },
+      "output": "xml-validation-arkivstruktur.json"
+    }
+  ]
+}

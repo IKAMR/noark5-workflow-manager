@@ -3,6 +3,8 @@ setlocal EnableExtensions
 chcp 65001 >nul
 cd /d "%~dp0"
 
+set "PYTHON_GIL=1"
+
 set "APP_DIR=%LOCALAPPDATA%\Programs\Noark5WorkflowManager"
 set "N5WF_BIN=%APP_DIR%\bin"
 set "N5WF_LAUNCHER=%N5WF_BIN%\n5wf.cmd"
@@ -110,6 +112,7 @@ if errorlevel 1 exit /b 1
 
 if not exist "%N5WF_BIN%" mkdir "%N5WF_BIN%"
 > "%N5WF_LAUNCHER%" echo @echo off
+>> "%N5WF_LAUNCHER%" echo set "PYTHON_GIL=1"
 >> "%N5WF_LAUNCHER%" echo py -m noark5_workflow.cli %%*
 >> "%N5WF_LAUNCHER%" echo exit /b %%errorlevel%%
 if not exist "%N5WF_LAUNCHER%" exit /b 1
@@ -139,7 +142,9 @@ exit /b 0
 
 :write_state
 if not exist "%APP_DIR%" mkdir "%APP_DIR%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$state=[ordered]@{version='0.1.2-a8'; core=$true; gui=('%NEW_GUI%' -eq '1'); cli=('%NEW_CLI%' -eq '1')}; $json=ConvertTo-Json -InputObject $state; Set-Content -Encoding UTF8 -LiteralPath '%STATE_FILE%' -Value $json"
+for /f "delims=" %%V in ('py -c "from version import VERSION; print(VERSION)"') do set "CURRENT_VERSION=%%V"
+if not defined CURRENT_VERSION set "CURRENT_VERSION=unknown"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$state=[ordered]@{version='%CURRENT_VERSION%'; core=$true; gui=('%NEW_GUI%' -eq '1'); cli=('%NEW_CLI%' -eq '1')}; $json=ConvertTo-Json -InputObject $state; Set-Content -Encoding UTF8 -LiteralPath '%STATE_FILE%' -Value $json"
 exit /b %errorlevel%
 
 :install_error

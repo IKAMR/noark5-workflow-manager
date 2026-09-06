@@ -1,6 +1,7 @@
 @echo off
 
 cd /d "%~dp0"
+set "PYTHON_GIL=1"
 
 REM ------------------------------------------------------------
 REM LibreOffice-sjekk var tidligere brukt i oppsettet.

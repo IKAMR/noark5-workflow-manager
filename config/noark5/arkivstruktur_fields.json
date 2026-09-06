@@ -1,0 +1,55 @@
+{
+  "format_version": 1,
+  "definition_id": "noark5.archive_structure.metadata.v1",
+  "source": "arkivstruktur.xml",
+  "reference": {
+    "kdrs_query_jobs": [
+      "C01",
+      "C02",
+      "U01",
+      "U02"
+    ],
+    "description": "Første feltuttrekk for Arkiv (N5.04) og Arkivdel (N5.05/06)."
+  },
+  "entities": {
+    "archive": {
+      "scope": "single",
+      "select": "//*[local-name()='arkiv']",
+      "fields": {
+        "title": "string(./*[local-name()='tittel'][1])",
+        "system_id": "string(./*[local-name()='systemID'][1])",
+        "description": "string(./*[local-name()='beskrivelse'][1])",
+        "status": "string(./*[local-name()='arkivstatus'][1])",
+        "document_medium": "string(./*[local-name()='dokumentmedium'][1])",
+        "created_date": "string(./*[local-name()='opprettetDato'][1])",
+        "closed_date": "string(./*[local-name()='avsluttetDato'][1])",
+        "created_by": "string(./*[local-name()='opprettetAv'][1])",
+        "closed_by": "string(./*[local-name()='avsluttetAv'][1])"
+      },
+      "children": {
+        "creators": {
+          "select": ".//*[local-name()='arkivskaper']",
+          "fields": {
+            "name": "string(./*[local-name()='arkivskaperNavn'][1])",
+            "id": "string(./*[local-name()='arkivskaperID'][1])",
+            "description": "string(./*[local-name()='beskrivelse'][1])"
+          }
+        }
+      }
+    },
+    "archive_parts": {
+      "scope": "many",
+      "select": "//*[local-name()='arkivdel']",
+      "fields": {
+        "title": "string(./*[local-name()='tittel'][1])",
+        "description": "string(./*[local-name()='beskrivelse'][1])",
+        "status": "string(./*[local-name()='arkivdelstatus'][1])",
+        "document_medium": "string(./*[local-name()='dokumentmedium'][1])",
+        "period_start": "string(./*[local-name()='arkivperiodeStartDato'][1])",
+        "period_end": "string(./*[local-name()='arkivperiodeSluttDato'][1])",
+        "created_date": "string(./*[local-name()='opprettetDato'][1])",
+        "closed_date": "string(./*[local-name()='avsluttetDato'][1])"
+      }
+    }
+  }
+}
