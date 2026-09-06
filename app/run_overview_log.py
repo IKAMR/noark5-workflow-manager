@@ -32,6 +32,11 @@ class JobRunRecord:
     job_id: str
     name: str
     source: str
+    source_root: str
+    source_extraction: str
+    work_root: str
+    work_operations: str
+    archive_root: str
     output: str
     started: datetime
     finished: datetime | None = None
@@ -40,7 +45,14 @@ class JobRunRecord:
 
 
 class RunOverviewLog:
-    """One human-readable overview log per single or batch run."""
+    """One human-readable overview log per single or batch run.
+
+    The canonical log is always written to the application's configured run-log
+    directory. By default the same live log is mirrored into each job's
+    Arbeid – operasjoner area under ``wf/logs``. This gives both a global
+    operational history and a job-local copy without confusing PREMIS with the
+    ordinary execution log.
+    """
 
     def __init__(
         self,
@@ -52,6 +64,10 @@ class RunOverviewLog:
         planned_jobs: int | None = None,
     ) -> None:
         ensure_workspace(settings)
+        self.settings = dict(settings)
+        self.mirror_to_work_operations = bool(
+            self.settings.get("copy_run_log_to_work_operations", True)
+        )
         self.run_type = run_type.lower()
         self.app_version = app_version
         self.job_list_path = Path(job_list_path) if job_list_path else None
@@ -83,11 +99,23 @@ class RunOverviewLog:
         job_id = str(getattr(job, "job_id", ""))
         if job_id in self._current:
             return
+        source_root = str(getattr(job, "source_root", "") or "")
+        source_extraction = str(getattr(job, "source_extraction", "") or "")
+        active_source = str(getattr(job, "active_extraction_root", "") or source_root)
+        work_root = str(getattr(job, "work_root", "") or "")
+        work_operations = str(getattr(job, "work_operations", "") or "")
+        archive_root = str(getattr(job, "archive_root", "") or "")
+        output = archive_root or str(getattr(job, "output_root", "") or "")
         record = JobRunRecord(
             job_id=job_id,
             name=str(getattr(job, "name", "")),
-            source=str(getattr(job, "source_root", "") or ""),
-            output=str(getattr(job, "output_root", "") or ""),
+            source=active_source,
+            source_root=source_root,
+            source_extraction=source_extraction,
+            work_root=work_root,
+            work_operations=work_operations,
+            archive_root=archive_root,
+            output=output,
             started=_now(),
         )
         self.records.append(record)
@@ -103,7 +131,10 @@ class RunOverviewLog:
         record.finished = _now()
         record.status = _status_text(job)
         record.message = str(getattr(job, "message", "") or "")
-        record.output = str(getattr(job, "output_root", "") or "")
+        record.work_root = str(getattr(job, "work_root", "") or "")
+        record.work_operations = str(getattr(job, "work_operations", "") or "")
+        record.archive_root = str(getattr(job, "archive_root", "") or "")
+        record.output = record.archive_root or str(getattr(job, "output_root", "") or "")
         self._write()
 
     def fail(self, exc: BaseException | str) -> Path:
@@ -120,8 +151,7 @@ class RunOverviewLog:
         self._write()
         return self.path
 
-    def _write(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+    def _render(self) -> str:
         lines: list[str] = [
             "Noark 5 Workflow Manager - overordnet kjørelogg",
             "",
@@ -146,6 +176,11 @@ class RunOverviewLog:
                     f"Jobb-ID: {record.job_id}",
                     f"Navn: {record.name}",
                     f"Source: {record.source}",
+                    f"Source - hovedmappe: {record.source_root}",
+                    f"Source - uttrekksmappe: {record.source_extraction or record.source}",
+                    f"Arbeid - hovedmappe: {record.work_root}",
+                    f"Arbeid - operasjoner: {record.work_operations}",
+                    f"Arkiv - hovedmappe: {record.archive_root}",
                     f"Output: {record.output}",
                     f"Start: {_iso(record.started)}",
                     f"Slutt: {_iso(record.finished) if record.finished else ''}",
@@ -174,5 +209,28 @@ class RunOverviewLog:
                     "",
                 ]
             )
+        return "\n".join(lines)
 
-        self.path.write_text("\n".join(lines), encoding="utf-8")
+    def _mirror(self, text: str) -> None:
+        if not self.mirror_to_work_operations:
+            return
+        targets = {
+            Path(record.work_operations)
+            for record in self.records
+            if record.work_operations
+        }
+        for work_operations in targets:
+            try:
+                mirror_dir = work_operations / "wf" / "logs"
+                mirror_dir.mkdir(parents=True, exist_ok=True)
+                (mirror_dir / self.path.name).write_text(text, encoding="utf-8")
+            except OSError:
+                # The central log remains authoritative. A mirror failure must
+                # never stop the workflow itself.
+                continue
+
+    def _write(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        text = self._render()
+        self.path.write_text(text, encoding="utf-8")
+        self._mirror(text)

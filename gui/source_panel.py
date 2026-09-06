@@ -50,10 +50,10 @@ class SourcePanel(ctk.CTkFrame):
             font=theme.font(theme.SMALL_SIZE),
         )
         self.info.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
-        self._set_text("Velg rotmappe for et Noark 5-uttrekk.")
+        self._set_text("Velg Source – uttrekksmappe for et Noark 5-uttrekk.")
 
     def _browse(self) -> None:
-        kwargs = {"title": "Velg rotmappe for Noark 5-uttrekk"}
+        kwargs = {"title": "Velg Source – uttrekksmappe (Noark 5-uttrekket)"}
         previous = str(self.settings.get("last_noark_source_dir", "")).strip()
         if previous and Path(previous).is_dir():
             kwargs["initialdir"] = previous
@@ -95,8 +95,15 @@ class SourcePanel(ctk.CTkFrame):
         }
         for key, label in labels.items():
             lines.append(f"[OK] {label}" if extraction.metadata_files.get(key) else f"[--] {label}")
-        lines.append(f"[OK] XSD-filer: {len(extraction.xsd_files)}")
-        lines.append("[OK] dokumenter/" if extraction.documents_dir else "[--] dokumenter/")
+
+        xsd_count = len(extraction.xsd_files)
+        lines.append(f"[OK] XSD-filer: {xsd_count}" if xsd_count else "[--] XSD-filer: 0")
+
+        if extraction.documents_dir:
+            lines.append(f"[OK] {extraction.documents_dir.name}/")
+        else:
+            lines.append("[--] dokument/dokumenter/")
+
         if extraction.business_metadata_files:
             lines.append(f"[OK] Virksomhetsspesifikke metadata: {len(extraction.business_metadata_files)}")
         self._set_text("\n".join(lines))

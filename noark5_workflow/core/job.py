@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterable
 
+from .storage_roles import StorageRoles
+
 
 class JobStatus(str, Enum):
     READY = "Klar"
@@ -22,7 +24,14 @@ class Job:
 
     job_id: str
     source_root: Path
-    output_root: Path | None = None
+    output_root: Path | None = None  # Legacy DIAS/AIC output; retained for compatibility.
+    source_tar: Path | None = None
+    source_unzipped: Path | None = None
+    source_extraction: Path | None = None
+    work_root: Path | None = None
+    work_content: Path | None = None
+    work_operations: Path | None = None
+    archive_root: Path | None = None
     name: str = ""
     workflow_ids: list[str] = field(default_factory=list)
     operation_params: dict[str, dict] = field(default_factory=dict)
@@ -31,25 +40,49 @@ class Job:
     worker: str = "Lokal (denne PC-en)"
     message: str = ""
     log_entries: list[str] = field(default_factory=list)
-
     checkpoint_after: list[str] = field(default_factory=list)
     next_operation_index: int = 0
 
     def __post_init__(self) -> None:
         self.source_root = Path(self.source_root)
-        if self.output_root is not None:
-            self.output_root = Path(self.output_root)
+        for attr in (
+            "output_root", "source_tar", "source_unzipped", "source_extraction",
+            "work_root", "work_content", "work_operations", "archive_root",
+        ):
+            value = getattr(self, attr)
+            if value is not None:
+                setattr(self, attr, Path(value))
+        # Existing job lists used output_root as the DIAS/AIC target.
+        if self.archive_root is None and self.output_root is not None:
+            self.archive_root = self.output_root
         if not self.name:
-            self.name = self.source_root.name or self.job_id
+            self.name = self.active_extraction_root.name or self.source_root.name or self.job_id
         self._normalise_checkpoint_state()
+
+    @property
+    def active_extraction_root(self) -> Path:
+        """Concrete extraction folder used by current operations.
+
+        Legacy jobs have only source_root, so that remains the fallback.
+        """
+        return self.source_extraction or self.source_root
+
+    @property
+    def storage_roles(self) -> StorageRoles:
+        return StorageRoles(
+            source_root=self.source_root,
+            source_tar=self.source_tar,
+            source_unzipped=self.source_unzipped,
+            source_extraction=self.source_extraction,
+            work_root=self.work_root,
+            work_content=self.work_content,
+            work_operations=self.work_operations,
+            archive_root=self.archive_root,
+        )
 
     def _normalise_checkpoint_state(self) -> None:
         valid = set(self.workflow_ids)
-        self.checkpoint_after = [
-            operation_id
-            for operation_id in dict.fromkeys(self.checkpoint_after)
-            if operation_id in valid
-        ]
+        self.checkpoint_after = [operation_id for operation_id in dict.fromkeys(self.checkpoint_after) if operation_id in valid]
         try:
             index = int(self.next_operation_index)
         except (TypeError, ValueError):
@@ -59,14 +92,8 @@ class Job:
     def set_workflow(self, operation_ids: Iterable[str]) -> None:
         old_workflow = list(self.workflow_ids)
         self.workflow_ids = list(operation_ids)
-
         valid = set(self.workflow_ids)
-        self.checkpoint_after = [
-            operation_id
-            for operation_id in self.checkpoint_after
-            if operation_id in valid
-        ]
-
+        self.checkpoint_after = [operation_id for operation_id in self.checkpoint_after if operation_id in valid]
         if self.workflow_ids != old_workflow:
             self.next_operation_index = 0
             if self.status == JobStatus.WAITING:
@@ -90,9 +117,7 @@ class Job:
             current.append(operation_id)
         elif not enabled and operation_id in current:
             current.remove(operation_id)
-        self.checkpoint_after = [
-            oid for oid in self.workflow_ids if oid in set(current)
-        ]
+        self.checkpoint_after = [oid for oid in self.workflow_ids if oid in set(current)]
 
     def has_checkpoint(self, operation_id: str) -> bool:
         return operation_id in self.checkpoint_after
@@ -104,10 +129,7 @@ class Job:
         self.message = message
 
     def mark_operation_completed(self, operation_index: int) -> None:
-        self.next_operation_index = max(
-            0,
-            min(operation_index + 1, len(self.workflow_ids)),
-        )
+        self.next_operation_index = max(0, min(operation_index + 1, len(self.workflow_ids)))
         if self.workflow_ids:
             self.progress = self.next_operation_index / len(self.workflow_ids)
 
@@ -116,27 +138,12 @@ class Job:
 
 
 class JobBatch:
-    """Ordered collection of jobs; execution/scheduling is handled by the app."""
-
     def __init__(self) -> None:
         self._jobs: list[Job] = []
         self._next_number = 1
 
-    def new_job(
-        self,
-        source_root: Path,
-        *,
-        output_root: Path | None = None,
-        name: str = "",
-        workflow_ids: Iterable[str] = (),
-    ) -> Job:
-        job = Job(
-            job_id=f"JOB-{self._next_number:03d}",
-            source_root=Path(source_root),
-            output_root=Path(output_root) if output_root else None,
-            name=name,
-            workflow_ids=list(workflow_ids),
-        )
+    def new_job(self, source_root: Path, *, output_root: Path | None = None, name: str = "", workflow_ids: Iterable[str] = ()) -> Job:
+        job = Job(job_id=f"JOB-{self._next_number:03d}", source_root=Path(source_root), output_root=Path(output_root) if output_root else None, name=name, workflow_ids=list(workflow_ids))
         self._next_number += 1
         self._jobs.append(job)
         return job
@@ -175,22 +182,20 @@ class JobBatch:
 
     def move_up(self, job_id: str) -> bool:
         for index, job in enumerate(self._jobs):
-            if job.job_id != job_id:
-                continue
-            if index == 0:
-                return False
-            self._jobs[index - 1], self._jobs[index] = self._jobs[index], self._jobs[index - 1]
-            return True
+            if job.job_id == job_id:
+                if index == 0:
+                    return False
+                self._jobs[index - 1], self._jobs[index] = self._jobs[index], self._jobs[index - 1]
+                return True
         return False
 
     def move_down(self, job_id: str) -> bool:
         for index, job in enumerate(self._jobs):
-            if job.job_id != job_id:
-                continue
-            if index >= len(self._jobs) - 1:
-                return False
-            self._jobs[index], self._jobs[index + 1] = self._jobs[index + 1], self._jobs[index]
-            return True
+            if job.job_id == job_id:
+                if index >= len(self._jobs) - 1:
+                    return False
+                self._jobs[index], self._jobs[index + 1] = self._jobs[index + 1], self._jobs[index]
+                return True
         return False
 
     def get(self, job_id: str) -> Job | None:

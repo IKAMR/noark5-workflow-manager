@@ -68,6 +68,21 @@ En observasjon skal derfor ikke automatisk bli en metodikkregel.
 
 **Metodikkstatus:** Til senere samlet vurdering.
 
+### MO-003 – Praktisk bruk avdekker domenegrenser som automatiserte tester ikke kan bevise
+
+**Oppstått:** v0.1.2-a13
+
+**Bakgrunn:**  
+XML/XSD-funksjonen var automatisk testet, men første praktiske forsøk mot et reelt Noark 5-uttrekk avdekket at jobbmodellen ikke skilte tydelig mellom source, arbeidsområde og arkiv-/pakkeområde.
+
+**Observasjon:**  
+En grønn testsuite kan bevise implementert kontrakt, men ikke at kontrakten dekker den virkelige arbeidsprosessen. Praktisk test mot representativt materiale kan avdekke manglende domeneobjekter før selve funksjonen kjøres.
+
+**Mulig generell læring:**  
+Praktisk test bør brukes som eksplisitt kontrakt-/domenevalidering, ikke bare som sluttkontroll av GUI og kode. Når testen avdekker en manglende grunnmodell, bør denne avgrenses og korrigeres før videre funksjonsutvidelse.
+
+**Metodikkstatus:** Til senere samlet vurdering.
+
 ---
 
 ## Behandlede observasjoner
@@ -81,3 +96,18 @@ Ved senere metodikkgjennomgang bør behandlet punkt beholde ID og få dokumenter
 - eventuell sammenslåing med andre observasjoner
 - hvor i metodikk-repositoriet endringen ble gjort
 - issue-/commit-referanse når relevant
+
+### MO-004 – Praktisk rollemodell må testes mot identitet, ikke bare lagring
+
+**Oppstått:** v0.1.2-a14
+
+**Bakgrunn:**  
+Etter at Source – hovedmappe og Source – uttrekksmappe ble skilt, brukte gammel GUI-logikk fortsatt hovedmappen for å avgjøre om aktiv jobb samsvarte med valgt uttrekk. Dette kunne opprette en ny jobb uten de lagrede arbeidsmappene.
+
+**Observasjon:**  
+Når en eksisterende verdi splittes i flere semantiske roller, må alle steder som bruker verdien til identitet, matching, logging og persistens vurderes – ikke bare selve datalagringen.
+
+**Mulig generell læring:**  
+Ved raffinering av en datamodell bør praktisk test eksplisitt kontrollere både lagring og identitets-/matchingsemantikk.
+
+**Metodikkstatus:** Til senere samlet vurdering.

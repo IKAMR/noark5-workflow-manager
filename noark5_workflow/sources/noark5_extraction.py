@@ -10,6 +10,15 @@ KNOWN_METADATA_FILES = {
     "endringslogg": "endringslogg.xml",
 }
 
+# Arkade 5 accepts these explicit document-folder names. Keep the variants
+# explicit so behavior is identical on case-sensitive filesystems later.
+DOCUMENT_DIR_NAMES = {
+    "dokument",
+    "DOKUMENT",
+    "dokumenter",
+    "DOKUMENTER",
+}
+
 
 @dataclass
 class Noark5Extraction:
@@ -49,7 +58,7 @@ class Noark5Extraction:
                     xsd_files.append(p)
                 if p.is_file() and "virksomhetsspes" in p.name.lower() and p.suffix.lower() == ".xml":
                     business.append(p)
-                if p.is_dir() and p.name.lower() == "dokumenter":
+                if p.is_dir() and p.name in DOCUMENT_DIR_NAMES:
                     documents_dir = p
 
         return cls(

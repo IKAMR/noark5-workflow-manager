@@ -4,16 +4,18 @@ from typing import Callable, Any
 
 from .source import source_root
 
-
 ProgressCallback = Callable[[float, str], None]
 LogCallback = Callable[[str], None]
-
 
 @dataclass
 class OperationContext:
     extraction_root: Path
     source: Any = None
     output_root: Path | None = None
+    work_root: Path | None = None
+    work_content: Path | None = None
+    work_operations: Path | None = None
+    archive_root: Path | None = None
     settings: dict[str, Any] = field(default_factory=dict)
     progress_cb: ProgressCallback | None = None
     log_cb: LogCallback | None = None
@@ -26,15 +28,10 @@ class OperationContext:
         return source_root(self.source, self.extraction_root)
 
     def progress(self, fraction: float, message: str = "") -> None:
-        if self.progress_cb:
-            self.progress_cb(max(0.0, min(1.0, fraction)), message)
-
+        if self.progress_cb: self.progress_cb(max(0.0, min(1.0, fraction)), message)
     def log(self, message: str) -> None:
-        if self.log_cb:
-            self.log_cb(message)
-
+        if self.log_cb: self.log_cb(message)
     def cancelled(self) -> bool:
         return bool(self.cancelled_cb and self.cancelled_cb())
-
     def set_result(self, operation_id: str, data: Any) -> None:
         self.results[operation_id] = data

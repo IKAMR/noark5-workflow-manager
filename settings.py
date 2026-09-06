@@ -18,6 +18,10 @@ DEFAULT_CONFIG = {
     "appearance_mode": "dark",
     "font_offset": 0,
 
+    # Keep the canonical application run log and, by default, mirror the same
+    # log into each job's Arbeid – operasjoner/wf/logs directory.
+    "copy_run_log_to_work_operations": True,
+
     # Remembered folders / files.
     "last_noark_source_dir": "",
     "last_dias_output_dir": "",
@@ -27,6 +31,8 @@ DEFAULT_CONFIG = {
     "last_setup_dir": "",
     "last_job_list_file": "",
     "last_job_list_dir": "",
+    "recent_job_list_dirs": [],
+    "recent_job_list_files": [],
 
     "enable_premis_provenance": True,
     "premis_output_dir": "",
