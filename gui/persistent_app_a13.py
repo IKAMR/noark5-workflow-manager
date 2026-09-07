@@ -24,10 +24,29 @@ from .storage_roles_dialog import StorageRolesDialog
 from .job_list_location_dialog import JobListLocationDialog
 
 class WorkflowApp(A6WorkflowApp):
-    """a13 step4: explicit generic source/work/archive storage roles per job."""
+    """Storage roles plus a15 profile/source boundary fixes."""
+
+    PROFILE_LABELS={"-- profil --":None,"Noark 5":"noark5","SIARD":"siard"}
+
+    def __init__(self) -> None:
+        self.active_profile_id=None
+        super().__init__()
+        self.source_panel.on_browse_complete=self._source_browse_complete
+        self.workflow_panel.on_reorder=self._workflow_reordered
+        self._apply_profile(None, persist=False)
+
     def _build_header(self) -> None:
         super()._build_header()
         header=self.active_job_label.master
+        self.profile_menu=None
+        for child in header.winfo_children():
+            if isinstance(child, ctk.CTkOptionMenu):
+                info=child.grid_info()
+                if info and int(info.get("column",0))==1:
+                    self.profile_menu=child
+                    child.configure(values=list(self.PROFILE_LABELS),command=self._profile_selected)
+                    child.set("-- profil --")
+                    break
         # Make room without replacing the established header.
         for child in header.winfo_children():
             info=child.grid_info()
@@ -37,32 +56,98 @@ class WorkflowApp(A6WorkflowApp):
         self.storage_button.grid(row=0,column=4,padx=(4,2),pady=8)
 
 
-    def _ensure_job_for_current_source(self) -> Job | None:
-        """Resolve the active job by the concrete extraction folder.
+    def _profile_selected(self, label: str) -> None:
+        profile_id=self.PROFILE_LABELS.get(label)
+        self._apply_profile(profile_id)
 
-        source_root may be a shared received-source root for many jobs. The
-        source panel points at Source – uttrekksmappe, so matching on
-        source_root would create a duplicate job after storage roles are set.
+    def _apply_profile(self, profile_id: str | None, *, persist: bool = True) -> None:
+        self.active_profile_id=profile_id or None
+        if persist:
+            self.settings["last_profile_id"]=self.active_profile_id or ""
+            save_config({"last_profile_id":self.active_profile_id or ""})
+        self.source_panel.set_profile(self.active_profile_id)
+        if self.active_profile_id=="noark5":
+            for button in self.operations_panel.tab_buttons.values(): button.grid()
+            categories=self.registry.categories()
+            if categories: self.operations_panel.show_category(categories[0])
+        else:
+            for button in self.operations_panel.tab_buttons.values(): button.grid_remove()
+            for child in self.operations_panel.cards.winfo_children(): child.destroy()
+            text=("Velg profil for formatspesifikke operasjoner. "
+                  "Generiske operasjoner legges her uavhengig av profil.")
+            if self.active_profile_id=="siard":
+                text="SIARD-profil valgt. SIARD-spesifikke operasjoner er ikke implementert i denne appen ennå."
+            ctk.CTkLabel(self.operations_panel.cards,text=text,font=theme.font(theme.NORMAL_SIZE),
+                         text_color=theme.TEXT_MUTED).grid(row=0,column=0,columnspan=3,padx=14,pady=20,sticky="w")
+        if self.profile_menu is not None:
+            label=next((k for k,v in self.PROFILE_LABELS.items() if v==self.active_profile_id),"-- profil --")
+            self.profile_menu.set(label)
+
+    def _source_browse_complete(self, path: Path) -> None:
+        job=self._ensure_job_for_current_source()
+        if job is None:
+            messagebox.showwarning(
+                APP_NAME,
+                "Ingen aktiv jobb. Opprett eller åpne en jobb før Source kobles til jobben.",
+            )
+            return
+        job.source_extraction = path
+        StorageRolesDialog(
+            self,job,lambda values:self._save_storage_roles(job,values),
+            blank_fallback_source_root=True,
+        )
+
+    def _ensure_job_for_current_source(self) -> Job | None:
+        """Update/select a job; never create a new job implicitly.
+
+        A JOB-xxx may only be created through the explicit Ny jobb action.
+        Changing Source or workflow must preserve identity and all storage roles.
         """
-        root = self.source_panel.path_var.get().strip()
+        root=self.source_panel.path_var.get().strip()
         if not root:
-            return None
-        path = __import__("pathlib").Path(root)
-        if self.current_job and self.current_job.active_extraction_root == path:
             return self.current_job
-        existing = next(
+        path=Path(root)
+
+        if self.current_job is not None:
+            self.current_job.source_extraction=path
+            self._refresh_active_job_label()
+            return self.current_job
+
+        existing=next(
             (job for job in self.jobs.jobs() if job.active_extraction_root == path),
             None,
         )
-        if existing:
-            self.current_job = existing
+        if existing is not None:
+            self.current_job=existing
             self._refresh_active_job_label()
             return existing
-        self.current_job = self.jobs.new_job(
-            path, workflow_ids=self.workflow.operation_ids()
-        )
+        return None
+
+    def _open_job(self, job: Job) -> None:
+        super()._open_job(job)
+        # Base runtime still renders source_root. The source panel represents
+        # the concrete Source – uttrekksmappe in the a13+ storage contract.
+        extraction=job.active_extraction_root
+        if extraction:
+            self.source_panel.set_path(str(extraction))
         self._refresh_active_job_label()
-        return self.current_job
+
+    def _workflow_reordered(self, operation_id: str) -> None:
+        job=self.current_job
+        if job is None:
+            return
+        job.set_workflow(self.workflow.operation_ids())
+        if job.workflow_ids:
+            final_id=job.workflow_ids[-1]
+            job.checkpoint_after=[oid for oid in job.checkpoint_after if oid != final_id]
+        if job.status in {JobStatus.OK,JobStatus.FAILED,JobStatus.SKIPPED,JobStatus.WAITING}:
+            job.reset_execution("Workflow endret - klar for ny kjøring")
+        self._job_log(job,f"WORKFLOW REKKEFØLGE ENDRET: {operation_id}")
+        self._refresh_active_job_label()
+        if self.job_list_path is not None:
+            self._write_job_list(self.job_list_path)
+        if self.jobs_window is not None and self.jobs_window.winfo_exists():
+            self.jobs_window.refresh()
 
 
     # ------------------------------------------------------------------
@@ -204,7 +289,12 @@ class WorkflowApp(A6WorkflowApp):
         )
         if not filename:
             return False
-        return self._write_job_list(Path(filename))
+        old_path=self.job_list_path
+        written=self._write_job_list(Path(filename))
+        if written and (old_path is None or Path(filename) != old_path):
+            self.log_panel.clear()
+            self.status_bar.set_status("Ny jobbliste lagret – visningsloggen er nullstilt")
+        return written
 
     def _load_job_list_file(self, path: Path, *, show_error: bool) -> bool:
         loaded = super()._load_job_list_file(path, show_error=show_error)
@@ -254,7 +344,7 @@ class WorkflowApp(A6WorkflowApp):
         save_project(
             project_dir(work_operations) / PROJECT_FILE_NAME,
             project_name=self._project_name(),
-            profile_id="noark5",
+            profile_id=self.active_profile_id or "generic",
             job_profile_id=None,
             job_list_file=job_list_path.name,
             settings=self._project_settings_payload(),
@@ -274,6 +364,8 @@ class WorkflowApp(A6WorkflowApp):
             project = load_project(path)
         except ProjectConfigError:
             return
+        if project.profile_id and project.profile_id != "generic":
+            self._apply_profile(project.profile_id, persist=False)
         # Only project-safe preferences are imported. Global UI/application
         # settings remain global and are never replaced wholesale.
         if "copy_run_log_to_work_operations" in project.settings:

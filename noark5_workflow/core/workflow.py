@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 class Workflow:
-    """Ordered collection of operation IDs used by the GUI and future profiles/jobs."""
+    """Ordered collection of operation IDs."""
 
     def __init__(self) -> None:
         self._operation_ids: list[str] = []
@@ -19,6 +19,32 @@ class Workflow:
             return True
         except ValueError:
             return False
+
+    def move_up(self, operation_id: str) -> bool:
+        try:
+            index = self._operation_ids.index(operation_id)
+        except ValueError:
+            return False
+        if index == 0:
+            return False
+        self._operation_ids[index - 1], self._operation_ids[index] = (
+            self._operation_ids[index],
+            self._operation_ids[index - 1],
+        )
+        return True
+
+    def move_down(self, operation_id: str) -> bool:
+        try:
+            index = self._operation_ids.index(operation_id)
+        except ValueError:
+            return False
+        if index >= len(self._operation_ids) - 1:
+            return False
+        self._operation_ids[index], self._operation_ids[index + 1] = (
+            self._operation_ids[index + 1],
+            self._operation_ids[index],
+        )
+        return True
 
     def clear(self) -> None:
         self._operation_ids.clear()

@@ -23,7 +23,11 @@ DEFAULT_CONFIG = {
     "copy_run_log_to_work_operations": True,
 
     # Remembered folders / files.
-    "last_noark_source_dir": "",
+    "last_noark_source_dir": "",  # legacy Noark-specific key
+    "last_source_extraction_dir": "",
+    "recent_source_extraction_dirs": [],
+    "recent_storage_role_paths": {},
+    "last_profile_id": "",
     "last_dias_output_dir": "",
     "last_mets_import_dir": "",
     "last_dias_add_file_dir": "",

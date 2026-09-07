@@ -1,0 +1,104 @@
+{
+  "format_version": 1,
+  "definition_id": "noark5.u1_u2.core.arkiv_arkivdel.v1",
+  "source": "arkivstruktur.xml",
+  "basis": {
+    "source_material": [
+      "U1",
+      "U2"
+    ],
+    "kdrs_query_jobs": [
+      "C01",
+      "C02",
+      "U01",
+      "U02"
+    ],
+    "scope_note": "Første implementerte del av U1/U2-grunnlaget: Arkiv og Arkivdel. Definisjonen utvides stegvis med flere U1/U2-kontroller uten å endre motoren."
+  },
+  "entities": [
+    {
+      "id": "archive",
+      "label": "Arkiv",
+      "select": "//*[local-name()='arkiv']",
+      "fields": {
+        "title": "string(./*[local-name()='tittel'][1])",
+        "system_id": "string(./*[local-name()='systemID'][1])",
+        "description": "string(./*[local-name()='beskrivelse'][1])",
+        "status": "string(./*[local-name()='arkivstatus'][1])",
+        "document_medium": "string(./*[local-name()='dokumentmedium'][1])",
+        "created_date": "string(./*[local-name()='opprettetDato'][1])",
+        "closed_date": "string(./*[local-name()='avsluttetDato'][1])",
+        "created_by": "string(./*[local-name()='opprettetAv'][1])",
+        "closed_by": "string(./*[local-name()='avsluttetAv'][1])"
+      },
+      "children": [
+        {
+          "id": "creators",
+          "label": "Arkivskaper",
+          "select": ".//*[local-name()='arkivskaper']",
+          "fields": {
+            "name": "string(./*[local-name()='arkivskaperNavn'][1])",
+            "id": "string(./*[local-name()='arkivskaperID'][1])",
+            "description": "string(./*[local-name()='beskrivelse'][1])"
+          }
+        }
+      ],
+      "metrics": [
+        {
+          "id": "archive_part_count",
+          "label": "Antall arkivdeler",
+          "expression": "count(.//*[local-name()='arkivdel'])",
+          "type": "integer"
+        }
+      ]
+    },
+    {
+      "id": "archive_part",
+      "label": "Arkivdel",
+      "select": "//*[local-name()='arkivdel']",
+      "fields": {
+        "title": "string(./*[local-name()='tittel'][1])",
+        "system_id": "string(./*[local-name()='systemID'][1])",
+        "description": "string(./*[local-name()='beskrivelse'][1])",
+        "status": "string(./*[local-name()='arkivdelstatus'][1])",
+        "document_medium": "string(./*[local-name()='dokumentmedium'][1])",
+        "period_start": "string(./*[local-name()='arkivperiodeStartDato'][1])",
+        "period_end": "string(./*[local-name()='arkivperiodeSluttDato'][1])",
+        "created_date": "string(./*[local-name()='opprettetDato'][1])",
+        "closed_date": "string(./*[local-name()='avsluttetDato'][1])",
+        "parent_archive_system_id": "string(ancestor::*[local-name()='arkiv'][1]/*[local-name()='systemID'][1])",
+        "parent_archive_title": "string(ancestor::*[local-name()='arkiv'][1]/*[local-name()='tittel'][1])"
+      },
+      "metrics": [
+        {
+          "id": "mappe_count",
+          "label": "Antall mapper/saker under arkivdelen",
+          "expression": "count(.//*[local-name()='mappe'])",
+          "type": "integer"
+        },
+        {
+          "id": "registrering_count",
+          "label": "Antall registreringer under arkivdelen",
+          "expression": "count(.//*[local-name()='registrering'])",
+          "type": "integer"
+        },
+        {
+          "id": "dokumentbeskrivelse_count",
+          "label": "Antall dokumentbeskrivelser under arkivdelen",
+          "expression": "count(.//*[local-name()='dokumentbeskrivelse'])",
+          "type": "integer"
+        },
+        {
+          "id": "dokumentobjekt_count",
+          "label": "Antall dokumentobjekter under arkivdelen",
+          "expression": "count(.//*[local-name()='dokumentobjekt'])",
+          "type": "integer"
+        }
+      ]
+    }
+  ],
+  "output": {
+    "relative_dir": "noark5_tests/native",
+    "filename": "noark5-analysis-arkiv-arkivdel.json"
+  }
+}

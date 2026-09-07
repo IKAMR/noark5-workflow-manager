@@ -1,0 +1,26 @@
+{
+  "format_version": 1,
+  "definition_id": "noark5.u1_u2.views.v1",
+  "input_model": "noark5.u1_u2.core.arkiv_arkivdel.v1",
+  "description": "Rapport-/visningslaget holdes adskilt fra testmotoren. U1 og U2 beholdes som referansevisninger, ikke som selve grunnmodellen.",
+  "views": [
+    {
+      "id": "u1_whole_extraction",
+      "label": "U1 – samlet for hele uttrekket",
+      "scope": "whole_extraction",
+      "sections": [
+        "archive",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "u2_per_archive_part",
+      "label": "U2 – per arkivdel",
+      "scope": "per_entity",
+      "entity": "archive_part",
+      "sections": [
+        "archive_part"
+      ]
+    }
+  ]
+}

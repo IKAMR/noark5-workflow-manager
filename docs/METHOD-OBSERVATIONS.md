@@ -83,6 +83,32 @@ Praktisk test bør brukes som eksplisitt kontrakt-/domenevalidering, ikke bare s
 
 **Metodikkstatus:** Til senere samlet vurdering.
 
+
+### MO-005 – Regresjonstester må oppdateres sammen med endret kontrakt
+
+**Oppstått:** v0.1.2-a15
+
+**Observasjon:**  
+Flere kodeleveranser har vært funksjonelt riktige, mens eldre regresjonstester fortsatt forventet forrige versjon, operasjonsliste, tekst eller utdataadresse.
+
+**Mulig generell læring:**  
+Før en kodepakke leveres skal endrede kontrakter kryssjekkes mot eksisterende regresjonstester. Særlig versjonsstrenger, registrerte operasjoner, fil-/mappestier og brukerrettede tekster skal kontrolleres. Testene skal oppdateres før levering når kontrakten bevisst er endret.
+
+**Metodikkstatus:** Til senere samlet vurdering.
+
+### MO-006 – Prosjektet skal selv fange kandidater til generell metodikk
+
+**Oppstått:** v0.1.2-a15
+
+**Observasjon:**  
+Brukeren skal ikke måtte minne utviklingsprosessen på å registrere hver generaliserbar erfaring.
+
+**Mulig generell læring:**  
+Ved start og avslutning av et increment bør utviklingsagenten eksplisitt vurdere om nye erfaringer er prosjektspesifikke eller kandidater til generell metodikk, og registrere relevante kandidater i prosjektets metodikkobservasjoner uten særskilt bestilling.
+
+**Metodikkstatus:** Til senere samlet vurdering.
+
+
 ---
 
 ## Behandlede observasjoner

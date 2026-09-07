@@ -6,6 +6,9 @@
     "stable": 2
   },
   "operations": {
+    "analyse_noark5_core": {
+      "maturity": "alpha"
+    },
     "dias_package": {
       "maturity": "stable"
     }

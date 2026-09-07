@@ -14,7 +14,7 @@ DEFINITION_PATH = Path(__file__).resolve().parents[2] / "config" / "noark5" / "x
 class ValidateXmlSchemaOperation(BaseOperation):
     definition = OperationDefinition(
         operation_id="validate_xml_schema", name="Valider XML mot XSD",
-        description="Validerer arkivstruktur.xml mot lokal XSD med lxml og skriver et strukturert JSON-resultat til jobbens arbeidsområde.",
+        description="Validerer arkivstruktur.xml mot lokal XSD med lxml og skriver et strukturert JSON-resultat til jobbens Noark 5-testområde.",
         execution_target=ExecutionTarget.EITHER, category="Integritet",
     )
 
@@ -34,7 +34,7 @@ class ValidateXmlSchemaOperation(BaseOperation):
         if schema_path is None:
             return OperationResult(False,"Kunne ikke avgjøre hvilken lokal XSD som hører til arkivstruktur.xml.",data={"available_xsds":[str(p) for p in extraction.xsd_files]})
         ctx.progress(0.25,f"XSD: {schema_path.name}"); result=validate_xml_against_xsd(xml_path,schema_path)
-        report_path=Path(ctx.work_operations) / "xml-validation" / item["output"]
+        report_path=Path(ctx.work_operations) / "noark5_tests" / "schema" / item["output"]
         write_validation_report(result,report_path,validation_id=item["id"]); ctx.progress(1.0,"XML/XSD-validering fullført")
         data={**result.as_dict(),"report":str(report_path)}
         if result.valid: return OperationResult(True,f"XML/XSD-validering OK. Rapport: {report_path}",data=data)
