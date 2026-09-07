@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from tkinter import filedialog
 import customtkinter as ctk
 
 from noark5_workflow.core.job import Job
 from settings import load_config, save_config
 from . import theme
+from .source_location_dialog import LocationChoice, StorageLocationDialog
 
 _FIELDS = (
     ("source_root", "Source – hovedmappe", "dir"),
@@ -18,10 +18,11 @@ _FIELDS = (
     ("work_operations", "Arbeid – operasjoner", "dir"),
     ("archive_root", "Arkiv – hovedmappe", "dir"),
 )
+_LABELS = {attr: label for attr, label, _kind in _FIELDS}
 
 
 class StorageRolesDialog(ctk.CTkToplevel):
-    """Edit generic storage roles; each role remembers its own recent locations."""
+    """Edit generic storage roles with a common role-aware location chooser."""
 
     def __init__(self, master, job: Job, on_save, *, blank_fallback_source_root: bool = False) -> None:
         super().__init__(master)
@@ -29,6 +30,7 @@ class StorageRolesDialog(ctk.CTkToplevel):
         self.on_save = on_save
         self.vars = {}
         self.settings = load_config()
+        self._location_dialog = None
         self.title(f"Mapper – {job.job_id}")
         self.geometry("1380x620")
         self.minsize(1120, 520)
@@ -49,7 +51,7 @@ class StorageRolesDialog(ctk.CTkToplevel):
             self,
             text=(
                 "Roller per jobb. Ingen fysisk DIAS- eller depotstruktur tvinges av feltene. "
-                "Hver rolle husker sine egne sist brukte steder."
+                "Velg viser gjeldende, foreslåtte og sist brukte steder for hver rolle."
             ),
             font=theme.font(theme.SMALL_SIZE),
             text_color=theme.TEXT_MUTED,
@@ -114,52 +116,88 @@ class StorageRolesDialog(ctk.CTkToplevel):
         self.settings["recent_storage_role_paths"] = history
         save_config({"recent_storage_role_paths": history})
 
-    def _initial_for_role(self, attr: str, kind: str) -> str | None:
-        current = self.vars[attr].get().strip()
+    def _forget_role(self, attr: str, path: Path) -> None:
+        raw = self.settings.get("recent_storage_role_paths", {})
+        history = dict(raw) if isinstance(raw, dict) else {}
+        values = [str(item) for item in history.get(attr, []) if str(item) != str(path)]
+        history[attr] = values
+        self.settings["recent_storage_role_paths"] = history
+        save_config({"recent_storage_role_paths": history})
+        self._location_dialog = None
+        self._choose(attr, dict((a, k) for a, _l, k in _FIELDS)[attr])
+
+    def _current_path(self, attr: str) -> Path | None:
+        value = self.vars[attr].get().strip()
+        return Path(value) if value else None
+
+    def _suggestions(self, attr: str) -> list[Path]:
+        """Safe convenience suggestions; never write these without user choice."""
+        work_root = self._current_path("work_root")
+        suggestions: list[Path] = []
+        if work_root:
+            if attr == "work_content":
+                suggestions.append(work_root / "content")
+            elif attr == "work_operations":
+                suggestions.append(work_root / "repository_operations")
+            elif attr == "archive_root":
+                suggestions.append(work_root / "aip")
+        return suggestions
+
+    def _choices(self, attr: str) -> list[LocationChoice]:
+        choices: list[LocationChoice] = []
+        current = self._current_path(attr)
         if current:
-            path = Path(current)
-            if kind == "file":
-                return str(path.parent if not path.is_dir() else path)
-            return str(path if path.is_dir() else path.parent)
+            choices.append(LocationChoice("Gjeldende", current, False))
+        for path in self._suggestions(attr):
+            choices.append(LocationChoice("Forslag", path, False))
+        for path in self._role_history(attr):
+            choices.append(LocationChoice("Sist brukt", path, True))
+        return choices
+
+    def _initial_for_role(self, attr: str, kind: str) -> Path | None:
+        current = self._current_path(attr)
+        if current:
+            return current
         history = self._role_history(attr)
-        if history:
-            path = history[0]
-            return str(path.parent if kind == "file" and path.is_file() else path)
-        return None
+        return history[0] if history else None
 
     def _choose(self, attr: str, kind: str) -> None:
-        initial = self._initial_for_role(attr, kind)
-        if kind == "file":
-            kwargs = {
-                "parent": self,
-                "title": f"Velg {dict((a, l) for a, l, _ in _FIELDS)[attr]}",
-                "filetypes": [("TAR", "*.tar"), ("Alle filer", "*.*")],
-            }
-            if initial:
-                kwargs["initialdir"] = initial
-            value = filedialog.askopenfilename(**kwargs)
-        else:
-            kwargs = {
-                "parent": self,
-                "title": f"Velg {dict((a, l) for a, l, _ in _FIELDS)[attr]}",
-            }
-            if initial:
-                kwargs["initialdir"] = initial
-            value = filedialog.askdirectory(**kwargs)
+        if self._location_dialog is not None and self._location_dialog.winfo_exists():
+            self._location_dialog.focus()
+            self._location_dialog.lift()
+            return
 
-        if value:
-            path = Path(value)
-            self.vars[attr].set(str(path))
-            self._remember_role(attr, path)
+        label = _LABELS[attr]
+        dialog = StorageLocationDialog(
+            self,
+            title=f"Velg {label}",
+            heading=label.upper(),
+            description=(
+                "Velg gjeldende, foreslått eller tidligere sted. "
+                "Bruk «Annen mappe/fil» for vanlig filsystemvalg."
+            ),
+            choices=self._choices(attr),
+            initial_path=self._initial_for_role(attr, kind),
+            kind=kind,
+            on_choose=lambda path, a=attr: self._role_chosen(a, path),
+            on_remove=lambda path, a=attr: self._forget_role(a, path),
+            filetypes=[("TAR", "*.tar"), ("Alle filer", "*.*")] if kind == "file" else None,
+        )
+        self._location_dialog = dialog
+        dialog.bind("<Destroy>", lambda _e, d=dialog: self._location_closed(d), add="+")
+
+    def _location_closed(self, dialog) -> None:
+        if self._location_dialog is dialog:
+            self._location_dialog = None
+
+    def _role_chosen(self, attr: str, path: Path) -> None:
+        self.vars[attr].set(str(path))
+        self._remember_role(attr, path)
 
     def _save(self) -> None:
         values = {
             name: (Path(text) if (text := var.get().strip()) else None)
             for name, var in self.vars.items()
         }
-        # Do not invent Source – hovedmappe from Source – uttrekksmappe.
-        # source_root remains the explicit existing value when left blank.
-        if values["source_root"] is None:
-            values["source_root"] = self.job.source_root
         self.on_save(values)
         self.destroy()

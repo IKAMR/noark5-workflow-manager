@@ -16,6 +16,7 @@ class SourcePanel(ctk.CTkFrame):
         self.profile_id=None
         self.path_var=ctk.StringVar()
         self.settings=load_config()
+        self._location_dialog=None
         self.grid_columnconfigure(0,weight=1); self.grid_rowconfigure(3,weight=1)
         self.title_label=ctk.CTkLabel(self,text="SOURCE",font=theme.font(theme.SECTION_SIZE,"bold"),
                                       text_color=theme.TEXT_MUTED)
@@ -69,10 +70,17 @@ class SourcePanel(ctk.CTkFrame):
         self._browse()
 
     def _browse(self)->None:
+        if self._location_dialog is not None and self._location_dialog.winfo_exists():
+            self._location_dialog.focus(); self._location_dialog.lift(); return
         initial=str(self.settings.get("last_source_extraction_dir","")).strip()
         initial_path=Path(initial) if initial else None
-        SourceLocationDialog(self,recent_dirs=self._recent_dirs(),initial_dir=initial_path,
-                             on_choose=self._browse_chosen,on_remove=self._forget)
+        dialog=SourceLocationDialog(self,recent_dirs=self._recent_dirs(),initial_dir=initial_path,
+                                    on_choose=self._browse_chosen,on_remove=self._forget)
+        self._location_dialog=dialog
+        dialog.bind("<Destroy>",lambda _e,d=dialog:self._location_closed(d),add="+")
+
+    def _location_closed(self,dialog)->None:
+        if self._location_dialog is dialog: self._location_dialog=None
 
     def _browse_chosen(self,path:Path)->None:
         self.set_path(str(path))

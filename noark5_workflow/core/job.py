@@ -20,10 +20,10 @@ class JobStatus(str, Enum):
 
 @dataclass
 class Job:
-    """One workflow execution against one source/extraction."""
+    """One workflow execution. Source may be assigned after job creation."""
 
     job_id: str
-    source_root: Path
+    source_root: Path | None = None
     output_root: Path | None = None  # Legacy DIAS/AIC output; retained for compatibility.
     source_tar: Path | None = None
     source_unzipped: Path | None = None
@@ -33,6 +33,7 @@ class Job:
     work_operations: Path | None = None
     archive_root: Path | None = None
     name: str = ""
+    profile_id: str | None = None
     workflow_ids: list[str] = field(default_factory=list)
     operation_params: dict[str, dict] = field(default_factory=dict)
     status: JobStatus = JobStatus.READY
@@ -44,27 +45,23 @@ class Job:
     next_operation_index: int = 0
 
     def __post_init__(self) -> None:
-        self.source_root = Path(self.source_root)
         for attr in (
-            "output_root", "source_tar", "source_unzipped", "source_extraction",
-            "work_root", "work_content", "work_operations", "archive_root",
+            "source_root", "output_root", "source_tar", "source_unzipped",
+            "source_extraction", "work_root", "work_content", "work_operations",
+            "archive_root",
         ):
             value = getattr(self, attr)
             if value is not None:
                 setattr(self, attr, Path(value))
-        # Existing job lists used output_root as the DIAS/AIC target.
         if self.archive_root is None and self.output_root is not None:
             self.archive_root = self.output_root
         if not self.name:
-            self.name = self.active_extraction_root.name or self.source_root.name or self.job_id
+            active = self.active_extraction_root
+            self.name = active.name if active is not None and active.name else self.job_id
         self._normalise_checkpoint_state()
 
     @property
-    def active_extraction_root(self) -> Path:
-        """Concrete extraction folder used by current operations.
-
-        Legacy jobs have only source_root, so that remains the fallback.
-        """
+    def active_extraction_root(self) -> Path | None:
         return self.source_extraction or self.source_root
 
     @property
@@ -82,7 +79,7 @@ class Job:
 
     def _normalise_checkpoint_state(self) -> None:
         valid = set(self.workflow_ids)
-        self.checkpoint_after = [operation_id for operation_id in dict.fromkeys(self.checkpoint_after) if operation_id in valid]
+        self.checkpoint_after = [oid for oid in dict.fromkeys(self.checkpoint_after) if oid in valid]
         try:
             index = int(self.next_operation_index)
         except (TypeError, ValueError):
@@ -93,7 +90,7 @@ class Job:
         old_workflow = list(self.workflow_ids)
         self.workflow_ids = list(operation_ids)
         valid = set(self.workflow_ids)
-        self.checkpoint_after = [operation_id for operation_id in self.checkpoint_after if operation_id in valid]
+        self.checkpoint_after = [oid for oid in self.checkpoint_after if oid in valid]
         if self.workflow_ids != old_workflow:
             self.next_operation_index = 0
             if self.status == JobStatus.WAITING:
@@ -142,8 +139,13 @@ class JobBatch:
         self._jobs: list[Job] = []
         self._next_number = 1
 
-    def new_job(self, source_root: Path, *, output_root: Path | None = None, name: str = "", workflow_ids: Iterable[str] = ()) -> Job:
-        job = Job(job_id=f"JOB-{self._next_number:03d}", source_root=Path(source_root), output_root=Path(output_root) if output_root else None, name=name, workflow_ids=list(workflow_ids))
+    def new_job(self, source_root: Path | None = None, *, output_root: Path | None = None,
+                name: str = "", workflow_ids: Iterable[str] = ()) -> Job:
+        job = Job(
+            job_id=f"JOB-{self._next_number:03d}", source_root=source_root,
+            output_root=Path(output_root) if output_root else None,
+            name=name, workflow_ids=list(workflow_ids),
+        )
         self._next_number += 1
         self._jobs.append(job)
         return job

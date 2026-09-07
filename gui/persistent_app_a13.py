@@ -22,6 +22,7 @@ from .persistent_app import _TERMINAL_STATUSES
 from .persistent_app_a6 import WorkflowApp as A6WorkflowApp
 from .storage_roles_dialog import StorageRolesDialog
 from .job_list_location_dialog import JobListLocationDialog
+from .jobs_window_a15 import A15JobsWindow
 
 class WorkflowApp(A6WorkflowApp):
     """Storage roles plus a15 profile/source boundary fixes."""
@@ -30,10 +31,16 @@ class WorkflowApp(A6WorkflowApp):
 
     def __init__(self) -> None:
         self.active_profile_id=None
+        self._storage_roles_dialog=None
         super().__init__()
         self.source_panel.on_browse_complete=self._source_browse_complete
         self.workflow_panel.on_reorder=self._workflow_reordered
-        self._apply_profile(None, persist=False)
+        # super().__init__ may already have restored the last job list and active job.
+        # Do not overwrite that job's persisted profile with the blank/default profile.
+        if self.current_job is not None:
+            self._apply_profile(self.current_job.profile_id, persist=False)
+        else:
+            self._apply_profile(None, persist=False)
 
     def _build_header(self) -> None:
         super()._build_header()
@@ -56,9 +63,48 @@ class WorkflowApp(A6WorkflowApp):
         self.storage_button.grid(row=0,column=4,padx=(4,2),pady=8)
 
 
+    def _open_jobs(self) -> None:
+        self._capture_job_operation_params(self.current_job)
+        if self.jobs_window is not None and self.jobs_window.winfo_exists():
+            self.jobs_window.focus(); self.jobs_window.refresh(); return
+        self.jobs_window = A15JobsWindow(
+            self, self.jobs, self._open_job, self._create_job, self._start_all_jobs,
+            self._stop_batch, self._new_job_list, self._open_job_list_dialog,
+            self._save_job_list, self._save_job_list_as, lambda: self.job_list_path,
+            lambda: self.current_job.job_id if self.current_job else None,
+        )
+
+    def _create_job(self, source_root=None) -> Job:
+        # Explicit Ny jobb creates a blank generic job. Source is a storage role,
+        # not the identity required to create the job.
+        job = self.jobs.new_job(None)
+        self.current_job = job
+        self.workflow.clear(); self.workflow_panel.refresh()
+        self.source_panel.path_var.set(""); self.source_panel.detect()
+        self._refresh_active_job_label(); self._update_run_button()
+        self.after(0, lambda j=job: self._show_storage_roles(j))
+        return job
+
+    def _show_storage_roles(self, job: Job) -> None:
+        existing = self._storage_roles_dialog
+        if existing is not None and existing.winfo_exists():
+            existing.focus(); existing.lift(); return
+        dialog = StorageRolesDialog(self, job, lambda values: self._save_storage_roles(job, values))
+        self._storage_roles_dialog = dialog
+        dialog.bind("<Destroy>", lambda _e, d=dialog: self._storage_dialog_closed(d), add="+")
+
+    def _storage_dialog_closed(self, dialog) -> None:
+        if self._storage_roles_dialog is dialog:
+            self._storage_roles_dialog = None
+
+
     def _profile_selected(self, label: str) -> None:
         profile_id=self.PROFILE_LABELS.get(label)
+        if self.current_job is not None:
+            self.current_job.profile_id=profile_id
         self._apply_profile(profile_id)
+        if self.current_job is not None and self.job_list_path is not None:
+            self._write_job_list(self.job_list_path)
 
     def _apply_profile(self, profile_id: str | None, *, persist: bool = True) -> None:
         self.active_profile_id=profile_id or None
@@ -92,10 +138,7 @@ class WorkflowApp(A6WorkflowApp):
             )
             return
         job.source_extraction = path
-        StorageRolesDialog(
-            self,job,lambda values:self._save_storage_roles(job,values),
-            blank_fallback_source_root=True,
-        )
+        self._show_storage_roles(job)
 
     def _ensure_job_for_current_source(self) -> Job | None:
         """Update/select a job; never create a new job implicitly.
@@ -124,12 +167,28 @@ class WorkflowApp(A6WorkflowApp):
         return None
 
     def _open_job(self, job: Job) -> None:
-        super()._open_job(job)
-        # Base runtime still renders source_root. The source panel represents
-        # the concrete Source – uttrekksmappe in the a13+ storage contract.
+        # Profile belongs to the job and must follow JOB-xxx when switching.
+        self._apply_profile(job.profile_id, persist=False)
         extraction=job.active_extraction_root
-        if extraction:
-            self.source_panel.set_path(str(extraction))
+        if extraction is None:
+            if self.batch_running:
+                messagebox.showwarning(APP_NAME, "Vent til batch-kjøringen er ferdig eller stopp den først.")
+                return
+            self._capture_job_operation_params(self.current_job)
+            self.current_job=job
+            self.workflow.clear()
+            for operation_id in job.workflow_ids:
+                self.workflow.add(operation_id)
+            self._apply_job_operation_params(job)
+            self.workflow_panel.refresh()
+            self.source_panel.path_var.set(""); self.source_panel.detect()
+            self._refresh_active_job_label(); self._update_run_button()
+            self.status_bar.set_status(f"Åpnet {job.job_id}: {job.name}")
+            self._show_job_log(job)
+            return
+        super()._open_job(job)
+        # The source panel represents the concrete Source – uttrekksmappe.
+        self.source_panel.set_path(str(extraction))
         self._refresh_active_job_label()
 
     def _workflow_reordered(self, operation_id: str) -> None:
@@ -398,12 +457,11 @@ class WorkflowApp(A6WorkflowApp):
         return messagebox.askyesno(APP_NAME, message)
 
     def _edit_storage_roles(self) -> None:
-        job=self.current_job or self._ensure_job_for_current_source()
+        job=self.current_job
         if job is None:
-            from tkinter import messagebox
-            messagebox.showwarning(APP_NAME,"Velg en source før mapper konfigureres.")
+            messagebox.showwarning(APP_NAME,"Opprett eller åpne en jobb før mapper konfigureres.")
             return
-        StorageRolesDialog(self,job,lambda values:self._save_storage_roles(job,values))
+        self._show_storage_roles(job)
 
     def _save_storage_roles(self, job: Job, values: dict) -> None:
         changed=False
@@ -415,6 +473,11 @@ class WorkflowApp(A6WorkflowApp):
         if changed:
             self._job_log(job,"KONFIGURASJON ENDRET: mappe-roller")
             if self.job_list_path is not None: self._write_job_list(self.job_list_path)
+        if job.source_extraction is not None:
+            self.source_panel.set_path(str(job.source_extraction))
+        elif not self.source_panel.path_var.get().strip():
+            self.source_panel.detect()
+        self._refresh_active_job_label()
         self.status_bar.set_status("Mappe-roller oppdatert")
         if self.jobs_window is not None and self.jobs_window.winfo_exists(): self.jobs_window.refresh()
 

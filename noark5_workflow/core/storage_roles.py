@@ -1,18 +1,11 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from pathlib import Path
 
-
 @dataclass(frozen=True)
 class StorageRoles:
-    """Generic storage roles used by a workflow job.
-
-    Physical folder names are deliberately not prescribed here. Profiles/setup
-    may map these roles to DIAS or depot-specific structures.
-    """
-
-    source_root: Path
+    """Generic storage roles. A newly created job may have no Source yet."""
+    source_root: Path | None = None
     source_tar: Path | None = None
     source_unzipped: Path | None = None
     source_extraction: Path | None = None
@@ -22,5 +15,5 @@ class StorageRoles:
     archive_root: Path | None = None
 
     @property
-    def active_extraction_root(self) -> Path:
+    def active_extraction_root(self) -> Path | None:
         return self.source_extraction or self.source_root

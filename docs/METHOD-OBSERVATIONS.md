@@ -109,6 +109,23 @@ Ved start og avslutning av et increment bør utviklingsagenten eksplisitt vurder
 **Metodikkstatus:** Til senere samlet vurdering.
 
 
+
+### MO-007 – Teknisk feilhistorikk og bevaringsproveniens må skilles
+
+**Oppstått:** v0.1.2-a16
+
+**Bakgrunn:**  
+Under praktisk test ble en ugyldig uttrekksmappe valgt for en jobb. Validering/preflight feilet, mappen ble deretter korrigert før relevant behandling av arkivmaterialet.
+
+**Observasjon:**  
+En utviklings-/brukerfeil kan være viktig i teknisk logg for feilsøking, men samtidig være misvisende dersom den automatisk blir varig proveniens for objektet som senere behandles korrekt.
+
+**Mulig generell læring:**  
+Systemer som både fører teknisk historikk og domeneproveniens bør klassifisere hendelser etter semantisk betydning. En rik teknisk logg kan være kildegrunnlag, men domeneproveniens bør genereres gjennom eksplisitte regler og ikke som ukritisk kopi av tekniske logger. Preflight-/konfigurasjonsfeil før faktisk behandling bør normalt ikke tilskrives objektet som en behandlingshendelse.
+
+**Metodikkstatus:** Til senere samlet vurdering.
+
+
 ---
 
 ## Behandlede observasjoner

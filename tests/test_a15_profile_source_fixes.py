@@ -24,7 +24,7 @@ class A15ProfileSourceFixTests(unittest.TestCase):
     def test_source_browse_opens_storage_roles(self):
         text=(ROOT/"gui"/"persistent_app_a13.py").read_text(encoding="utf-8")
         self.assertIn("_source_browse_complete",text)
-        self.assertIn("blank_fallback_source_root=True",text)
+        self.assertIn("self._show_storage_roles(job)",text)
         self.assertIn("source_extraction = path",text)
 
     def test_save_as_new_master_clears_visible_log(self):

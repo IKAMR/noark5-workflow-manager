@@ -1,15 +1,19 @@
 @echo off
 chcp 65001 >nul
-title Noark 5 Workflow Manager - Tester
-mode con: cols=140 lines=45
 
 set "PYTHON_GIL=1"
+set "APP_VERSION=?"
+for /f "delims=" %%V in ('py -c "from version import VERSION; print(VERSION)"') do set "APP_VERSION=%%V"
+
+title Noark 5 Workflow Manager v%APP_VERSION% - Tester
+mode con: cols=140 lines=45
 
 if exist "docs\test-results\.last-test-summary.txt" del /q "docs\test-results\.last-test-summary.txt" >nul 2>&1
 
 echo.
 echo ========================================
 echo   Noark 5 Workflow Manager - Tester
+echo   Versjon: %APP_VERSION%
 echo ========================================
 echo.
 
@@ -40,7 +44,7 @@ if exist "docs\test-results\.last-test-summary.txt" (
 
 echo.
 echo ========================================
-echo   Testoppsummering
+echo   Testoppsummering v%APP_VERSION%
 echo ========================================
 echo   Tester kjort:        %TOTAL%
 echo   Bestatt:             %PASSED%
@@ -48,6 +52,8 @@ echo   Feilet:              %FAILED%
 echo   Feil under kjoring:  %ERRORS%
 echo   Hoppet over:         %SKIPPED%
 echo ========================================
+echo.
+echo   Rapport: docs\test-results\v%APP_VERSION%.md
 echo.
 pause
 exit /b %EXITCODE%

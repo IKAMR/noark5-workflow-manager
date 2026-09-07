@@ -27,8 +27,13 @@ class A15JobIdentityStorageReorderTests(unittest.TestCase):
 
     def test_storage_dialog_does_not_copy_extraction_to_source_root(self):
         text=(ROOT/"gui"/"storage_roles_dialog.py").read_text(encoding="utf-8")
-        self.assertIn("Do not invent Source",text)
-        self.assertNotIn('values["source_root"]=values["source_extraction"]',text.replace(" ",""))
+        start=text.index("def _save(self)")
+        block=text[start:]
+        compact="".join(block.split())
+        # Test behavior/contract, not the presence of a comment string.
+        self.assertNotIn('values["source_root"]=values["source_extraction"]',compact)
+        self.assertNotIn('values["source_root"]=self.job.source_extraction',compact)
+        self.assertIn("self.on_save(values)",block)
 
     def test_workflow_model_can_move_operations(self):
         from noark5_workflow.core.workflow import Workflow
