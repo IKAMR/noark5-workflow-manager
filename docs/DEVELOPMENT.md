@@ -1,6 +1,8 @@
 # Utviklingsregler
 
-Før analyse eller endring av kode i dette repositoriet:
+## Obligatorisk leserekkefølge før utvikling
+
+Følgende nummererte liste er en arbeidsrekkefølge, ikke kapittelnummerering i dette dokumentet.
 
 1. Les `docs/DEVELOPMENT.md`.
 2. Les `docs/ARCHITECTURE.md` der den er relevant.
@@ -14,6 +16,39 @@ Før analyse eller endring av kode i dette repositoriet:
 10. Les `docs/METHOD-OBSERVATIONS.md` ved start og avslutning av et utviklingsincrement. Nye erfaringer som kan ha generell verdi for utviklingsmetodikken registreres der uten at metodikk-repositoriet automatisk endres.
 11. Behandle dokumentert arkitektur som målbildet. Kontroller samtidig den faktiske koden før endringer gjøres.
 
+## AI-assistert samarbeids- og leveransekontrakt
+
+Denne kontrakten er obligatorisk ved AI-assistert utvikling av prosjektet og skal leses før nye kodeendringer planlegges eller leveres.
+
+1. **GitHub er delt baseline.** AI leser gjeldende offentlig repository-tilstand og relevante dokumenter før arbeid starter. Etter at brukeren har commitet og pushet, er den pushede tilstanden ny autoritativ baseline.
+2. **Dialog før endring.** Bruker og AI avklarer behov, scope og ønsket adferd før et nytt increment implementeres. Nye tanker skal ikke automatisk utvide scope.
+3. **AI endrer ikke Git-historikken.** AI committer eller pusher ikke med mindre brukeren uttrykkelig ber om det. Brukeren eier lokal working tree, commit og push.
+4. **Kun delta siden forrige leveranse.** Hver ny ZIP eller fillesleveranse skal normalt inneholde bare filer som er nye eller endret **siden forrige ZIP/leveranse i samme increment**. En fix etter en tidligere leveranse skal derfor bare inneholde fix-deltaet, ikke hele det kumulative incrementet, med mindre brukeren uttrykkelig ber om en komplett/kumulativ pakke.
+5. **Repository-relative stier.** ZIP-delta skal bevare repository-relative stier og være klare til å kopieres over working tree.
+6. **Ingen leveranse-notatfiler som standard.** Ikke legg ved egne `README.txt`, endringslogg-tekstfiler, `DELETE-FILES.txt` eller tilsvarende bare for å forklare leveransen. Forklar endringer og eventuelle manuelle slettinger i samtalen. Ved en uvanlig stor eller teknisk sletteliste kan en eksplisitt hjelpefil eller `.bat` brukes når det faktisk er mer praktisk og brukeren er orientert.
+7. **Tester følger samme delta.** Når produksjonskode endrer en kontrakt, skal nødvendige nye eller oppdaterte tester leveres i samme delta. Foreldede tester skal oppdateres samtidig.
+8. **`test.bat` er brukerens hovedtestinngang.** AI skal kontrollere berørte tester og `test.bat` før levering så langt miljøet tillater det, og rette feil AI selv kan oppdage før pakken sendes. `test.bat` skal bare følge deltaet når selve filen faktisk er endret siden forrige leveranse.
+9. **Brukeren validerer lokalt.** Brukeren kopierer inn deltaet, kjører `test.bat` og gjør relevant praktisk test, normalt via `start.bat` for GUI.
+10. **Fix leveres som nytt lite delta.** Dersom testen avdekker feil, analyserer AI faktisk testutskrift og leverer bare filene som må endres siden forrige leveranse. Produksjonskode skal ikke svekkes for å tilfredsstille en foreldet test.
+11. **Brukeren godkjenner og pusher.** Når automatisert og praktisk test er akseptert, committer og pusher brukeren.
+12. **AI verifiserer push før neste increment.** Før videre arbeid skal AI lese den pushede GitHub-tilstanden og kontrollere at forventede filer, versjon og sentrale endringer faktisk er med.
+13. **Metodikk-kandidater holdes lokalt først.** Generelle erfaringer registreres i `docs/METHOD-OBSERVATIONS.md`. `IKAMR/incremental-ai-development-method` skal ikke endres automatisk; overføring skjer først når bruker og AI eksplisitt blir enige om en egen metodikkendring.
+
+Normalløkken er derfor:
+
+```text
+AI leser GitHub/repository
+→ bruker og AI avklarer increment
+→ AI leverer bare nytt delta
+→ bruker kopierer inn
+→ bruker kjører test.bat
+→ AI leverer eventuelt fix-delta
+→ bruker gjør praktisk test
+→ bruker committer og pusher
+→ AI verifiserer pushet tilstand
+→ neste increment
+```
+
 ## Endringsprinsipp
 
 - Bevar fungerende funksjonalitet og gjør den minste nødvendige endringen.
@@ -25,7 +60,7 @@ Før analyse eller endring av kode i dette repositoriet:
 
 Nye tanker eller framtidsretninger skal normalt legges til som avgrensede arkitektur-/designpresiseringer. Eksisterende dokumentasjon skal ikke omskrives bredt dersom den fortsatt er korrekt.
 
-### Obligatorisk regresjonskontroll før kode leveres
+## Obligatorisk regresjonskontroll før kode leveres
 
 Dette er en fast utviklingsregel, spesielt etter at en eksisterende implementasjon er erstattet av en sterkere eller mer generell variant.
 
@@ -33,7 +68,9 @@ Dette er en fast utviklingsregel, spesielt etter at en eksisterende implementasj
 - Søk eksplisitt etter tester som låser seg til gammel implementasjonsdetalj, for eksempel eksakte strenguttrykk som `self._location_dialog.winfo_exists()` eller direkte modulnavn i en runtime-kjede.
 - Når kontrakten er bevart eller styrket, men implementasjonen er endret, skal den gamle testen oppdateres i **samme delta**. Produksjonskode skal ikke svekkes bare for å tilfredsstille en foreldet test.
 - Nye tester skal kontrollere ønsket kontrakt/adferd, ikke tilfeldig syntaks, med mindre akkurat syntaksen er en offentlig kontrakt.
-- For a17 GUI-kontrakter som brukes av flere tester skal stabile semantiske verdier samles i `gui/ui_contract_a17.py`. Tester skal bruke disse kontraktene i stedet for private grid-kolonner, hjelpefunksjonsnavn eller tilfeldige dokumentformuleringer.\n- `tests/test_a17_test_contract_hygiene.py` er obligatorisk regresjonsvern mot kjente foreldede a17-testmønstre. Når en implementasjonsdetalj erstattes, skal det gamle testmønsteret legges til denne kontrollen samtidig.\n- GUI-kode skal ikke referere til udefinerte `theme`-symboler. Kompatibilitetsalias kan brukes når to etablerte navn uttrykker samme semantiske fargeverdi, men én verdi skal være autoritativ.
+- For a17 GUI-kontrakter som brukes av flere tester skal stabile semantiske verdier samles i `gui/ui_contract_a17.py`. Tester skal bruke disse kontraktene i stedet for private grid-kolonner, hjelpefunksjonsnavn eller tilfeldige dokumentformuleringer.
+- `tests/test_a17_test_contract_hygiene.py` er obligatorisk regresjonsvern mot kjente foreldede a17-testmønstre. Når en implementasjonsdetalj erstattes, skal det gamle testmønsteret legges til denne kontrollen samtidig.
+- GUI-kode skal ikke referere til udefinerte `theme`-symboler. Kompatibilitetsalias kan brukes når to etablerte navn uttrykker samme semantiske fargeverdi, men én verdi skal være autoritativ.
 - Tester av dokumentasjon skal ikke feile på tilfeldige ordvalg eller korte tekstfragmenter når den dokumenterte kontrakten er semantisk den samme. De skal primært låse stabile overskrifter, kontraktsbegreper og nødvendige regler; eksakt formulering brukes bare når ordlyden i seg selv er kontrakten.
 - Før levering skal det også kontrolleres at deltaet ikke introduserer filer som eksisterende repository-regler uttrykkelig forbyr, herunder permanente `Axx-*.md`-/alpha-dokumenter i `docs/`.
 - Alpha-/delta-dokumentasjon skal innarbeides i eksisterende kanoniske dokumenter (`DEVELOPMENT.md`, `METHOD-OBSERVATIONS.md` osv.) i stedet for å bli liggende som permanente per-alpha-filer.
@@ -41,11 +78,24 @@ Dette er en fast utviklingsregel, spesielt etter at en eksisterende implementasj
 
 Denne kontrollen er en del av ferdigstillingen av hvert increment, ikke en valgfri etterkontroll.
 
+## Brukeridentitet og framtidig serverdrift
+
+- Registrert bruker har en permanent intern `user_id` (UUID) som ikke kan redigeres eller gjenbrukes for en annen identitet.
+- `username` er den primære menneskelesbare identifikatoren i GUI og daglig bruk. Navn og e-post er registrerte attributter for samme identitet.
+- Endring av navn, brukernavn eller e-post skal ikke endre `user_id`. Historiske jobb-/loggdata skal senere kunne bevare både stabil `user_id` og relevante snapshot-verdier fra kjøretidspunktet.
+- Brukerprofil lagres foreløpig lokalt per bruker, men kontrakten skal kunne flyttes til en sentral/autoritativ identitetskilde ved serverdrift uten å endre jobb-/loggidentiteten.
+- Runtime kan gjøre brukeridentiteten tilgjengelig for generiske kjøre-/loggkomponenter, men personopplysninger skal ikke blandes inn i portable Setup-eksporter uten en eksplisitt beslutning.
+- Bunnlinjen viser `Bruker: <username>`; intern `user_id` vises ikke som normal arbeidsidentifikator.
+
 ## GUI-konvensjoner
 
 Følgende regler er flyttet hit fra `INTERFACE.md` fordi de beskriver GUI-/utviklingskonvensjoner, ikke datautvekslingsgrensesnitt.
 
+### Profil som eksplisitt spesialiseringsgrense
 
+- Uten valgt profil skal GUI og Source være generiske.
+- Formatspesifikk gjenkjenning og formatspesifikke operasjoner skal aktiveres av valgt profil.
+- Ny formatspesifikk logikk skal derfor ikke legges inn som generell standardadferd når den egentlig tilhører en profil.
 
 ### Idempotente konfigurasjonsvalg
 
@@ -74,7 +124,6 @@ Følgende regler er flyttet hit fra `INTERFACE.md` fordi de beskriver GUI-/utvik
 - Temp-katalog er konfigurasjon og trenger ikke permanent plass i hovedvinduet; den finnes i Innstillinger.
 - Midtfeltet i bunnlinjen beholdes for løpende status, og høyrefeltet for runtime-/lagringsinformasjon.
 
-
 ### Stabil header-layout
 
 - Topp-headerens endelige a17-handlingsgruppe er `Mapper`, `Jobber`, `Setup`, `A-`, `A+`, `?`.
@@ -83,7 +132,6 @@ Følgende regler er flyttet hit fra `INTERFACE.md` fordi de beskriver GUI-/utvik
 - `Jobber` skal alltid være eksplisitt synlig mellom `Mapper` og `Setup`.
 - Den endelige handlingsgruppen skal eies av én dedikert header-frame. Arvede/foreldede handlingsknapper skjules før den nye gruppen bygges, slik at runtime-lag ikke kan kollidere i separate grid-kolonner.
 - Setup-dialogen skal beholde eksisterende innhold og funksjoner; a17 legger bare til tydelig navn og `Velg…` for Temp-mappe uten bred omskriving av dialogen.
-
 
 ### Dialogplassering og fler-skjermsoppsett
 
@@ -219,15 +267,17 @@ Se også `APP-WORKSPACE-AND-RUN-LOGS.md`.
 
 Se `docs/RUNTIME-ENVIRONMENTS.md`.
 
-## Workflow logging og PREMIS-proveniens
+## Workflow logging, proveniens og loggformater
 
-- **Alle operasjoner/tester** skal fremgå av vanlig workflow-/kjørelogg.
-- Relevante bevarings-, validerings-, migrerings-, slettings- og pakkingshendelser kan i tillegg registreres som PREMIS-hendelser.
-- PREMIS håndteres av `noark5_workflow/core/premis_logger.py` og executor-/workflowlaget.
-- En operasjon skal aldri bygge sin egen separate workflow-PREMIS XML.
+- **Alle operasjoner/tester** skal fremgå av vanlig intern workflow-/kjørelogg. Den interne hendelses-/loggmodellen er formatnøytral og er ikke definert av PREMIS.
+- PREMIS er ett valgbart proveniensformat. `enable_premis_provenance` styrer om PREMIS produseres; andre formater, inkludert CSV/JSON, kan legges til senere uten å endre workflowmotorens grunnmodell.
+- Relevante bevarings-, validerings-, migrerings-, slettings- og pakkingshendelser kan registreres som PREMIS-hendelser når PREMIS er aktivert.
+- PREMIS håndteres av `noark5_workflow/core/premis_logger.py` og executor-/workflowlaget. En operasjon skal aldri bygge sin egen separate workflow-PREMIS XML.
+- PREMIS skal registrere programvaren som software-agent og kan i tillegg registrere aktiv bruker som person-agent.
+- Standard PREMIS agent-identifikator for bruker er `username`. Setup kan velge `user_id` når en stabil teknisk identifikator er ønsket. Den interne `user_id` beholdes uansett hvilket PREMIS-valg som brukes.
 - Gyldige `eventType`-verdier følger DIAS_PREMIS v2.0: `Creation`, `Ingestion`, `Migration`, `Adjustment`, `Deletion`, `Disposal`.
-- Teknisk kjørelogg og PREMIS har ulike formål.
-- Noark 5-kilden skal ikke endres for å produsere PREMIS.
+- Teknisk kjørelogg, råresultater og PREMIS har ulike formål og skal ikke ukritisk kopieres over i hverandre.
+- Noark 5-kilden skal ikke endres for å produsere PREMIS eller andre logg-/proveniensformater.
 
 ## Versjonering og releasehistorikk
 
@@ -248,3 +298,9 @@ Alpha-/fikstrinn er midlertidige utviklingsidentifikatorer. Permanente release-n
 - Generiske forbedringer skal vurderes opp mot `SHARED-DEVELOPMENT.md` før de gjøres domenespesifikke.
 - `SHARED-ROADMAP.md` skal oppdateres når en funksjon implementeres i ett prosjekt og er kandidat for det andre.
 - Et eget felles GUI/core-repository opprettes ikke nå; kodebasene holdes løst koblet gjennom dokumenterte kontrakter, referanseimplementasjoner og tester.
+
+### Testkontrakter ved refaktorering
+
+Tester skal primært verifisere stabil, semantisk kontrakt og observerbar adferd. Når implementasjon flyttes bak en stabil adapter/sink/provider-grense, skal eldre tester oppdateres til den nye kontraktseieren i samme delta.
+
+Det er ikke tillatt å beholde tester som bare søker etter en bestemt implementasjonsstreng i en historisk fil dersom funksjonen fortsatt finnes korrekt bak en ny, dokumentert grense. Før levering skal AI derfor skanne eksisterende tester for slike forventninger når kode flyttes mellom filer eller lag.

@@ -35,12 +35,14 @@ class RunLogRobustnessA2154Tests(unittest.TestCase):
         self.assertIn("overview.fail(exc)", text)
         self.assertIn("BATCH FEIL:", text)
 
-    def test_main_uses_robust_runtime_chain(self):
+    def test_current_runtime_preserves_robust_runtime_chain(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a18 = (ROOT / "gui" / "persistent_app_a18.py").read_text(encoding="utf-8")
         a17 = (ROOT / "gui" / "persistent_app_a17.py").read_text(encoding="utf-8")
         a13 = (ROOT / "gui" / "persistent_app_a13.py").read_text(encoding="utf-8")
         a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a17", main)
+        self.assertIn("persistent_app_a18", main)
+        self.assertIn("A17WorkflowApp", a18)
         self.assertIn("A13WorkflowApp", a17)
         self.assertIn("persistent_app_a6", a13)
         self.assertIn("A5WorkflowApp", a6)

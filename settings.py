@@ -14,6 +14,9 @@ DEFAULT_CONFIG = {
     "setup_dir": "",
     "job_list_dir": "",
     "log_level": "INFO",
+    # Enabled output adapters. Runtime events themselves are format-neutral.
+    # Additional sinks such as CSV/JSON can be added without changing Core.
+    "enabled_log_sinks": ["text_run_log", "premis"],
     "operation_visibility": 2,
     "appearance_mode": "dark",
     "font_offset": 0,
@@ -38,8 +41,12 @@ DEFAULT_CONFIG = {
     "recent_job_list_dirs": [],
     "recent_job_list_files": [],
 
+    # PREMIS is one selectable provenance/log output. The internal workflow
+    # event/log model must remain usable independently of PREMIS so additional
+    # formats (for example CSV/JSON) can be added later.
     "enable_premis_provenance": True,
     "premis_output_dir": "",
+    "premis_agent_identifier": "username",
 }
 
 

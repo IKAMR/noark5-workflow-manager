@@ -36,14 +36,15 @@ def _job_to_dict(job:Job)->dict[str,Any]:
         "workflow_ids":list(job.workflow_ids),"operation_params":_json_value(job.operation_params),
         "status":job.status.value,"progress":float(job.progress),"worker":job.worker,"message":job.message,
         "log_entries":list(job.log_entries),"checkpoint_after":list(job.checkpoint_after),
-        "next_operation_index":int(job.next_operation_index)}
+        "next_operation_index":int(job.next_operation_index),
+        "owner_user_id":job.owner_user_id,"owner_username":job.owner_username,
+        "owner_name":job.owner_name,"owner_email":job.owner_email}
 def _optional_path(data:dict[str,Any],key:str)->Path|None:
     value=data.get(key); return Path(str(value)) if value else None
 
 def _job_from_dict(data:dict[str,Any],*,format_version:int)->Job:
     job_id=str(data.get("job_id","")).strip(); source_root=str(data.get("source_root","") or "").strip()
     if not job_id: raise JobListFormatError("Jobb mangler job_id")
-    # v1/v2 always required source_root. v3 permits a deliberately blank job.
     if format_version < 3 and not source_root: raise JobListFormatError(f"{job_id} mangler source_root")
     try: status=JobStatus(data.get("status",JobStatus.READY.value))
     except ValueError: status=JobStatus.READY
@@ -71,7 +72,9 @@ def _job_from_dict(data:dict[str,Any],*,format_version:int)->Job:
         archive_root=_optional_path(data,"archive_root") if format_version>=3 else output_root,
         name=str(data.get("name","")),profile_id=(str(data.get("profile_id")).strip() if data.get("profile_id") else None),workflow_ids=[str(v) for v in workflow_ids],operation_params=_json_value(params),
         status=status,progress=progress,worker=str(data.get("worker","Lokal (denne PC-en)")),message=message,
-        log_entries=[str(v) for v in logs][-2000:],checkpoint_after=[str(v) for v in checkpoints],next_operation_index=next_index)
+        log_entries=[str(v) for v in logs][-2000:],checkpoint_after=[str(v) for v in checkpoints],next_operation_index=next_index,
+        owner_user_id=str(data.get("owner_user_id","") or ""),owner_username=str(data.get("owner_username","") or ""),
+        owner_name=str(data.get("owner_name","") or ""),owner_email=str(data.get("owner_email","") or ""))
 
 def _existing_created_at(path:Path)->str|None:
     if not path.is_file(): return None

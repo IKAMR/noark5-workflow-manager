@@ -5,9 +5,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RawResultsGuiA17Tests(unittest.TestCase):
-    def test_main_uses_a17_runtime(self):
-        text = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a17", text)
+    def test_current_runtime_preserves_a17_runtime(self):
+        main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a18 = (ROOT / "gui" / "persistent_app_a18.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a18", main)
+        self.assertIn("A17WorkflowApp", a18)
 
     def test_path_is_job_work_operations_wf_results(self):
         text = (ROOT / "gui" / "result_history_dialog.py").read_text(encoding="utf-8")
@@ -34,13 +36,7 @@ class RawResultsGuiA17Tests(unittest.TestCase):
         self.assertIn("class WorkflowApp(A13WorkflowApp)", text)
         self.assertNotIn("def _build_header", text)
         self.assertIn('self.log_panel.set_aux_action("Resultater"', text)
-
-        # Header layout technique is private. This test locks only the stable
-        # semantic contract and the fact that Resultater belongs to the run log.
-        self.assertEqual(
-            HEADER_ACTIONS,
-            ("Mapper", "Jobber", "Setup", "A-", "A+", "?"),
-        )
+        self.assertEqual(HEADER_ACTIONS, ("Mapper", "Jobber", "Setup", "A-", "A+", "?"))
         self.assertEqual(RESULTS_ACTION_LOCATION, "run-log")
         self.assertIn("HEADER_ACTIONS", text)
         self.assertIn("self._a17_header_actions = actions", text)

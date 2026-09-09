@@ -1,0 +1,26 @@
+{
+  "definition_id": "text_run_default_v1",
+  "definition_version": 1,
+  "format": "text",
+  "implementation": "text_run_log_v1",
+  "event_kinds": [
+    "run.started",
+    "run.phase",
+    "job.started",
+    "job.finished",
+    "run.failed",
+    "run.finished"
+  ],
+  "field_map": {
+    "run_id": "Run ID",
+    "timestamp": "Tidspunkt",
+    "job_id": "Jobb-ID",
+    "message": "Resultat",
+    "user.username": "Utførende bruker"
+  },
+  "options": {
+    "human_readable": true,
+    "include_summary": true,
+    "mirror_to_work_operations_setting": "copy_run_log_to_work_operations"
+  }
+}

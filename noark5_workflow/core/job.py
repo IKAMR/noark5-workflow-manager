@@ -24,7 +24,7 @@ class Job:
 
     job_id: str
     source_root: Path | None = None
-    output_root: Path | None = None  # Legacy DIAS/AIC output; retained for compatibility.
+    output_root: Path | None = None
     source_tar: Path | None = None
     source_unzipped: Path | None = None
     source_extraction: Path | None = None
@@ -43,6 +43,13 @@ class Job:
     log_entries: list[str] = field(default_factory=list)
     checkpoint_after: list[str] = field(default_factory=list)
     next_operation_index: int = 0
+
+    # Stable owner identity snapshot. These fields identify who owns/created the
+    # job; they are deliberately separate from the user who executes a later run.
+    owner_user_id: str = ""
+    owner_username: str = ""
+    owner_name: str = ""
+    owner_email: str = ""
 
     def __post_init__(self) -> None:
         for attr in (
@@ -77,10 +84,34 @@ class Job:
             archive_root=self.archive_root,
         )
 
+    @property
+    def owner_identity(self) -> dict[str, str] | None:
+        if not self.owner_user_id:
+            return None
+        return {
+            "user_id": self.owner_user_id,
+            "username": self.owner_username,
+            "name": self.owner_name,
+            "email": self.owner_email,
+        }
+
+    def set_owner_identity(self, identity: dict | None) -> None:
+        """Set owner only while the job is unowned.
+
+        Ownership is a stable job property. Re-running a job as another user must
+        not silently rewrite who owns the job.
+        """
+        if self.owner_user_id or not identity:
+            return
+        self.owner_user_id = str(identity.get("user_id", "") or "").strip()
+        self.owner_username = str(identity.get("username", "") or "").strip()
+        self.owner_name = str(identity.get("name", "") or "").strip()
+        self.owner_email = str(identity.get("email", "") or "").strip()
+
     def is_unused_draft(self) -> bool:
         """Return True only for a disposable, never-used draft job.
 
-        The profile selection alone does not make a draft historically
+        Owner identity alone does not make a newly created blank draft historically
         significant. Any real source/storage assignment, workflow content,
         operation parameters, execution state or log history does.
         """
@@ -214,18 +245,14 @@ class JobBatch:
         for index, job in enumerate(self._jobs):
             if job.job_id != job_id:
                 continue
-
             recycle_number = None
             if job.is_unused_draft() and job.job_id.startswith("JOB-"):
                 try:
                     number = int(job.job_id[4:])
                 except ValueError:
                     number = None
-                # Reuse only the immediately preceding highest number.
-                # Never fill historical holes in the middle of a job list.
                 if number is not None and number == self._next_number - 1:
                     recycle_number = number
-
             del self._jobs[index]
             if recycle_number is not None:
                 self._next_number = recycle_number

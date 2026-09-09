@@ -63,6 +63,8 @@ class JobRunner:
             ctx=OperationContext(extraction_root=extraction_root, source=source, output_root=job.output_root,
                 work_root=job.work_root, work_content=job.work_content, work_operations=job.work_operations,
                 archive_root=job.archive_root, settings=self.settings, progress_cb=progress_cb, log_cb=log_cb, cancelled_cb=cancelled_cb)
+            ctx.metadata["job_id"] = job.job_id
+            ctx.metadata["run_id"] = str(self.settings.get("_current_run_id", "") or "")
             total=len(op_ids); all_ok=True
             for zero_index in range(start_index,total):
                 op_id=op_ids[zero_index]

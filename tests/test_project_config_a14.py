@@ -73,7 +73,7 @@ class ProjectConfigA14Tests(unittest.TestCase):
 
     def test_runtime_syncs_project_json_and_uses_wf_logs(self):
         runtime = (ROOT / "gui" / "persistent_app_a13.py").read_text(encoding="utf-8")
-        logs = (ROOT / "app" / "run_overview_log.py").read_text(encoding="utf-8")
+        logs = (ROOT / "noark5_workflow" / "sinks" / "text_run_log.py").read_text(encoding="utf-8")
         self.assertIn("_sync_project_file_for_job_list", runtime)
         self.assertIn("save_project(", runtime)
         self.assertIn('work_operations / "wf" / "logs"', logs)

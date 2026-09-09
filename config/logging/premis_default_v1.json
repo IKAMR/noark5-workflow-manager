@@ -1,0 +1,24 @@
+{
+  "definition_id": "premis_default_v1",
+  "definition_version": 1,
+  "format": "premis",
+  "implementation": "premis_xml_v1",
+  "event_kinds": [
+    "operation.completed"
+  ],
+  "field_map": {
+    "event_id": "eventIdentifierValue",
+    "timestamp": "eventDateTime",
+    "message": "eventDetail",
+    "success": "eventOutcome",
+    "operation_id": "eventDetailInformation.operation_id",
+    "user.username": "agentIdentifierValue",
+    "user.user_id": "agentIdentifierValue"
+  },
+  "options": {
+    "namespace_profile": "DIAS_PREMIS_2_0",
+    "default_agent_identifier": "username",
+    "event_type_source": "operation_semantics",
+    "include_technical_only": false
+  }
+}

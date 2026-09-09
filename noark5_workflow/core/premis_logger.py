@@ -3,6 +3,10 @@
 Loggeren bevarer eksisterende hendelser når samme uttrekk kjøres flere ganger
 mot samme arbeids-/utdataområde. En ny kjøring skal aldri stille overskrive
 historikken fra en tidligere kjøring.
+
+PREMIS er ett valgbart proveniensformat. Brukeridentiteten kommer fra den
+generiske runtime-konteksten og skal ikke gjøre workflowens interne loggmodell
+avhengig av PREMIS.
 """
 from __future__ import annotations
 
@@ -38,13 +42,29 @@ def _base_name(extraction_root: Path) -> str:
 class PremisProvenanceLogger:
     """Samler PREMIS-hendelser og bevarer tidligere proveniens."""
 
-    def __init__(self, log_dir, extraction_root, agent_version: str = ""):
+    def __init__(
+        self,
+        log_dir,
+        extraction_root,
+        agent_version: str = "",
+        *,
+        user_agent_identifier_type: str = "username",
+        user_agent_identifier_value: str = "",
+        user_agent_name: str = "",
+    ):
         self.log_dir = Path(log_dir)
         self.base = _base_name(Path(extraction_root))
         self.agent_id = (
             f"Noark 5 Workflow Manager v{agent_version}"
             if agent_version else "Noark 5 Workflow Manager"
         )
+        self.user_agent_identifier_type = (
+            user_agent_identifier_type
+            if user_agent_identifier_type in {"username", "user_id"}
+            else "username"
+        )
+        self.user_agent_identifier_value = str(user_agent_identifier_value or "").strip()
+        self.user_agent_name = str(user_agent_name or "").strip()
         self._events: list[dict] = []
         self._path: Path | None = None
         self._existing_loaded = False
@@ -73,11 +93,21 @@ class PremisProvenanceLogger:
         try:
             root = ET.parse(path).getroot()
         except (OSError, ET.ParseError) as exc:
-            # Do not overwrite unreadable provenance. Finalize will write a
-            # versioned side file instead, preserving the original bytes.
             logger.warning("Kunne ikke lese eksisterende PREMIS %s: %s", path, exc)
             self._existing_loaded = False
             return
+
+        agent_names: dict[tuple[str, str], str] = {}
+        for agent in root.findall(_p("agent")):
+            identifier = agent.find(_p("agentIdentifier"))
+            if identifier is None:
+                continue
+            identifier_type = identifier.findtext(_p("agentIdentifierType"), default="")
+            identifier_value = identifier.findtext(_p("agentIdentifierValue"), default="")
+            if identifier_type and identifier_value:
+                agent_names[(identifier_type, identifier_value)] = agent.findtext(
+                    _p("agentName"), default=""
+                )
 
         loaded: list[dict] = []
         for event in root.findall(_p("event")):
@@ -88,6 +118,23 @@ class PremisProvenanceLogger:
             outcome_value = "0"
             if outcome is not None:
                 outcome_value = outcome.findtext(_p("eventOutcome"), default="0")
+
+            user_type = ""
+            user_value = ""
+            user_name = ""
+            for linking in event.findall(_p("linkingAgentIdentifier")):
+                identifier_type = linking.findtext(
+                    _p("linkingAgentIdentifierType"), default=""
+                )
+                identifier_value = linking.findtext(
+                    _p("linkingAgentIdentifierValue"), default=""
+                )
+                if identifier_type in {"username", "user_id"} and identifier_value:
+                    user_type = identifier_type
+                    user_value = identifier_value
+                    user_name = agent_names.get((identifier_type, identifier_value), "")
+                    break
+
             loaded.append({
                 "type": event_type if event_type in VALID_EVENT_TYPES else DEFAULT_EVENT_TYPE,
                 "label": "",
@@ -95,6 +142,9 @@ class PremisProvenanceLogger:
                 "datetime": event_datetime,
                 "detail": detail,
                 "success": outcome_value == "0",
+                "user_agent_identifier_type": user_type,
+                "user_agent_identifier_value": user_value,
+                "user_agent_name": user_name,
             })
         self._events = loaded + self._events
 
@@ -131,6 +181,9 @@ class PremisProvenanceLogger:
                 "datetime": self._ts(),
                 "detail": detail or "",
                 "success": bool(getattr(result, "ok", True)),
+                "user_agent_identifier_type": self.user_agent_identifier_type,
+                "user_agent_identifier_value": self.user_agent_identifier_value,
+                "user_agent_name": self.user_agent_name,
             })
 
             if ctx is not None:
@@ -173,6 +226,11 @@ class PremisProvenanceLogger:
                 ctx.log("ADVARSEL: Kunne ikke skrive PREMIS-proveniensfil")
             return None
 
+    def _add_linking_agent(self, event: ET.Element, identifier_type: str, value: str) -> None:
+        lai = ET.SubElement(event, _p("linkingAgentIdentifier"))
+        ET.SubElement(lai, _p("linkingAgentIdentifierType")).text = identifier_type
+        ET.SubElement(lai, _p("linkingAgentIdentifierValue")).text = value
+
     def _build_tree(self, extraction_root: Path, ctx) -> ET.Element:
         obj_id = extraction_root.name
         root = ET.Element(_p("premis"), {
@@ -212,9 +270,11 @@ class PremisProvenanceLogger:
             outcome_inf = ET.SubElement(e, _p("eventOutcomeInformation"))
             ET.SubElement(outcome_inf, _p("eventOutcome")).text = "0" if ev["success"] else "1"
 
-            lai = ET.SubElement(e, _p("linkingAgentIdentifier"))
-            ET.SubElement(lai, _p("linkingAgentIdentifierType")).text = "Noark5-Workflow-Manager"
-            ET.SubElement(lai, _p("linkingAgentIdentifierValue")).text = self.agent_id
+            self._add_linking_agent(e, "Noark5-Workflow-Manager", self.agent_id)
+            user_type = ev.get("user_agent_identifier_type", "")
+            user_value = ev.get("user_agent_identifier_value", "")
+            if user_type in {"username", "user_id"} and user_value:
+                self._add_linking_agent(e, user_type, user_value)
 
             loi = ET.SubElement(e, _p("linkingObjectIdentifier"))
             ET.SubElement(loi, _p("linkingObjectIdentifierType")).text = "NO/RA"
@@ -226,4 +286,23 @@ class PremisProvenanceLogger:
         ET.SubElement(aid, _p("agentIdentifierValue")).text = self.agent_id
         ET.SubElement(agent, _p("agentName")).text = "Noark 5 Workflow Manager"
         ET.SubElement(agent, _p("agentType")).text = "software"
+
+        seen_users: set[tuple[str, str]] = set()
+        for ev in self._events:
+            user_type = ev.get("user_agent_identifier_type", "")
+            user_value = ev.get("user_agent_identifier_value", "")
+            if user_type not in {"username", "user_id"} or not user_value:
+                continue
+            user_key = (user_type, user_value)
+            if user_key in seen_users:
+                continue
+            seen_users.add(user_key)
+            user_agent = ET.SubElement(root, _p("agent"))
+            user_aid = ET.SubElement(user_agent, _p("agentIdentifier"))
+            ET.SubElement(user_aid, _p("agentIdentifierType")).text = user_type
+            ET.SubElement(user_aid, _p("agentIdentifierValue")).text = user_value
+            user_name = ev.get("user_agent_name", "")
+            if user_name:
+                ET.SubElement(user_agent, _p("agentName")).text = user_name
+            ET.SubElement(user_agent, _p("agentType")).text = "person"
         return root

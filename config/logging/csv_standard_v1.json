@@ -1,0 +1,28 @@
+{
+  "definition_id": "csv_standard_v1",
+  "definition_version": 1,
+  "format": "csv",
+  "implementation": "csv_standard_v1",
+  "event_kinds": [
+    "*"
+  ],
+  "field_map": {
+    "timestamp": "timestamp",
+    "kind": "kind",
+    "run_id": "run_id",
+    "job_id": "job_id",
+    "operation_id": "operation_id",
+    "operation_name": "operation_name",
+    "success": "success",
+    "message": "message",
+    "user.username": "username",
+    "user.user_id": "user_id"
+  },
+  "options": {
+    "delimiter": ";",
+    "encoding": "utf-8-sig",
+    "newline": "",
+    "flatten_nested": false,
+    "include_header": true
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "definition_id": "json_full_v1",
+  "definition_version": 1,
+  "format": "json",
+  "implementation": "json_full_v1",
+  "event_kinds": [
+    "*"
+  ],
+  "field_map": {
+    "schema_version": "schema_version",
+    "event_id": "event_id",
+    "timestamp": "timestamp",
+    "kind": "kind",
+    "run_id": "run_id",
+    "job_id": "job_id",
+    "operation_id": "operation_id",
+    "operation_name": "operation_name",
+    "parent_event_id": "parent_event_id",
+    "success": "success",
+    "message": "message",
+    "user": "user",
+    "data": "data"
+  },
+  "options": {
+    "output_mode": "jsonl",
+    "preserve_nested_data": true,
+    "include_all_events": true
+  }
+}

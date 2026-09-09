@@ -15,7 +15,10 @@ class StatusBar(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         self.left_var = ctk.StringVar(value="Jobbliste: [ikke lagret]")
         self.status_var = ctk.StringVar(value="Klar")
-        self.right_var = ctk.StringVar(value=f"Tråder: {os.cpu_count() or 1} | Deteksjon: -- | Backend: lokal")
+        self.right_var = ctk.StringVar(value="")
+        self._runtime_text = self._default_runtime_text()
+        self._user_text = "Bruker: --"
+        self._refresh_right()
 
         self.left_label = ctk.CTkLabel(
             self,
@@ -33,6 +36,12 @@ class StatusBar(ctk.CTkFrame):
             row=0, column=2, padx=10, pady=3, sticky="e"
         )
 
+    def _default_runtime_text(self, detection: str = "--") -> str:
+        return f"Tråder: {os.cpu_count() or 1} | Deteksjon: {detection} | Backend: lokal"
+
+    def _refresh_right(self) -> None:
+        self.right_var.set(f"{self._user_text} | {self._runtime_text}")
+
     def set_status(self, text: str) -> None:
         self.status_var.set(text)
 
@@ -42,6 +51,12 @@ class StatusBar(ctk.CTkFrame):
             self.left_var.set(f"Jobbliste: {Path(path)}")
         else:
             self.left_var.set("Jobbliste: [ikke lagret]")
+
+    def set_user(self, username: str | None) -> None:
+        """Show the human-facing username in the persistent status area."""
+        value = (username or "").strip()
+        self._user_text = f"Bruker: {value}" if value else "Bruker: --"
+        self._refresh_right()
 
     def set_temp(self, temp_dir: str | None) -> None:
         """Backward-compatible no-op.
@@ -54,13 +69,16 @@ class StatusBar(ctk.CTkFrame):
     def update_storage(self, path: str | Path | None, detection: str = "Noark 5") -> None:
         threads = os.cpu_count() or 1
         if not path:
-            self.right_var.set(f"Tråder: {threads} | Deteksjon: {detection} | Backend: lokal")
+            self._runtime_text = f"Tråder: {threads} | Deteksjon: {detection} | Backend: lokal"
+            self._refresh_right()
             return
         try:
             usage = shutil.disk_usage(str(path))
             free_gib = usage.free / (1024 ** 3)
-            self.right_var.set(
-                f"Ledig: {free_gib:,.1f} GB | Tråder: {threads} | Deteksjon: {detection} | Backend: lokal"
+            self._runtime_text = (
+                f"Ledig: {free_gib:,.1f} GB | Tråder: {threads} | "
+                f"Deteksjon: {detection} | Backend: lokal"
             )
         except OSError:
-            self.right_var.set(f"Tråder: {threads} | Deteksjon: {detection} | Backend: lokal")
+            self._runtime_text = f"Tråder: {threads} | Deteksjon: {detection} | Backend: lokal"
+        self._refresh_right()

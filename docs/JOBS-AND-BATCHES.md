@@ -25,6 +25,20 @@ Jobbliste
 
 Jobbtilstand skal eies av jobb-/workflowmodellen, ikke av GUI-state alene.
 
+## Brukeridentitet, jobbeier og utførende bruker
+
+Fra a18 skilles det mellom **jobbeier** og **utførende bruker**.
+
+- Nye jobber som opprettes i GUI får et snapshot av aktiv registrert bruker: `owner_user_id`, `owner_username`, `owner_name` og `owner_email`.
+- `owner_user_id` er den stabile tekniske identiteten. Snapshot-feltene gjør historikken lesbar også dersom registrerte brukeropplysninger senere endres.
+- Jobbeier skal ikke omskrives automatisk når jobben kjøres på nytt av en annen bruker.
+- En blank ny jobb er fortsatt et disponibelt utkast selv om eieridentitet er satt. Eieridentitet alene skal derfor ikke gjøre utkastet historisk signifikant.
+- Eldre/importerte jobber uten eierfelt er gyldige og forblir eksplisitt uten registrert eier til en senere, bevisst eierskapsfunksjon eventuelt innføres.
+- Hver kjøring registrerer i tillegg **utførende bruker** fra runtime-konteksten. Dette er brukeren som faktisk startet den aktuelle kjøringen og kan være forskjellig fra jobbeieren.
+- Skillet er nødvendig for framtidig serverdrift, tilgangskontroll, kø og eventuell eksplisitt overføring/delegering av jobber.
+
+Dette er en generell jobb-/runtime-kontrakt og er ikke bundet til PREMIS. PREMIS og andre loggformater kan bruke den samme identiteten etter sine egne formatregler.
+
 ## Persistente jobblister
 
 Jobblister kan lagres og åpnes som `.n5jobs`.
@@ -140,3 +154,17 @@ Workflow -> Job -> Batch -> Scheduler -> Worker
 - Hver jobb skal ha isolert output/proveniens.
 - Remote/server execution skal bruke job specifications og storage references fremfor å sende store payloads gjennom GUI-et.
 - Jobb- og workflowfunksjoner som skal være tilgjengelige fra flere grensesnitt skal ikke implementeres bare i GUI- eller CLI-handlere.
+
+## Identity provider og servergrense
+
+Brukeridentitet skal ikke hentes direkte fra lokal profilfil i Core.
+
+```text
+Desktop GUI -> LocalUserProfileIdentityProvider --\
+CLI/API -------------------------------------------> UserIdentity -> Job/Runtime
+Server -----> framtidig ServerIdentityProvider ----/
+```
+
+`UserIdentity` er transportnøytral og inneholder `user_id`, `username`, navn og e-post. Lokal desktop bruker foreløpig `LocalUserProfileIdentityProvider`. En senere server kan bruke database, katalogtjeneste, Entra ID eller annen autentiseringskilde bak samme provider-kontrakt.
+
+Jobb-/workflowmodellen, event-systemet og loggformatene skal derfor aldri forutsette at `user-profile.json` finnes.

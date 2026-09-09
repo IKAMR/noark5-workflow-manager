@@ -1,62 +1,48 @@
-from pathlib import Path
-
 from .base import BaseExecutor
-from noark5_workflow.core.context import OperationContext
+from noark5_workflow.core.events import WorkflowEvent
+from noark5_workflow.core.identity import UserIdentity
 from noark5_workflow.core.operation import BaseOperation
-from noark5_workflow.core.premis_logger import PremisProvenanceLogger
 from noark5_workflow.core.raw_result_store import persist_operation_raw_result
 from noark5_workflow.core.result import OperationResult
-from noark5_workflow.core.result_review import premis_eligible
+from noark5_workflow.logging_pipeline import event_dispatcher_for
 
 
 class LocalExecutor(BaseExecutor):
     backend_id = "local"
 
-    def _premis_logger(self, operation: BaseOperation, result: OperationResult, ctx: OperationContext) -> PremisProvenanceLogger | None:
-        if not bool(ctx.settings.get("enable_premis_provenance", True)):
-            return None
-        try:
-            requested_dir = operation.premis_output_dir(result, ctx)
-        except Exception:
-            requested_dir = None
-        if not requested_dir:
-            ctx.log("PREMIS: ingen eksplisitt utdatamappe - workflow-PREMIS skrives ikke")
-            return None
-        log_dir = Path(requested_dir).resolve()
-        input_root = ctx.input_root.resolve()
-        premis_key = f"{log_dir}|{input_root}"
-        logger = ctx.metadata.get("premis_logger")
-        logger_key = ctx.metadata.get("premis_logger_key")
-        if logger is not None and logger_key == premis_key:
-            return logger
-        try:
-            from version import VERSION
-        except Exception:
-            VERSION = ""
-        logger = PremisProvenanceLogger(log_dir, input_root, agent_version=str(VERSION))
-        ctx.metadata["premis_object_root"] = input_root
-        ctx.metadata["premis_output_dir"] = str(log_dir)
-        ctx.metadata["premis_logger_key"] = premis_key
-        ctx.metadata["premis_logger"] = logger
-        return logger
-
-    def execute(self, operation: BaseOperation, ctx: OperationContext) -> OperationResult:
+    def execute(self, operation: BaseOperation, ctx) -> OperationResult:
         allowed, reason = operation.can_run(ctx)
         if not allowed:
             return OperationResult(False, reason or "Operasjonen kan ikke kjøres i denne konteksten.")
+
         result = operation.run(ctx)
 
-        # a17: raw result persistence is independent from PREMIS. Only
-        # operations that explicitly opt in are recorded in the append-only
-        # raw-result ledger. A failed test result is therefore preserved as an
-        # observation without automatically becoming provenance.
         persist_operation_raw_result(operation, result, ctx)
-
         ctx.set_result(operation.definition.operation_id, result.data)
-        if premis_eligible(operation, result, ctx):
-            premis_logger = self._premis_logger(operation, result, ctx)
-            if premis_logger:
-                premis_logger.record(operation, result, ctx)
-                premis_root = ctx.metadata.get("premis_object_root", ctx.input_root)
-                premis_logger.finalize(premis_root, ctx)
+
+        identity = UserIdentity.from_mapping(
+            ctx.settings.get("_current_user_identity")
+            if isinstance(ctx.settings, dict)
+            else None
+        )
+        event = WorkflowEvent.now(
+            "operation.completed",
+            run_id=str(ctx.settings.get("_current_run_id", "") or ""),
+            job_id=str(ctx.metadata.get("job_id", "") or ""),
+            success=bool(getattr(result, "ok", True)),
+            message=str(getattr(result, "message", "") or ""),
+            operation_id=str(getattr(operation.definition, "operation_id", "") or ""),
+            operation_name=str(getattr(operation.definition, "name", "") or ""),
+            user=identity,
+            data={
+                "warnings": list(getattr(result, "warnings", []) or []),
+                "result": getattr(result, "data", None),
+            },
+        )
+        event_dispatcher_for(ctx).emit(
+            event,
+            operation=operation,
+            result=result,
+            ctx=ctx,
+        )
         return result
