@@ -25,9 +25,82 @@ Før analyse eller endring av kode i dette repositoriet:
 
 Nye tanker eller framtidsretninger skal normalt legges til som avgrensede arkitektur-/designpresiseringer. Eksisterende dokumentasjon skal ikke omskrives bredt dersom den fortsatt er korrekt.
 
+### Obligatorisk regresjonskontroll før kode leveres
+
+Dette er en fast utviklingsregel, spesielt etter at en eksisterende implementasjon er erstattet av en sterkere eller mer generell variant.
+
+- Før et nytt delta leveres skal endrede produksjonsfiler og funksjoner sammenholdes med **alle eksisterende tester som refererer til dem**.
+- Søk eksplisitt etter tester som låser seg til gammel implementasjonsdetalj, for eksempel eksakte strenguttrykk som `self._location_dialog.winfo_exists()` eller direkte modulnavn i en runtime-kjede.
+- Når kontrakten er bevart eller styrket, men implementasjonen er endret, skal den gamle testen oppdateres i **samme delta**. Produksjonskode skal ikke svekkes bare for å tilfredsstille en foreldet test.
+- Nye tester skal kontrollere ønsket kontrakt/adferd, ikke tilfeldig syntaks, med mindre akkurat syntaksen er en offentlig kontrakt.
+- For a17 GUI-kontrakter som brukes av flere tester skal stabile semantiske verdier samles i `gui/ui_contract_a17.py`. Tester skal bruke disse kontraktene i stedet for private grid-kolonner, hjelpefunksjonsnavn eller tilfeldige dokumentformuleringer.\n- `tests/test_a17_test_contract_hygiene.py` er obligatorisk regresjonsvern mot kjente foreldede a17-testmønstre. Når en implementasjonsdetalj erstattes, skal det gamle testmønsteret legges til denne kontrollen samtidig.\n- GUI-kode skal ikke referere til udefinerte `theme`-symboler. Kompatibilitetsalias kan brukes når to etablerte navn uttrykker samme semantiske fargeverdi, men én verdi skal være autoritativ.
+- Tester av dokumentasjon skal ikke feile på tilfeldige ordvalg eller korte tekstfragmenter når den dokumenterte kontrakten er semantisk den samme. De skal primært låse stabile overskrifter, kontraktsbegreper og nødvendige regler; eksakt formulering brukes bare når ordlyden i seg selv er kontrakten.
+- Før levering skal det også kontrolleres at deltaet ikke introduserer filer som eksisterende repository-regler uttrykkelig forbyr, herunder permanente `Axx-*.md`-/alpha-dokumenter i `docs/`.
+- Alpha-/delta-dokumentasjon skal innarbeides i eksisterende kanoniske dokumenter (`DEVELOPMENT.md`, `METHOD-OBSERVATIONS.md` osv.) i stedet for å bli liggende som permanente per-alpha-filer.
+- Dersom full `test.bat` ikke kan kjøres i utviklingsmiljøet før levering, er en statisk kompatibilitetssjekk av berørte eksisterende tester et minimumskrav; brukeren skal ikke måtte oppdage samme type foreldede testforventning gjentatte ganger.
+
+Denne kontrollen er en del av ferdigstillingen av hvert increment, ikke en valgfri etterkontroll.
+
 ## GUI-konvensjoner
 
 Følgende regler er flyttet hit fra `INTERFACE.md` fordi de beskriver GUI-/utviklingskonvensjoner, ikke datautvekslingsgrensesnitt.
+
+
+
+### Idempotente konfigurasjonsvalg
+
+- En brukerhandling som velger samme verdi som allerede er aktiv, er ikke en konfigurasjonsendring.
+- Særlig profilvalg skal være idempotent: velges `Noark 5` når aktiv jobb allerede har `Noark 5`, skal det ikke utløse ny deteksjon, endringslogg eller unødvendig persistens.
+- Endringslogg skal beskrive reelle tilstandsendringer, ikke gjentatt valg av samme verdi.
+
+### Automatisk lagring av workflow-oppsett
+
+- Når aktiv jobbliste allerede har en autoritativ `.n5jobs`-fil, skal brukerens endringer i aktiv jobb lagres automatisk når operasjoner legges til, fjernes eller hele workflowen tømmes.
+- Rekkefølgeendringer, konfigurasjonsendringer og andre eksisterende eksplisitt persisterte workflow-endringer beholder samme prinsipp: aktiv jobb og jobblistefil skal være synkronisert etter brukerhandlingen.
+- Workflowens synlige operasjonsliste skal synkroniseres til aktiv `Job` umiddelbart ved legg til, fjern og tøm. Persistens skal ikke være avhengig av `after_idle` eller annen utsatt GUI-timing.
+- Når jobblista allerede har en autoritativ fil, skal workflow-endringen skrives til denne umiddelbart. Konfigurerbare operasjoner kan skrive på nytt når deres parametre/metadata er ferdig lagret.
+- **Jobbskifte er en eksplisitt persistensgrense:** jobben som forlates synkroniseres og lagres før ny jobb åpnes, og den nye aktive jobb-ID-en lagres etter skiftet.
+- **Applikasjonslukking er en eksplisitt persistensgrense:** aktiv workflow synkroniseres og jobblista lagres før hovedvinduet destrueres.
+- Dersom jobblista ennå ikke er lagret, beholdes endringen i aktiv jobb/minne, men det opprettes ikke en fil implisitt; statuslinjen skal gjøre dette tydelig.
+- Gjenåpning/restart skal derfor returnere brukeren til siste lagrede aktive jobb og workflow-oppsett, inkludert tidkrevende operasjonskonfigurasjon.
+- Endring av en tidligere kjørt eller ventende workflow skal fortsatt markere jobben som klar for ny kjøring etter gjeldende rerun-regler.
+
+### Statuslinje og aktiv jobbliste
+
+- Venstre felt i hovedvinduets bunnlinje viser den **aktive autoritative jobblistefilen**, ikke temp-katalogen.
+- Når en jobblistefil er åpen eller lagret, skal full sti vises som `Jobbliste: <full sti>`.
+- Når aktiv jobbliste ennå ikke er lagret, skal feltet vise `Jobbliste: [ikke lagret]`.
+- Visningen skal oppdateres etter restart/gjenåpning, `Åpne jobbliste`, `Lagre`, `Lagre som` og `Ny jobbliste`.
+- Temp-katalog er konfigurasjon og trenger ikke permanent plass i hovedvinduet; den finnes i Innstillinger.
+- Midtfeltet i bunnlinjen beholdes for løpende status, og høyrefeltet for runtime-/lagringsinformasjon.
+
+
+### Stabil header-layout
+
+- Topp-headerens endelige a17-handlingsgruppe er `Mapper`, `Jobber`, `Setup`, `A-`, `A+`, `?`.
+- `Endre temp-mappe` skal ikke være egen hovedknapp; temp-mappe konfigureres i `Setup`.
+- `Setup` erstatter `Innstillinger` i hovedheaderen og som dialogtittel.
+- `Jobber` skal alltid være eksplisitt synlig mellom `Mapper` og `Setup`.
+- Den endelige handlingsgruppen skal eies av én dedikert header-frame. Arvede/foreldede handlingsknapper skjules før den nye gruppen bygges, slik at runtime-lag ikke kan kollidere i separate grid-kolonner.
+- Setup-dialogen skal beholde eksisterende innhold og funksjoner; a17 legger bare til tydelig navn og `Velg…` for Temp-mappe uten bred omskriving av dialogen.
+
+
+### Dialogplassering og fler-skjermsoppsett
+
+- Egne Tk/CustomTkinter-dialoger og hjelpevinduer skal åpnes relativt til det vinduet som eier eller utløser dem, ikke på en fast skjermposisjon.
+- Når hovedvinduet eller et foreldrevindu står på en ekstern skjerm, skal nye egne dialoger normalt åpnes på samme arbeidsområde/skjerm.
+- En dialog som åpnes fra en annen dialog skal bruke nærmeste synlige foreldrevindu som referanse når det er praktisk mulig.
+- Felles plassering skal implementeres sentralt og gjenbrukes; nye dialogklasser skal ikke innføre egen tilfeldig eller hardkodet skjermplassering.
+- Posisjoneringslogikk skal være defensiv: feil ved beregning av vindusposisjon skal ikke hindre dialogen i å åpnes.
+- Endringer i felles dialogplassering skal praktisk testes med minst hovedvindu + ett hjelpevindu på et fler-skjermsoppsett når slik test er tilgjengelig.
+
+### Enkeltinstans for dialoger
+
+- En brukerhandling som åpner en egen dialog skal ikke kunne opprette flere parallelle kopier av samme dialog ved raske eller gjentatte klikk.
+- Dialogåpning skal ha en eksplisitt enkeltinstans-/reentrancy-vakt som settes før nytt `Toplevel` konstrueres; kontroll av `winfo_exists()` alene er ikke tilstrekkelig som eneste vern mot raske dobbeltklikk.
+- Utløsende knapp kan deaktiveres mens dialogen er åpen og aktiveres igjen når selve toppvinduet lukkes.
+- `Destroy`-håndtering skal skille mellom dialogens eget toppvindu og underliggende child-widgets, slik at vakten ikke nullstilles for tidlig.
+- Nye dialoger som kan åpnes fra gjentatte brukerhandlinger skal følge samme mønster og ha regresjonstest for enkeltinstansadferd når det er praktisk mulig.
 
 ### Knappestiler og handlingshierarki
 
@@ -61,6 +134,24 @@ Workflow-listen bruker kompakt modenhetsmerking på én rad:
 - Sletting av en jobb fjerner bare jobbposten fra jobblista. Kilde, utdata og tidligere resultatmapper på disk skal ikke slettes som sideeffekt.
 - Flytting og sletting av jobber er deaktivert mens batch kjører.
 - Når en tidligere kjørt jobb redigeres slik at gjeldende konfigurasjon må kjøres på nytt, kan den interne statusen være `Klar`. GUI-et skal samtidig synliggjøre dette som `Klar – endret etter kjøring`. Kravet om eksplisitt rerun-godkjenning beholdes.
+
+### Lagre som – én eksplisitt skriveoperasjon
+
+- `Lagre som` skal ikke skrive noen `.n5jobs`-fil før brukeren har valgt mappe og bekreftet filnavn.
+- Selve `Lagre som`-transaksjonen skal skrive nøyaktig ett eksplisitt mål.
+- Automatisk persistens til tidligere aktiv jobbliste skal utsettes mens `Lagre som`-dialogflyten pågår.
+- Etter vellykket `Lagre som` blir den valgte filen ny aktiv jobbliste; tidligere fil skal ikke kopieres eller flyttes som sideeffekt.
+
+### Jobbidentitet og full reset av jobbliste
+
+- Sletting av én jobb skal aldri renummerere andre eksisterende jobber.
+- En jobb som har fått reell konfigurasjon, workflow, operasjonsparametre, kjøringsstatus eller logghistorikk har historisk identitet; jobbnummeret skal ikke gjenbrukes etter sletting.
+- En **ubrukt kladdejobb** kan frigjøre nummeret sitt når den slettes dersom den er det siste/høyeste opprettede jobbnummeret. Dette gjelder en jobb uten source-/lagringsroller, workflow, operasjonsparametre, checkpoint, egendefinert navn eller kjøringshistorikk. Profilvalg alene gjør ikke kladden historisk signifikant.
+- Hull i midten av en eksisterende jobbliste fylles aldri automatisk. Bare det umiddelbart siste/høyeste ubrukt kladdenummeret kan gjenbrukes.
+- Den siste gjenværende jobben skal fortsatt ikke slettes med `Slett`; bruk `Ny jobbliste` når hensikten er å starte helt på nytt.
+- `Ny jobbliste` etablerer en ny aktiv identitetskontekst: den aktive jobblista tømmes, GUI-/visningsloggen tømmes, og første nye jobb skal få `JOB-001`.
+- Full reset av aktiv jobbliste skal ikke slette persistente kjørelogger, råresultater, PREMIS-filer eller andre historiske filer på disk.
+- GUI-tekst og tester skal gjøre skillet tydelig mellom individuell sletting, gjenbruk av siste ubrukt kladde-ID og full reset av jobblista.
 
 ## Innstillinger og mappeadferd
 

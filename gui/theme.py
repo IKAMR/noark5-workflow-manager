@@ -36,6 +36,9 @@ DROPZONE_BG = "#1a2640"
 CARD_BG = "#191d28"
 CARD_BORDER = "#252b3a"
 TEXT = "#d4daf0"
+# Compatibility alias: some older/newer GUI widgets use the descriptive
+# TEXT_MAIN name. Keep one authoritative value and expose both names.
+TEXT_MAIN = TEXT
 TEXT_SUB = "#b7bcc8"
 TEXT_MUTED = "#8a95b0"
 BLUE = "#4f8ef7"

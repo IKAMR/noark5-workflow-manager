@@ -126,6 +126,57 @@ Systemer som både fører teknisk historikk og domeneproveniens bør klassifiser
 **Metodikkstatus:** Til senere samlet vurdering.
 
 
+
+### MO-008 – Rå observasjon må skilles fra senere faglig konklusjon
+
+**Oppstått:** v0.1.2-a17
+
+**Bakgrunn:**  
+Et testresultat kan være teknisk korrekt registrert som `FAIL` på kjøringstidspunktet, men senere vise seg å være en falsk feil fordi selve testen, XPath-en eller regelimplementasjonen var feil. Historikken om at testen feilet er fortsatt sann, mens påstanden om at uttrekket hadde et avvik ikke lenger er faglig gyldig.
+
+**Observasjon:**  
+Dersom råresultat og endelig konklusjon lagres som samme verdi, må systemet enten miste historikk ved retting eller risikere at underkjente testfunn forurenser sluttrapporter og proveniens.
+
+**Mulig generell læring:**  
+AI-assisterte og andre automatiserte kvalitetssystemer bør bevare rå observasjoner uendret og legge senere vurdering som et eget, sporbar lag. Endelige rapporter og domenespesifikk proveniens bør bygges fra et autoritativt resultatsett etter vurdering, ikke direkte fra alle historiske testresultater. Korrigering av testapparatet bør derfor kunne underkjenne eller erstatte et resultat uten å slette at den opprinnelige kjøringen fant sted.
+
+**Metodikkstatus:** Til senere samlet vurdering.
+
+
+
+### MO-009 – Nye hjelpevinduer må arve brukerens aktive arbeidskontekst
+
+**Oppstått:** v0.1.2-a17
+
+**Bakgrunn:**  
+Et nytt hjelpevindu (`Jobber`) åpnet på en annen fysisk skjerm enn hovedapplikasjonen i et fler-skjermsoppsett. Funksjonen var teknisk tilgjengelig, men brøt brukerens aktive arbeidskontekst og gjorde arbeidsflyten unødvendig tung.
+
+**Observasjon:**  
+Automatiserte tester kan bekrefte at et vindu finnes og kan åpnes, men ikke nødvendigvis at det åpnes på et praktisk sted i brukerens faktiske desktop-oppsett. Når nye dialoger introduseres inkrementelt, kan de også få ulik plassering dersom hver dialog implementerer dette selv.
+
+**Mulig generell læring:**  
+Inkrementell GUI-utvikling bør bevare ikke bare funksjonell kontrakt, men også eksisterende arbeidskontekst. Nye hjelpevinduer bør som hovedregel arve eller beregne plassering fra vinduet som utløste dem. Tverrgående GUI-adferd som vindusplassering bør implementeres sentralt og låses med regresjonstester der dette kan automatiseres, supplert med praktisk test på representativt fler-skjermsoppsett. Dette reduserer risikoen for at små funksjonstillegg gradvis fragmenterer brukeropplevelsen.
+
+**Metodikkstatus:** Kandidat til senere samlet vurdering i `IKAMR/incremental-ai-development-method`.
+
+
+
+### MO-010 – Endret implementasjon krever samtidig kontroll av eldre tester
+
+**Oppstått:** v0.1.2-a17
+
+**Bakgrunn:**  
+Flere a17-endringer styrket eksisterende GUI-kontrakter, men eldre regresjonstester var skrevet mot eksakte implementasjonsstrenger fra tidligere alphaer. Resultatet ble gjentatte testfeil først hos bruker, selv om produksjonsadferden var korrekt. I samme utviklingsløp ble det også opprettet en midlertidig `A17-*.md` i `docs/`, til tross for en eksisterende regel om at alpha-dokumenter ikke skal være permanente.
+
+**Observasjon:**  
+Det er ikke tilstrekkelig å legge til nye tester for den nye implementasjonen. Når en eksisterende funksjon endres, må hele den eldre testflaten som refererer til funksjonen eller filen kontrolleres samtidig. Tilsvarende må nye filer kontrolleres mot repository-regler før de leveres.
+
+**Mulig generell læring:**  
+Ved inkrementell utvikling bør hvert delta ha en obligatorisk «regresjons-preflight»: identifiser endrede produksjonsfiler/funksjoner, finn alle eksisterende tester som refererer til dem, vurder om testene uttrykker kontrakt eller tilfeldig implementasjonsdetalj, og oppdater foreldede tester i samme increment. Preflighten bør også kontrollere repository-strukturregler, slik at midlertidige utviklingsartefakter ikke introduseres som permanente filer. Dette reduserer gjentatte feil som ellers først oppdages i brukerens fulltest.
+
+**Metodikkstatus:** Kandidat til senere samlet vurdering i `IKAMR/incremental-ai-development-method`.
+
+
 ---
 
 ## Behandlede observasjoner

@@ -17,6 +17,7 @@ class SourcePanel(ctk.CTkFrame):
         self.path_var=ctk.StringVar()
         self.settings=load_config()
         self._location_dialog=None
+        self._location_dialog_open=False
         self.grid_columnconfigure(0,weight=1); self.grid_rowconfigure(3,weight=1)
         self.title_label=ctk.CTkLabel(self,text="SOURCE",font=theme.font(theme.SECTION_SIZE,"bold"),
                                       text_color=theme.TEXT_MUTED)
@@ -70,17 +71,55 @@ class SourcePanel(ctk.CTkFrame):
         self._browse()
 
     def _browse(self)->None:
-        if self._location_dialog is not None and self._location_dialog.winfo_exists():
-            self._location_dialog.focus(); self._location_dialog.lift(); return
+        # Single-instance guard is set before the dialog is constructed.
+        # This closes the small rapid-click race where two CTkToplevels could
+        # be created before the first one was fully mapped.
+        if self._location_dialog_open:
+            dialog=self._location_dialog
+            if dialog is not None:
+                try:
+                    if dialog.winfo_exists():
+                        dialog.focus(); dialog.lift()
+                except Exception:
+                    pass
+            return
+
+        self._location_dialog_open=True
+        self.browse_button.configure(state="disabled")
         initial=str(self.settings.get("last_source_extraction_dir","")).strip()
         initial_path=Path(initial) if initial else None
-        dialog=SourceLocationDialog(self,recent_dirs=self._recent_dirs(),initial_dir=initial_path,
-                                    on_choose=self._browse_chosen,on_remove=self._forget)
-        self._location_dialog=dialog
-        dialog.bind("<Destroy>",lambda _e,d=dialog:self._location_closed(d),add="+")
+        try:
+            dialog=SourceLocationDialog(
+                self,
+                recent_dirs=self._recent_dirs(),
+                initial_dir=initial_path,
+                on_choose=self._browse_chosen,
+                on_remove=self._forget,
+            )
+            self._location_dialog=dialog
+            dialog.bind(
+                "<Destroy>",
+                lambda event,d=dialog:self._location_closed(d,event),
+                add="+",
+            )
+        except Exception:
+            self._location_dialog=None
+            self._location_dialog_open=False
+            self.browse_button.configure(state="normal")
+            raise
 
-    def _location_closed(self,dialog)->None:
-        if self._location_dialog is dialog: self._location_dialog=None
+    def _location_closed(self,dialog,event=None)->None:
+        # Ignore Destroy events from children. Only the actual Toplevel closes
+        # the single-instance guard.
+        if event is not None and getattr(event,"widget",None) is not dialog:
+            return
+        if self._location_dialog is dialog:
+            self._location_dialog=None
+        self._location_dialog_open=False
+        try:
+            self.browse_button.configure(state="normal")
+        except Exception:
+            pass
 
     def _browse_chosen(self,path:Path)->None:
         self.set_path(str(path))

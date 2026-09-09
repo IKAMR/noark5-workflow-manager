@@ -37,6 +37,20 @@ class AnalyseNoark5CoreOperation(BaseOperation):
         category="Innhold",
     )
 
+    # a17: preserve each execution as immutable raw evidence. This is not a
+    # PREMIS declaration and does not make the analysis authoritative by itself.
+    raw_result_record = True
+
+    def raw_result_identity(self, result: OperationResult, ctx: OperationContext) -> dict[str, str]:
+        try:
+            definition = json.loads(DEFINITION_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            definition = {}
+        return {
+            "test_id": str(definition.get("definition_id") or self.definition.operation_id),
+            "definition_version": str(definition.get("format_version") or ""),
+        }
+
     def can_run(self, ctx: OperationContext) -> tuple[bool, str]:
         extraction = ctx.source or Noark5Extraction.detect(ctx.extraction_root)
         if not extraction.metadata_files.get("arkivstruktur"):
@@ -91,5 +105,7 @@ class AnalyseNoark5CoreOperation(BaseOperation):
                 "analysis": result,
                 "report": str(output_path),
                 "definition": str(DEFINITION_PATH),
+                "definition_id": str(definition.get("definition_id", "")),
+                "definition_version": str(definition.get("format_version", "")),
             },
         )

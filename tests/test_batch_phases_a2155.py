@@ -17,7 +17,15 @@ class BatchPhasesA2155Tests(unittest.TestCase):
         text=(ROOT/"gui"/"persistent_app_a2155.py").read_text(encoding="utf-8")
         for phrase in ("startup_watchdog","first_job_registered","worker_started","BATCH STARTUP-FEIL","self.batch_running = False"): self.assertIn(phrase,text)
     def test_main_uses_a2155_through_current_runtime(self):
-        main=(ROOT/"main.py").read_text(encoding="utf-8"); a13=(ROOT/"gui"/"persistent_app_a13.py").read_text(encoding="utf-8"); a6=(ROOT/"gui"/"persistent_app_a6.py").read_text(encoding="utf-8"); a5=(ROOT/"gui"/"persistent_app_a5.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a13",main); self.assertIn("persistent_app_a6",a13); self.assertIn("A5WorkflowApp",a6); self.assertIn("A2155WorkflowApp",a5)
+        main=(ROOT/"main.py").read_text(encoding="utf-8")
+        a17=(ROOT/"gui"/"persistent_app_a17.py").read_text(encoding="utf-8")
+        a13=(ROOT/"gui"/"persistent_app_a13.py").read_text(encoding="utf-8")
+        a6=(ROOT/"gui"/"persistent_app_a6.py").read_text(encoding="utf-8")
+        a5=(ROOT/"gui"/"persistent_app_a5.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a17",main)
+        self.assertIn("A13WorkflowApp",a17)
+        self.assertIn("persistent_app_a6",a13)
+        self.assertIn("A5WorkflowApp",a6)
+        self.assertIn("A2155WorkflowApp",a5)
 
 if __name__ == "__main__": unittest.main()

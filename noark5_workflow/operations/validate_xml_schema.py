@@ -18,6 +18,23 @@ class ValidateXmlSchemaOperation(BaseOperation):
         execution_target=ExecutionTarget.EITHER, category="Integritet",
     )
 
+    # a17: both PASS and FAIL are raw observations. A later assessment decides
+    # whether a finding is accepted, rejected as a test defect or superseded.
+    raw_result_record = True
+
+    def raw_result_identity(self, result: OperationResult, ctx: OperationContext) -> dict[str, str]:
+        try:
+            definition = json.loads(DEFINITION_PATH.read_text(encoding="utf-8"))
+            validation = (definition.get("validations") or [{}])[0]
+        except Exception:
+            definition, validation = {}, {}
+        definition_id = str(definition.get("definition_id") or self.definition.operation_id)
+        validation_id = str(validation.get("id") or "")
+        return {
+            "test_id": f"{definition_id}/{validation_id}" if validation_id else definition_id,
+            "definition_version": str(definition.get("format_version") or ""),
+        }
+
     def can_run(self, ctx: OperationContext) -> tuple[bool, str]:
         extraction=ctx.source or Noark5Extraction.detect(ctx.extraction_root)
         if not extraction.metadata_files.get("arkivstruktur"): return False,"arkivstruktur.xml er påkrevd."
@@ -36,6 +53,12 @@ class ValidateXmlSchemaOperation(BaseOperation):
         ctx.progress(0.25,f"XSD: {schema_path.name}"); result=validate_xml_against_xsd(xml_path,schema_path)
         report_path=Path(ctx.work_operations) / "noark5_tests" / "schema" / item["output"]
         write_validation_report(result,report_path,validation_id=item["id"]); ctx.progress(1.0,"XML/XSD-validering fullført")
-        data={**result.as_dict(),"report":str(report_path)}
+        data={
+            **result.as_dict(),
+            "report":str(report_path),
+            "definition_id": str(definition.get("definition_id", "")),
+            "definition_version": str(definition.get("format_version", "")),
+            "validation_id": str(item.get("id", "")),
+        }
         if result.valid: return OperationResult(True,f"XML/XSD-validering OK. Rapport: {report_path}",data=data)
         return OperationResult(False,f"XML/XSD-validering feilet med {len(result.errors)} avvik. Rapport: {report_path}",data=data)

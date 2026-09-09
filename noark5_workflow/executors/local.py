@@ -4,7 +4,9 @@ from .base import BaseExecutor
 from noark5_workflow.core.context import OperationContext
 from noark5_workflow.core.operation import BaseOperation
 from noark5_workflow.core.premis_logger import PremisProvenanceLogger
+from noark5_workflow.core.raw_result_store import persist_operation_raw_result
 from noark5_workflow.core.result import OperationResult
+from noark5_workflow.core.result_review import premis_eligible
 
 
 class LocalExecutor(BaseExecutor):
@@ -43,8 +45,15 @@ class LocalExecutor(BaseExecutor):
         if not allowed:
             return OperationResult(False, reason or "Operasjonen kan ikke kjøres i denne konteksten.")
         result = operation.run(ctx)
+
+        # a17: raw result persistence is independent from PREMIS. Only
+        # operations that explicitly opt in are recorded in the append-only
+        # raw-result ledger. A failed test result is therefore preserved as an
+        # observation without automatically becoming provenance.
+        persist_operation_raw_result(operation, result, ctx)
+
         ctx.set_result(operation.definition.operation_id, result.data)
-        if operation.premis_should_record(result, ctx):
+        if premis_eligible(operation, result, ctx):
             premis_logger = self._premis_logger(operation, result, ctx)
             if premis_logger:
                 premis_logger.record(operation, result, ctx)

@@ -56,9 +56,13 @@ class WorkspaceRunLogsA215Tests(unittest.TestCase):
 
     def test_runtime_is_wired_to_a215(self):
         main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a17 = (ROOT / "gui" / "persistent_app_a17.py").read_text(encoding="utf-8")
+        a13 = (ROOT / "gui" / "persistent_app_a13.py").read_text(encoding="utf-8")
         runtime = (ROOT / "gui" / "persistent_app_a215.py").read_text(encoding="utf-8")
         a6 = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a6", main)
+        self.assertIn("persistent_app_a17", main)
+        self.assertIn("A13WorkflowApp", a17)
+        self.assertIn("persistent_app_a6", a13)
         self.assertIn("A5WorkflowApp", a6)
         self.assertIn('self._new_run_log("single")', runtime)
         self.assertIn('self._new_run_log("batch")', runtime)

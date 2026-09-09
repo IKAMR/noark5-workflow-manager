@@ -40,8 +40,13 @@ class A16StorageLocationDialogTests(unittest.TestCase):
 
     def test_only_one_role_location_dialog_is_open(self):
         text = (ROOT / "gui" / "storage_roles_dialog.py").read_text(encoding="utf-8")
-        self.assertIn("self._location_dialog", text)
-        self.assertIn("self._location_dialog.winfo_exists()", text)
+        # a17 strengthens the former winfo_exists-only implementation:
+        # explicit reentrancy state is set before constructing the chooser.
+        self.assertIn("self._location_dialog_open = False", text)
+        self.assertIn("if self._location_dialog_open:", text)
+        self.assertIn("self._location_dialog_open = True", text)
+        self.assertIn("self._location_dialog = dialog", text)
+        self.assertIn("dialog.winfo_exists()", text)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Callable
 
 import customtkinter as ctk
 
@@ -17,20 +18,21 @@ class LogPanel(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self._entries: list[str] = []
         self._show_all = True
+        self.aux_button = None
 
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
-        header.grid_columnconfigure(0, weight=1)
+        self.header = ctk.CTkFrame(self, fg_color="transparent")
+        self.header.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
+        self.header.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            header,
+            self.header,
             text="KJØRELOGG",
             font=theme.font(theme.SECTION_SIZE, "bold"),
             text_color=theme.TEXT_MUTED,
         ).grid(row=0, column=0, sticky="w")
 
         self.show_button = ctk.CTkButton(
-            header,
+            self.header,
             text="Vis siste",
             width=66,
             height=22,
@@ -39,10 +41,10 @@ class LogPanel(ctk.CTkFrame):
             hover_color=theme.BUTTON_HOVER,
             command=self._toggle_show,
         )
-        self.show_button.grid(row=0, column=1, padx=(0, 4))
+        self.show_button.grid(row=0, column=2, padx=(0, 4))
 
         ctk.CTkButton(
-            header,
+            self.header,
             text="Tøm",
             width=50,
             height=22,
@@ -50,7 +52,7 @@ class LogPanel(ctk.CTkFrame):
             font=theme.font(theme.SMALL_SIZE),
             fg_color=theme.BUTTON_BG,
             hover_color=theme.BUTTON_HOVER,
-        ).grid(row=0, column=2)
+        ).grid(row=0, column=3)
 
         self.textbox = ctk.CTkTextbox(
             self,
@@ -62,6 +64,23 @@ class LogPanel(ctk.CTkFrame):
             state="disabled",
         )
         self.textbox.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+
+    def set_aux_action(self, text: str, command: Callable[[], None]) -> None:
+        """Expose one optional context action without consuming app-header space."""
+        if self.aux_button is None:
+            self.aux_button = ctk.CTkButton(
+                self.header,
+                text=text,
+                width=76,
+                height=22,
+                font=theme.font(theme.SMALL_SIZE),
+                fg_color=theme.BUTTON_BG,
+                hover_color=theme.BUTTON_HOVER,
+                command=command,
+            )
+            self.aux_button.grid(row=0, column=1, padx=(0, 4))
+        else:
+            self.aux_button.configure(text=text, command=command)
 
     def append(self, text: str, timestamp: bool = True) -> None:
         prefix = f"[{datetime.now().strftime('%H:%M:%S')}] " if timestamp else ""

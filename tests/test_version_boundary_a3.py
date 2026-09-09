@@ -6,9 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionBoundaryA3Tests(unittest.TestCase):
-    def test_internal_version_is_a16(self):
+    def test_internal_version_is_a17(self):
         text = (ROOT / "version.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "0.1.2-a16"', text)
+        self.assertIn('VERSION = "0.1.2-a17"', text)
 
     def test_alpha_state_documents_are_not_permanent(self):
         docs = ROOT / "docs"

@@ -13,13 +13,19 @@ class StatusBar(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color=theme.APP_BG, corner_radius=0, height=theme.STATUS_HEIGHT)
         self.grid_columnconfigure(1, weight=1)
-        self.left_var = ctk.StringVar(value="Temp: (auto)")
+        self.left_var = ctk.StringVar(value="Jobbliste: [ikke lagret]")
         self.status_var = ctk.StringVar(value="Klar")
         self.right_var = ctk.StringVar(value=f"Tråder: {os.cpu_count() or 1} | Deteksjon: -- | Backend: lokal")
 
-        ctk.CTkLabel(self, textvariable=self.left_var, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT_MUTED).grid(
-            row=0, column=0, padx=10, pady=3, sticky="w"
+        self.left_label = ctk.CTkLabel(
+            self,
+            textvariable=self.left_var,
+            font=theme.font(theme.SMALL_SIZE),
+            text_color=theme.TEXT_MUTED,
+            anchor="w",
         )
+        self.left_label.grid(row=0, column=0, padx=10, pady=3, sticky="w")
+
         ctk.CTkLabel(self, textvariable=self.status_var, font=theme.font(theme.SMALL_SIZE), text_color=theme.TEXT).grid(
             row=0, column=1, padx=10, pady=3
         )
@@ -30,8 +36,20 @@ class StatusBar(ctk.CTkFrame):
     def set_status(self, text: str) -> None:
         self.status_var.set(text)
 
+    def set_job_list(self, path: str | Path | None) -> None:
+        """Show the authoritative active job-list file in the persistent left field."""
+        if path:
+            self.left_var.set(f"Jobbliste: {Path(path)}")
+        else:
+            self.left_var.set("Jobbliste: [ikke lagret]")
+
     def set_temp(self, temp_dir: str | None) -> None:
-        self.left_var.set(f"Temp: {temp_dir}" if temp_dir else "Temp: (auto)")
+        """Backward-compatible no-op.
+
+        The temp directory is configuration, not active work context, and is
+        available through Settings. Older runtime layers may still call this.
+        """
+        return None
 
     def update_storage(self, path: str | Path | None, detection: str = "Noark 5") -> None:
         threads = os.cpu_count() or 1

@@ -42,8 +42,14 @@ class A15Fix5BlankJobFlowTests(unittest.TestCase):
 
     def test_source_location_dialog_is_single_instance(self):
         text=(ROOT/"gui"/"source_panel.py").read_text(encoding="utf-8")
-        self.assertIn("self._location_dialog.winfo_exists()",text)
+        # a17 strengthens the old a15 contract: the guard is set before the
+        # dialog constructor, and the existing dialog is focused through the
+        # local dialog reference.
+        self.assertIn("self._location_dialog_open=False",text)
+        self.assertIn("if self._location_dialog_open:",text)
+        self.assertIn("self._location_dialog_open=True",text)
         self.assertIn("self._location_dialog=dialog",text)
+        self.assertIn("dialog.winfo_exists()",text)
 
     def test_storage_roles_dialog_is_single_instance(self):
         text=(ROOT/"gui"/"persistent_app_a13.py").read_text(encoding="utf-8")

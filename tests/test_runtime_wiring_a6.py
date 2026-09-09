@@ -6,8 +6,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class A6RuntimeWiringTests(unittest.TestCase):
     def test_main_uses_a6_runtime(self):
-        text = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertIn("persistent_app_a6", text)
+        main = (ROOT / "main.py").read_text(encoding="utf-8")
+        a17 = (ROOT / "gui" / "persistent_app_a17.py").read_text(encoding="utf-8")
+        a13 = (ROOT / "gui" / "persistent_app_a13.py").read_text(encoding="utf-8")
+        self.assertIn("persistent_app_a17", main)
+        self.assertIn("A13WorkflowApp", a17)
+        self.assertIn("persistent_app_a6", a13)
 
     def test_a6_inherits_a5_and_wires_preflight(self):
         text = (ROOT / "gui" / "persistent_app_a6.py").read_text(encoding="utf-8")

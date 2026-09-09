@@ -77,6 +77,41 @@ class Job:
             archive_root=self.archive_root,
         )
 
+    def is_unused_draft(self) -> bool:
+        """Return True only for a disposable, never-used draft job.
+
+        The profile selection alone does not make a draft historically
+        significant. Any real source/storage assignment, workflow content,
+        operation parameters, execution state or log history does.
+        """
+        has_storage = any((
+            self.source_root,
+            self.output_root,
+            self.source_tar,
+            self.source_unzipped,
+            self.source_extraction,
+            self.work_root,
+            self.work_content,
+            self.work_operations,
+            self.archive_root,
+        ))
+        default_name = not self.name or self.name == self.job_id
+        never_executed = (
+            self.status == JobStatus.READY
+            and float(self.progress or 0.0) == 0.0
+            and int(self.next_operation_index or 0) == 0
+            and not self.message
+            and not self.log_entries
+        )
+        return (
+            not has_storage
+            and default_name
+            and not self.workflow_ids
+            and not self.operation_params
+            and not self.checkpoint_after
+            and never_executed
+        )
+
     def _normalise_checkpoint_state(self) -> None:
         valid = set(self.workflow_ids)
         self.checkpoint_after = [oid for oid in dict.fromkeys(self.checkpoint_after) if oid in valid]
@@ -177,9 +212,24 @@ class JobBatch:
 
     def remove(self, job_id: str) -> bool:
         for index, job in enumerate(self._jobs):
-            if job.job_id == job_id:
-                del self._jobs[index]
-                return True
+            if job.job_id != job_id:
+                continue
+
+            recycle_number = None
+            if job.is_unused_draft() and job.job_id.startswith("JOB-"):
+                try:
+                    number = int(job.job_id[4:])
+                except ValueError:
+                    number = None
+                # Reuse only the immediately preceding highest number.
+                # Never fill historical holes in the middle of a job list.
+                if number is not None and number == self._next_number - 1:
+                    recycle_number = number
+
+            del self._jobs[index]
+            if recycle_number is not None:
+                self._next_number = recycle_number
+            return True
         return False
 
     def move_up(self, job_id: str) -> bool:

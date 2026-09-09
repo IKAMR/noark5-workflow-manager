@@ -31,6 +31,9 @@ class StorageRolesDialog(ctk.CTkToplevel):
         self.vars = {}
         self.settings = load_config()
         self._location_dialog = None
+        self._location_dialog_open = False
+        self._choose_buttons = []
+
         self.title(f"Mapper – {job.job_id}")
         self.geometry("1380x620")
         self.minsize(1120, 520)
@@ -76,11 +79,14 @@ class StorageRolesDialog(ctk.CTkToplevel):
             ctk.CTkEntry(
                 self, textvariable=var, font=theme.font(theme.SMALL_SIZE)
             ).grid(row=row, column=1, padx=4, pady=5, sticky="ew")
-            ctk.CTkButton(
+
+            button = ctk.CTkButton(
                 self, text="Velg...", width=76,
                 fg_color=theme.BUTTON_BG, hover_color=theme.BUTTON_HOVER,
                 command=lambda a=attr, k=kind: self._choose(a, k),
-            ).grid(row=row, column=2, padx=(8, 18), pady=5)
+            )
+            button.grid(row=row, column=2, padx=(8, 18), pady=5)
+            self._choose_buttons.append(button)
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.grid(row=20, column=0, columnspan=3, padx=18, pady=18, sticky="e")
@@ -94,6 +100,13 @@ class StorageRolesDialog(ctk.CTkToplevel):
             fg_color=theme.BLUE_DIM, hover_color=theme.BLUE,
             command=self._save,
         ).pack(side="left", padx=4)
+
+    def _set_choose_buttons_state(self, state: str) -> None:
+        for button in self._choose_buttons:
+            try:
+                button.configure(state=state)
+            except Exception:
+                pass
 
     def _role_history(self, attr: str) -> list[Path]:
         raw = self.settings.get("recent_storage_role_paths", {})
@@ -123,8 +136,8 @@ class StorageRolesDialog(ctk.CTkToplevel):
         history[attr] = values
         self.settings["recent_storage_role_paths"] = history
         save_config({"recent_storage_role_paths": history})
-        self._location_dialog = None
-        self._choose(attr, dict((a, k) for a, _l, k in _FIELDS)[attr])
+        kind = dict((a, k) for a, _l, k in _FIELDS)[attr]
+        self.after_idle(lambda a=attr, k=kind: self._choose(a, k))
 
     def _current_path(self, attr: str) -> Path | None:
         value = self.vars[attr].get().strip()
@@ -133,7 +146,7 @@ class StorageRolesDialog(ctk.CTkToplevel):
     def _suggestions(self, attr: str) -> list[Path]:
         """Safe convenience suggestions; never write these without user choice."""
         work_root = self._current_path("work_root")
-        suggestions: list[Path] = []
+        suggestions = []
         if work_root:
             if attr == "work_content":
                 suggestions.append(work_root / "content")
@@ -144,7 +157,7 @@ class StorageRolesDialog(ctk.CTkToplevel):
         return suggestions
 
     def _choices(self, attr: str) -> list[LocationChoice]:
-        choices: list[LocationChoice] = []
+        choices = []
         current = self._current_path(attr)
         if current:
             choices.append(LocationChoice("Gjeldende", current, False))
@@ -162,33 +175,56 @@ class StorageRolesDialog(ctk.CTkToplevel):
         return history[0] if history else None
 
     def _choose(self, attr: str, kind: str) -> None:
-        if self._location_dialog is not None and self._location_dialog.winfo_exists():
-            self._location_dialog.focus()
-            self._location_dialog.lift()
+        if self._location_dialog_open:
+            dialog = self._location_dialog
+            if dialog is not None:
+                try:
+                    if dialog.winfo_exists():
+                        dialog.focus()
+                        dialog.lift()
+                except Exception:
+                    pass
             return
 
+        self._location_dialog_open = True
+        self._set_choose_buttons_state("disabled")
         label = _LABELS[attr]
-        dialog = StorageLocationDialog(
-            self,
-            title=f"Velg {label}",
-            heading=label.upper(),
-            description=(
-                "Velg gjeldende, foreslått eller tidligere sted. "
-                "Bruk «Annen mappe/fil» for vanlig filsystemvalg."
-            ),
-            choices=self._choices(attr),
-            initial_path=self._initial_for_role(attr, kind),
-            kind=kind,
-            on_choose=lambda path, a=attr: self._role_chosen(a, path),
-            on_remove=lambda path, a=attr: self._forget_role(a, path),
-            filetypes=[("TAR", "*.tar"), ("Alle filer", "*.*")] if kind == "file" else None,
-        )
-        self._location_dialog = dialog
-        dialog.bind("<Destroy>", lambda _e, d=dialog: self._location_closed(d), add="+")
 
-    def _location_closed(self, dialog) -> None:
+        try:
+            dialog = StorageLocationDialog(
+                self,
+                title=f"Velg {label}",
+                heading=label.upper(),
+                description=(
+                    "Velg gjeldende, foreslått eller tidligere sted. "
+                    "Bruk «Annen mappe/fil» for vanlig filsystemvalg."
+                ),
+                choices=self._choices(attr),
+                initial_path=self._initial_for_role(attr, kind),
+                kind=kind,
+                on_choose=lambda path, a=attr: self._role_chosen(a, path),
+                on_remove=lambda path, a=attr: self._forget_role(a, path),
+                filetypes=[("TAR", "*.tar"), ("Alle filer", "*.*")] if kind == "file" else None,
+            )
+            self._location_dialog = dialog
+            dialog.bind(
+                "<Destroy>",
+                lambda event, d=dialog: self._location_closed(d, event),
+                add="+",
+            )
+        except Exception:
+            self._location_dialog = None
+            self._location_dialog_open = False
+            self._set_choose_buttons_state("normal")
+            raise
+
+    def _location_closed(self, dialog, event=None) -> None:
+        if event is not None and getattr(event, "widget", None) is not dialog:
+            return
         if self._location_dialog is dialog:
             self._location_dialog = None
+        self._location_dialog_open = False
+        self._set_choose_buttons_state("normal")
 
     def _role_chosen(self, attr: str, path: Path) -> None:
         self.vars[attr].set(str(path))
