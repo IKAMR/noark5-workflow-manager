@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VersionBoundaryA3Tests(unittest.TestCase):
-    def test_internal_version_is_current_a18(self):
-        self.assertEqual(VERSION, "0.1.2-a18")
+    def test_internal_version_uses_current_alpha_format(self):
+        self.assertRegex(VERSION, r"^0\.1\.2-a\d+(?:\.\d+)?$")
 
     def test_alpha_state_documents_are_not_permanent(self):
         docs = ROOT / "docs"

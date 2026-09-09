@@ -10,8 +10,6 @@ KNOWN_METADATA_FILES = {
     "endringslogg": "endringslogg.xml",
 }
 
-# Arkade 5 accepts these explicit document-folder names. Keep the variants
-# explicit so behavior is identical on case-sensitive filesystems later.
 DOCUMENT_DIR_NAMES = {
     "dokument",
     "DOKUMENT",
@@ -34,32 +32,69 @@ class Noark5Extraction:
         if not root.is_dir():
             raise ValueError(f"Uttrekksroten er ikke en mappe: {root}")
 
-        # The shell searches the selected extraction root and one level below.
-        # Deeper/package-aware discovery can be added as a dedicated operation.
-        candidates = [root] + [p for p in root.iterdir() if p.is_dir()]
-
-        def find_named(name: str) -> Path | None:
-            lname = name.lower()
-            for base in candidates:
-                for p in base.iterdir():
-                    if p.is_file() and p.name.lower() == lname:
-                        return p
-            return None
-
-        metadata = {key: find_named(filename) for key, filename in KNOWN_METADATA_FILES.items()}
-
+        metadata_by_name = {
+            filename.casefold(): key
+            for key, filename in KNOWN_METADATA_FILES.items()
+        }
+        metadata: dict[str, Path | None] = {
+            key: None for key in KNOWN_METADATA_FILES
+        }
         xsd_files: list[Path] = []
         business: list[Path] = []
         documents_dir: Path | None = None
 
-        for base in candidates:
-            for p in base.iterdir():
-                if p.is_file() and p.suffix.lower() == ".xsd":
-                    xsd_files.append(p)
-                if p.is_file() and "virksomhetsspes" in p.name.lower() and p.suffix.lower() == ".xml":
-                    business.append(p)
-                if p.is_dir() and p.name in DOCUMENT_DIR_NAMES:
-                    documents_dir = p
+        # Read the selected root once. Direct document folders are identified here
+        # but deliberately not traversed: a Noark document directory can contain
+        # very large numbers of files and is not a metadata discovery location.
+        try:
+            root_entries = list(root.iterdir())
+        except OSError as exc:
+            raise ValueError(f"Kunne ikke lese uttrekksroten {root}: {exc}") from exc
+
+        child_dirs: list[Path] = []
+        for entry in root_entries:
+            try:
+                if entry.is_dir():
+                    if entry.name in DOCUMENT_DIR_NAMES:
+                        documents_dir = entry
+                    else:
+                        child_dirs.append(entry)
+            except OSError:
+                continue
+
+        # Search root and non-document child directories one level below, exactly
+        # once per directory. This preserves the established discovery depth while
+        # avoiding repeated O(n) scans for each known metadata filename.
+        for base, entries in [(root, root_entries)]:
+            cls._collect_entries(
+                entries,
+                metadata_by_name,
+                metadata,
+                xsd_files,
+                business,
+            )
+
+        for base in child_dirs:
+            try:
+                entries = list(base.iterdir())
+            except OSError:
+                continue
+
+            for entry in entries:
+                try:
+                    if entry.is_dir() and entry.name in DOCUMENT_DIR_NAMES:
+                        if documents_dir is None:
+                            documents_dir = entry
+                except OSError:
+                    continue
+
+            cls._collect_entries(
+                entries,
+                metadata_by_name,
+                metadata,
+                xsd_files,
+                business,
+            )
 
         return cls(
             root=root,
@@ -68,6 +103,35 @@ class Noark5Extraction:
             documents_dir=documents_dir,
             business_metadata_files=sorted(set(business)),
         )
+
+    @staticmethod
+    def _collect_entries(
+        entries: list[Path],
+        metadata_by_name: dict[str, str],
+        metadata: dict[str, Path | None],
+        xsd_files: list[Path],
+        business: list[Path],
+    ) -> None:
+        for entry in entries:
+            try:
+                if not entry.is_file():
+                    continue
+            except OSError:
+                continue
+
+            folded = entry.name.casefold()
+            metadata_key = metadata_by_name.get(folded)
+            if metadata_key is not None and metadata[metadata_key] is None:
+                metadata[metadata_key] = entry
+
+            if entry.suffix.casefold() == ".xsd":
+                xsd_files.append(entry)
+
+            if (
+                entry.suffix.casefold() == ".xml"
+                and "virksomhetsspes" in folded
+            ):
+                business.append(entry)
 
     @property
     def is_noark5_candidate(self) -> bool:
@@ -78,7 +142,8 @@ class Noark5Extraction:
             "root": str(self.root),
             "is_noark5_candidate": self.is_noark5_candidate,
             "metadata_files": {
-                key: str(value) if value else None for key, value in self.metadata_files.items()
+                key: str(value) if value else None
+                for key, value in self.metadata_files.items()
             },
             "xsd_count": len(self.xsd_files),
             "documents_dir": str(self.documents_dir) if self.documents_dir else None,

@@ -9,18 +9,14 @@ from .user_profile_dialog import UserProfileDialog
 
 
 class WorkflowApp(A17WorkflowApp):
-    """a18 runtime layer: stable local user identity and provenance-ready context."""
-
     def __init__(self) -> None:
         self.identity_provider = LocalUserProfileIdentityProvider()
         self.user_profile: UserProfile | None = self.identity_provider.profile
         self._user_profile_dialog = None
         self._last_source_log_key: str | None = None
+        self._job_context_switch = False
         super().__init__()
         self._apply_user_identity_runtime()
-        # Tooltips are transient UI only. Hide them on any click so an
-        # overrideredirect/topmost tooltip cannot become an orphan window when
-        # dialogs open or the workflow UI changes.
         self.bind_all("<ButtonPress>", self._hide_workflow_tooltips, add="+")
         if self.user_profile is None:
             self.after_idle(lambda: self._open_user_profile(required=True))
@@ -30,18 +26,10 @@ class WorkflowApp(A17WorkflowApp):
         return self.user_profile.user_id if self.user_profile else None
 
     def current_user_identity(self) -> dict[str, str] | None:
-        """Stable identity contract for job/log/PREMIS/server integrations."""
         identity = self.identity_provider.current_identity()
         return identity.as_dict() if identity is not None else None
 
     def _apply_user_identity_runtime(self) -> None:
-        """Attach identity to runtime settings without persisting personal data in setup.
-
-        JobRunner passes the settings mapping into OperationContext, so this private
-        runtime key makes user identity available to generic execution/log layers.
-        It is deliberately not part of DEFAULT_CONFIG and is stripped before setup
-        is saved/exported.
-        """
         identity = self.current_user_identity()
         if identity:
             self.settings["_current_user_identity"] = dict(identity)
@@ -54,7 +42,6 @@ class WorkflowApp(A17WorkflowApp):
             runner.settings = self.settings
 
     def _source_log_changed(self, root) -> bool:
-        """Return True only when the effective source really changed."""
         key = str(root).replace("\\", "/").rstrip("/").casefold()
         if key == self._last_source_log_key:
             return False
@@ -62,13 +49,9 @@ class WorkflowApp(A17WorkflowApp):
         return True
 
     def _source_changed(self, extraction: Noark5Extraction | None) -> None:
-        """Preserve established source handling without duplicate GUI log entries.
-
-        Source detection and storage-role dialogs may report the same effective
-        extraction several times. Only a real source value change belongs in the
-        visible run history.
-        """
         self.extraction = extraction
+        if self._job_context_switch:
+            return
         if extraction:
             changed = self._source_log_changed(extraction.root)
             self._ensure_job_for_current_source()
@@ -81,8 +64,6 @@ class WorkflowApp(A17WorkflowApp):
             else:
                 self.status_bar.set_status("arkivstruktur.xml ble ikke funnet")
         else:
-            # Reset only when the source field is actually cleared. A transient
-            # re-detection must not make the same path appear as a new selection.
             try:
                 if not self.source_panel.path_var.get().strip():
                     self._last_source_log_key = None
@@ -90,26 +71,73 @@ class WorkflowApp(A17WorkflowApp):
                 pass
             self.status_bar.set_status("Klar")
 
+    def _load_job_list_file(self, path, *, show_error: bool) -> bool:
+        self._job_context_switch = True
+        try:
+            self.source_panel.path_var.set("")
+            self.source_panel.extraction = None
+            self.extraction = None
+            self._last_source_log_key = None
+            loaded = super()._load_job_list_file(path, show_error=show_error)
+            if not loaded:
+                return False
+            active_source = (
+                self.current_job.active_extraction_root
+                if self.current_job is not None
+                else None
+            )
+            self.source_panel.path_var.set(
+                str(active_source) if active_source is not None else ""
+            )
+            self.source_panel.extraction = None
+            self.extraction = None
+        finally:
+            self._job_context_switch = False
+        self.source_panel.detect()
+
+        # The custom job-list chooser is asynchronous. JobsWindow._open_list()
+        # cannot refresh based on the immediate return value, so refresh an
+        # already open Jobs window explicitly after the new list is active.
+        jobs_window = getattr(self, "jobs_window", None)
+        if jobs_window is not None:
+            try:
+                if jobs_window.winfo_exists():
+                    jobs_window.refresh()
+            except Exception:
+                pass
+        return True
+
+    def _open_job(self, job) -> None:
+        already_guarded = self._job_context_switch
+        if not already_guarded:
+            self._job_context_switch = True
+            self.source_panel.path_var.set("")
+            self.source_panel.extraction = None
+        try:
+            super()._open_job(job)
+        finally:
+            if not already_guarded:
+                self._job_context_switch = False
+        if not already_guarded:
+            active_source = job.active_extraction_root
+            self.source_panel.path_var.set(
+                str(active_source) if active_source is not None else ""
+            )
+            self.source_panel.extraction = None
+            self.extraction = None
+            self.source_panel.detect()
+
     def _create_job(self, source_root=None):
-        """Create a new job owned by the currently registered user."""
         job = super()._create_job(source_root)
         job.set_owner_identity(self.current_user_identity())
         return job
 
     def _new_job_list(self) -> bool:
-        """Reset the list and immediately create the first blank JOB-001.
-
-        A new job list is a new job-identity context. The GUI should therefore
-        never leave the user in an extra "no active job" step before they can
-        select profile, source and workflow.
-        """
         if not super()._new_job_list():
             return False
-
         job = self.jobs.new_job(None)
         job.set_owner_identity(self.current_user_identity())
         self.current_job = job
-
         self.workflow.clear()
         self.workflow_panel.refresh()
         self.source_panel.path_var.set("")
@@ -120,7 +148,6 @@ class WorkflowApp(A17WorkflowApp):
         return True
 
     def _hide_workflow_tooltips(self, _event=None) -> None:
-        """Close any workflow tooltip before dialogs/actions continue."""
         panel = getattr(self, "workflow_panel", None)
         for tooltip in list(getattr(panel, "_tooltips", ())):
             try:
@@ -143,7 +170,9 @@ class WorkflowApp(A17WorkflowApp):
         if existing is not None:
             try:
                 if existing.winfo_exists():
-                    existing.focus(); existing.lift(); return
+                    existing.focus()
+                    existing.lift()
+                    return
             except Exception:
                 pass
         dialog = UserProfileDialog(self, self.user_profile, self._user_profile_saved, required=required)
@@ -151,8 +180,6 @@ class WorkflowApp(A17WorkflowApp):
         dialog.bind("<Destroy>", lambda event, d=dialog: self._user_profile_closed(event, d), add="+")
 
     def _user_profile_saved(self, profile: UserProfile) -> None:
-        # save_user_profile preserves the existing UUID user_id; editable profile
-        # fields describe the same registered identity rather than creating a new one.
         self.user_profile = profile
         self.identity_provider.set_profile(profile)
         self._apply_user_identity_runtime()

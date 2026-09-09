@@ -48,6 +48,7 @@ class ProfileRegistryA12Tests(unittest.TestCase):
                 "metadata_inventory",
                 "analyse_arkivstruktur",
                 "analyse_noark5_core",
+                "analyse_noark5_u1",
                 "validate_xml_schema",
                 "dias_package",
             ],

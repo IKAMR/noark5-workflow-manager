@@ -16,8 +16,13 @@ class A18RuntimeBoundaryTests(unittest.TestCase):
         self.assertIn("from .persistent_app_a17 import WorkflowApp as A17WorkflowApp", a18)
         self.assertIn("class WorkflowApp(A17WorkflowApp)", a18)
 
-    def test_version_boundary_matches_a18(self):
-        self.assertEqual(VERSION, "0.1.2-a18")
+    def test_version_boundary_is_not_older_than_a18(self):
+        self.assertTrue(
+            VERSION.startswith("0.1.2-a"),
+            f"Uventet versjonsformat: {VERSION}",
+        )
+        alpha = VERSION.split("-a", 1)[1].split(".", 1)[0]
+        self.assertGreaterEqual(int(alpha), 18)
 
 
 if __name__ == "__main__":

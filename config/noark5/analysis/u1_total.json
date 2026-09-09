@@ -1,0 +1,59 @@
+{
+  "format_version": 1,
+  "definition_id": "noark5.u1.total.v1",
+  "label": "U1 – samlet opptelling for hele Noark 5-uttrekket",
+  "source": "arkivstruktur.xml",
+  "basis": {
+    "source_file": "docs/reference/kdrs-query/xml-queries_noark5_2022-09-21_U1.txt",
+    "source_job_id": "U01",
+    "source_label": "U1. N5.101 Konsentrert opptelling for hele Noark 5-uttrekket",
+    "scope": "whole_extraction",
+    "note": "U1 er autoritativt utgangspunkt for samlet opptelling. U2 brukes separat per arkivdel."
+  },
+  "sections": [
+    {
+      "id": "archive",
+      "label": "Arkiv og arkivskaper"
+    },
+    {
+      "id": "dates",
+      "label": "Datoer"
+    },
+    {
+      "id": "structure",
+      "label": "Arkivstruktur"
+    },
+    {
+      "id": "folders",
+      "label": "Mapper"
+    },
+    {
+      "id": "registrations",
+      "label": "Registreringer og journalposter"
+    },
+    {
+      "id": "documents",
+      "label": "Dokumentbeskrivelse og dokumentobjekt"
+    },
+    {
+      "id": "relations",
+      "label": "Parter og relasjoner"
+    },
+    {
+      "id": "preservation",
+      "label": "Skjerming, kassasjon og sletting"
+    },
+    {
+      "id": "files",
+      "label": "Filstørrelser og format"
+    },
+    {
+      "id": "conversion",
+      "label": "Konvertering"
+    }
+  ],
+  "output": {
+    "relative_dir": "noark5_tests/native",
+    "filename": "noark5-u1-total.json"
+  }
+}
