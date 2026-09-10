@@ -1,0 +1,2432 @@
+{
+  "catalog_format_version": 2,
+  "catalog_id": "noark5-kdrs-query-2026-05-26",
+  "status": "implementation_draft",
+  "source": {
+    "repository": "IKAMR/KDRS_Query",
+    "path": "doc/xml-queries_noark5_2026-05-26.txt",
+    "query_date": "2026-05-26",
+    "query_subtype": [
+      "3.1",
+      "4.0",
+      "5.0"
+    ],
+    "query_version": "0.2",
+    "role": "authoritative_legacy_source"
+  },
+  "execution_model": {
+    "engine": "lxml",
+    "namespace_strategy": "local-name-normalized copy",
+    "result_storage": "one JSON file per test plus index.json",
+    "reporting": "deferred"
+  },
+  "tests": [
+    {
+      "test_id": "kdrs.c01",
+      "legacy": {
+        "job_id": "C01",
+        "test_point": "N5.04",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Arkiv i arkivstrukturen",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive",
+        "archive_creator"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "archive_count",
+            "type": "xpath",
+            "expression": "count(//arkiv)"
+          },
+          {
+            "id": "archive_creator_count",
+            "type": "xpath",
+            "expression": "count(//arkivskaper)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c02",
+      "legacy": {
+        "job_id": "C02",
+        "test_point": "N5.05/06",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Arkivdeler i arkivstrukturen",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_part",
+        "summary"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "archive_part_count",
+            "type": "xpath",
+            "expression": "count(//arkivdel)"
+          },
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(//arkivdel//mappe)"
+          },
+          {
+            "id": "registration_count",
+            "type": "xpath",
+            "expression": "count(//arkivdel//registrering)"
+          },
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(//arkivdel//dokumentbeskrivelse)"
+          },
+          {
+            "id": "document_medium_counts",
+            "type": "group_text",
+            "select": "//arkivdel//dokumentbeskrivelse/dokumentmedium",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c03",
+      "legacy": {
+        "job_id": "C03",
+        "test_point": null,
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Arkivdelen(e)s status",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivuttrekk.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_extraction",
+        "separator"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "incoming_separator",
+            "type": "xpath",
+            "expression": "string(//property[@name=\"inngaaendeSkille\"]/value)"
+          },
+          {
+            "id": "outgoing_separator",
+            "type": "xpath",
+            "expression": "string(//property[@name=\"utgaaendeSkille\"]/value)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c05",
+      "legacy": {
+        "job_id": "C05",
+        "test_point": "N5.07",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Klassifikasjonssystemer",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "classification"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "classification_system_count",
+            "type": "xpath",
+            "expression": "count(//klassifikasjonssystem)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c06",
+      "legacy": {
+        "job_id": "C06",
+        "test_point": "N5.08",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Klasser",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "classification",
+        "class",
+        "level"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "class_count",
+            "type": "xpath",
+            "expression": "count(//arkivdel//klasse)"
+          },
+          {
+            "id": "level_1",
+            "type": "xpath",
+            "expression": "count(//arkivdel//klasse)-count(//arkivdel//klasse/klasse)"
+          },
+          {
+            "id": "level_2",
+            "type": "xpath",
+            "expression": "count(//arkivdel//klasse/klasse)-count(//arkivdel//klasse/klasse/klasse)"
+          },
+          {
+            "id": "level_3",
+            "type": "xpath",
+            "expression": "count(//arkivdel//klasse/klasse/klasse)-count(//arkivdel//klasse/klasse/klasse/klasse)"
+          },
+          {
+            "id": "level_4",
+            "type": "xpath",
+            "expression": "count(//arkivdel//klasse/klasse/klasse/klasse)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c07",
+      "legacy": {
+        "job_id": "C07",
+        "test_point": "N5.09",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Klasser uten underklasser, mapper eller registreringer",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "class",
+        "deviation_candidate"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "empty_class_count",
+            "type": "xpath",
+            "expression": "count(//klasse[not(klasse or mappe or registrering)])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c08",
+      "legacy": {
+        "job_id": "C08",
+        "test_point": "N5.10",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper pr. type",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "folder",
+        "type",
+        "level"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(//mappe)"
+          },
+          {
+            "id": "folder_type_counts",
+            "type": "group_attr",
+            "select": "//mappe",
+            "value": "@type"
+          },
+          {
+            "id": "without_specialization",
+            "type": "xpath",
+            "expression": "count(//mappe[count(@*)<1])"
+          },
+          {
+            "id": "level_1",
+            "type": "xpath",
+            "expression": "count(//arkivdel//mappe)-count(//arkivdel//mappe/mappe)"
+          },
+          {
+            "id": "level_2",
+            "type": "xpath",
+            "expression": "count(//arkivdel//mappe/mappe)-count(//arkivdel//mappe/mappe/mappe)"
+          },
+          {
+            "id": "level_3",
+            "type": "xpath",
+            "expression": "count(//arkivdel//mappe/mappe/mappe)-count(//arkivdel//mappe/mappe/mappe/mappe)"
+          },
+          {
+            "id": "level_4",
+            "type": "xpath",
+            "expression": "count(//arkivdel//mappe/mappe/mappe/mappe)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c09",
+      "legacy": {
+        "job_id": "C09",
+        "test_point": "N5.11",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper pr. år",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "folder",
+        "year",
+        "table"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "created_per_year",
+            "type": "year_counts",
+            "select": "//mappe/opprettetDato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c10",
+      "legacy": {
+        "job_id": "C10",
+        "test_point": "N5.12",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kontroll mappe kun til klasse uten underklasser",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "class",
+        "folder",
+        "deviation_if_gt_zero"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "class_with_subclass_and_folder",
+            "type": "xpath",
+            "expression": "count(//klasse[klasse]/mappe)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c11",
+      "legacy": {
+        "job_id": "C11",
+        "test_point": "N5.13",
+        "job_enabled": 0,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper pr. klasse",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "class",
+        "folder",
+        "list",
+        "possible_person_data"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "class_folder_list",
+        "metrics": []
+      },
+      "status": "disabled_by_legacy_source"
+    },
+    {
+      "test_id": "kdrs.c11_01",
+      "legacy": {
+        "job_id": "C11.01",
+        "test_point": "N5.13.01",
+        "job_enabled": 0,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Klasser uten innhold",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "class",
+        "list",
+        "deviation_if_gt_zero"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "empty_class_list",
+        "metrics": []
+      },
+      "status": "disabled_by_legacy_source"
+    },
+    {
+      "test_id": "kdrs.c12",
+      "legacy": {
+        "job_id": "C12",
+        "test_point": "N5.14",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper uten undermapper eller registreringer",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "folder",
+        "deviation_candidate"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "folder_without_content",
+            "type": "xpath",
+            "expression": "count(//mappe[not(mappe or registrering)])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c13",
+      "legacy": {
+        "job_id": "C13",
+        "test_point": "N5.15",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper pr. status og type (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "folder",
+        "status",
+        "type"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(//mappe)"
+          },
+          {
+            "id": "status_counts",
+            "type": "group_text",
+            "select": "//mappe/saksstatus",
+            "value": "string(.)"
+          },
+          {
+            "id": "type_counts",
+            "type": "group_attr",
+            "select": "//mappe",
+            "value": "@type"
+          },
+          {
+            "id": "meeting_folder_count",
+            "type": "xpath",
+            "expression": "count(//mappe[@type=\"moetemappe\"])"
+          },
+          {
+            "id": "closed_meeting_folder_count",
+            "type": "xpath",
+            "expression": "count(//mappe[@type=\"moetemappe\"][string-length(avsluttetDato)>0])"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "xpath",
+            "expression": "count(//mappe[not(mappe or registrering)])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c14",
+      "legacy": {
+        "job_id": "C14",
+        "test_point": "N5.16",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Registreringer pr. type (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "registration",
+        "type"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "registration_count",
+            "type": "xpath",
+            "expression": "count(//registrering)"
+          },
+          {
+            "id": "type_counts",
+            "type": "group_attr",
+            "select": "//registrering",
+            "value": "@type"
+          },
+          {
+            "id": "without_specialization",
+            "type": "xpath",
+            "expression": "count(//registrering[count(@*)<1])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c15",
+      "legacy": {
+        "job_id": "C15",
+        "test_point": "N5.17",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter pr. type og med/uten hoveddokument (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "saksarkiv",
+        "journalpost",
+        "document"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journalpost_count",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"])"
+          },
+          {
+            "id": "journalpost_type_counts",
+            "type": "group_text",
+            "select": "//registrering/journalposttype",
+            "value": "string(.)"
+          },
+          {
+            "id": "main_document_count",
+            "type": "xpath",
+            "expression": "count(//registrering/dokumentbeskrivelse[tilknyttetRegistreringSom=\"Hoveddokument\"])"
+          },
+          {
+            "id": "non_main_document_count",
+            "type": "xpath",
+            "expression": "count(//registrering/dokumentbeskrivelse[not(tilknyttetRegistreringSom=\"Hoveddokument\")])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c16",
+      "legacy": {
+        "job_id": "C16",
+        "test_point": "N5.18",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall registreringer år",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "registration",
+        "journalpost",
+        "year",
+        "table"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "created_per_year",
+            "type": "year_counts",
+            "select": "//registrering/opprettetDato"
+          },
+          {
+            "id": "journal_date_per_year",
+            "type": "year_counts",
+            "select": "//registrering/journaldato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c17",
+      "legacy": {
+        "job_id": "C17",
+        "test_point": "N5.19",
+        "job_enabled": 0,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kontroll klasse med registrering og underklasse",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "fagsystem",
+        "class",
+        "registration",
+        "source_marked_not_working"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "class_registration_conflict_list",
+        "metrics": []
+      },
+      "status": "disabled_by_legacy_source"
+    },
+    {
+      "test_id": "kdrs.c18",
+      "legacy": {
+        "job_id": "C18",
+        "test_point": "N5.20",
+        "job_enabled": 0,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Registreringer pr. klasse pr. arkivdel",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "fagsystem",
+        "archive_part",
+        "class",
+        "registration",
+        "possible_person_data"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "class_registration_list",
+        "metrics": []
+      },
+      "status": "disabled_by_legacy_source"
+    },
+    {
+      "test_id": "kdrs.c18_01",
+      "legacy": {
+        "job_id": "C18.01",
+        "test_point": "N5.20.01",
+        "job_enabled": 0,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall klasser uten innhold pr. arkivdel",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "fagsystem",
+        "archive_part",
+        "class"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "empty_class_per_archive_part",
+        "metrics": []
+      },
+      "status": "disabled_by_legacy_source"
+    },
+    {
+      "test_id": "kdrs.c19",
+      "legacy": {
+        "job_id": "C19",
+        "test_point": "N5.21",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Registreringer uten dokumentbeskrivelse",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "registration",
+        "document"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "registration_without_document_description",
+            "type": "xpath",
+            "expression": "count(//registrering[not(dokumentbeskrivelse)]/registreringsID)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c20",
+      "legacy": {
+        "job_id": "C20",
+        "test_point": "N5.22",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter pr. status (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "saksarkiv",
+        "journalpost",
+        "status"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journalpost_count",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"])"
+          },
+          {
+            "id": "journal_status_counts",
+            "type": "group_text",
+            "select": "//registrering/journalstatus",
+            "value": "string(.)"
+          },
+          {
+            "id": "empty_journalstatus",
+            "type": "xpath",
+            "expression": "count(//journalstatus[not(text())])"
+          },
+          {
+            "id": "registration_without_specialization",
+            "type": "xpath",
+            "expression": "count(//registrering[count(@*)=0])"
+          },
+          {
+            "id": "folder_without_specialization",
+            "type": "xpath",
+            "expression": "count(//mappe[count(@*)=0])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c21",
+      "legacy": {
+        "job_id": "C21",
+        "test_point": "N5.23",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Dokumentbeskrivelser",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_description"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse)"
+          },
+          {
+            "id": "relation_type_counts",
+            "type": "group_text",
+            "select": "//tilknyttetRegistreringSom",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c22",
+      "legacy": {
+        "job_id": "C22",
+        "test_point": "N5.24",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Dokumentbeskrivelser uten dokumentobjekt",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_description",
+        "document_object",
+        "deviation_candidate"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "without_object_count",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse[not(dokumentobjekt)])"
+          },
+          {
+            "id": "without_object_with_system_id",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse[not(dokumentobjekt)]/systemID/text())"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c23",
+      "legacy": {
+        "job_id": "C23",
+        "test_point": "N5.25",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Dokumentbeskrivelser pr. status (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_description",
+        "status"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse)"
+          },
+          {
+            "id": "status_counts",
+            "type": "group_text",
+            "select": "//dokumentbeskrivelse/dokumentstatus",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c24",
+      "legacy": {
+        "job_id": "C24",
+        "test_point": "N5.26",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Dokumentobjekt (inkl. variantformat generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_object",
+        "variant_format"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "document_object_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt)"
+          },
+          {
+            "id": "variant_format_counts",
+            "type": "group_text",
+            "select": "//variantformat",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c25",
+      "legacy": {
+        "job_id": "C25",
+        "test_point": "N5.27",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Start- og sluttdato for dokumentene",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_description",
+        "date_range"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "created_date_range",
+            "type": "date_range",
+            "select": "//dokumentbeskrivelse/opprettetDato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f01",
+      "legacy": {
+        "job_id": "F01",
+        "test_point": "N5.35",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Sakspart og Part pr. type",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "party",
+        "version_variant"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "sakspart_count_v31_v40",
+            "type": "xpath",
+            "expression": "count(//sakspart)"
+          },
+          {
+            "id": "part_count_v50",
+            "type": "xpath",
+            "expression": "count(//part)"
+          },
+          {
+            "id": "mappe_part_count",
+            "type": "xpath",
+            "expression": "count(//mappe/part)"
+          },
+          {
+            "id": "registrering_part_count",
+            "type": "xpath",
+            "expression": "count(//registrering/part)"
+          },
+          {
+            "id": "dokumentbeskrivelse_part_count",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/part)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f02",
+      "legacy": {
+        "job_id": "F02",
+        "test_point": "N5.36",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Merknader pr. type tilknyttet",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "note"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "note_count",
+            "type": "xpath",
+            "expression": "count(//merknad)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/merknad)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/merknad)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/merknad)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f03",
+      "legacy": {
+        "job_id": "F03",
+        "test_point": "N5.37",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kryssreferanser pr. type tilknyttet",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "cross_reference"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "cross_reference_children",
+            "type": "xpath",
+            "expression": "count(//kryssreferanse/*)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(//klasse/kryssreferanse/*)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/kryssreferanse/*)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/kryssreferanse/*)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f04",
+      "legacy": {
+        "job_id": "F04",
+        "test_point": "N5.38",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Presedenser pr. type tilknyttet",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "precedent"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "precedent_count",
+            "type": "xpath",
+            "expression": "count(//presedens)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/presedens)"
+          },
+          {
+            "id": "journalpost",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"]/presedens)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f05",
+      "legacy": {
+        "job_id": "F05",
+        "test_point": "N5.39",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Korrespondanseparter",
+      "system": "noark5",
+      "subsystem": "5.0",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "correspondence_party"
+      ],
+      "noark_versions": [
+        "5.0"
+      ],
+      "version_basis": "explicit_subsystem",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "correspondence_party_count",
+            "type": "xpath",
+            "expression": "count(//korrespondansepart)"
+          },
+          {
+            "id": "parent_type_counts",
+            "type": "group_xpath",
+            "select": "//korrespondansepart",
+            "value": "name(..)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f06",
+      "legacy": {
+        "job_id": "F06",
+        "test_point": "N5.40",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Avskrivninger (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "writeoff",
+        "journalpost"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "writeoff_method_count",
+            "type": "xpath",
+            "expression": "count(//avskrivningsmaate)"
+          },
+          {
+            "id": "method_counts",
+            "type": "group_text",
+            "select": "//avskrivningsmaate",
+            "value": "string(.)"
+          },
+          {
+            "id": "journalpost_with_method",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"]/avskrivning[string-length(avskrivningsmaate)>0]/avskrivningsmaate)"
+          },
+          {
+            "id": "reference_to_other_journalpost",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"]/avskrivning[string-length(referanseAvskrivesAvJournalpost)>0]/referanseAvskrivesAvJournalpost)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f07",
+      "legacy": {
+        "job_id": "F07",
+        "test_point": "N5.41",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall dokumentflyter (inkl. generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "document_flow"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "document_flow_count",
+            "type": "xpath",
+            "expression": "count(//registrering/dokumentflyt)"
+          },
+          {
+            "id": "journalpost_count",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"][dokumentflyt])"
+          },
+          {
+            "id": "archive_note_count",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"arkivnotat\"]/dokumentflyt)"
+          },
+          {
+            "id": "value_counts",
+            "type": "group_text",
+            "select": "//registrering/dokumentflyt",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f08",
+      "legacy": {
+        "job_id": "F08",
+        "test_point": "N5.42",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Skjerminger",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "screening"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "screening_count",
+            "type": "xpath",
+            "expression": "count(//skjerming)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(//arkivdel/skjerming)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(//klasse/skjerming)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/skjerming)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/skjerming)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/skjerming)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f09",
+      "legacy": {
+        "job_id": "F09",
+        "test_point": "N5.43",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Graderinger",
+      "system": "noark5",
+      "subsystem": "v3.1_v4.0",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "grading",
+        "version_variant"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0"
+      ],
+      "version_basis": "explicit_subsystem",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "grading_v31_v40_count",
+            "type": "xpath",
+            "expression": "count(//gradering)"
+          },
+          {
+            "id": "grading_v50_count",
+            "type": "xpath",
+            "expression": "count(//grad)"
+          },
+          {
+            "id": "v31_v40_arkivdel",
+            "type": "xpath",
+            "expression": "count(//arkivdel/gradering)"
+          },
+          {
+            "id": "v50_arkivdel",
+            "type": "xpath",
+            "expression": "count(//arkivdel/grad)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f10",
+      "legacy": {
+        "job_id": "F10",
+        "test_point": "N5.44",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kassasjonsvedtak",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "disposal"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "disposal_decision_count",
+            "type": "xpath",
+            "expression": "count(//kassasjon)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(//arkivdel/kassasjon)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(//klasse/kassasjon)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/kassasjon)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/kassasjon)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/kassasjon)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f11",
+      "legacy": {
+        "job_id": "F11",
+        "test_point": "N5.45",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kassasjoner",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "performed_disposal"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "performed_disposal_count",
+            "type": "xpath",
+            "expression": "count(//utfoertKassasjon)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(//arkivdel/utfoertKassasjon)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(//klasse/utfoertKassasjon)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/utfoertKassasjon)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/utfoertKassasjon)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/utfoertKassasjon)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f12",
+      "legacy": {
+        "job_id": "F12",
+        "test_point": "N5.46",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Konverterte dokumenter",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "conversion"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "conversion_count",
+            "type": "xpath",
+            "expression": "count(//konvertering)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.f13",
+      "legacy": {
+        "job_id": "F13",
+        "test_point": null,
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Utførte slettinger utenom kassasjon",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "deletion"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "deletion_count",
+            "type": "xpath",
+            "expression": "count(//sletting)"
+          },
+          {
+            "id": "deletion_type_counts",
+            "type": "group_text",
+            "select": "//slettingstype",
+            "value": "string(.)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h01",
+      "legacy": {
+        "job_id": "H01",
+        "test_point": "N5.52",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter i løpende journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "loependeJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "running_journal"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_registration_count",
+            "type": "xpath",
+            "expression": "count(//journalregistrering)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h02",
+      "legacy": {
+        "job_id": "H02",
+        "test_point": "N5.53",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter per år i løpende journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "loependeJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "running_journal",
+        "year"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_date_per_year",
+            "type": "year_counts",
+            "select": "//journalregistrering/journalpost/journaldato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h03",
+      "legacy": {
+        "job_id": "H03",
+        "test_point": "N5.54",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Start- og sluttdato for journalpostene i løpende journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "loependeJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "running_journal",
+        "saksarkiv",
+        "date_range"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_date_range",
+            "type": "date_range",
+            "select": "//journalregistrering/journalpost/journaldato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h04",
+      "legacy": {
+        "job_id": "H04",
+        "test_point": "N5.55",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Skjermede journalposter i løpende journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "loependeJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "running_journal",
+        "screening"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "screened_journal_registration_count",
+            "type": "xpath",
+            "expression": "count(//journalregistrering[journalpost[tilgangsrestriksjon]])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h05",
+      "legacy": {
+        "job_id": "H05",
+        "test_point": "N5.56",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter i offentlig journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "offentligJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "public_journal"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_registration_count",
+            "type": "xpath",
+            "expression": "count(//journalregistrering)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h06",
+      "legacy": {
+        "job_id": "H06",
+        "test_point": "N5.57",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall journalposter per år i offentlig journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "offentligJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "public_journal",
+        "year"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_date_per_year",
+            "type": "year_counts",
+            "select": "//journalregistrering/journalpost/journaldato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.h07",
+      "legacy": {
+        "job_id": "H07",
+        "test_point": "N5.58",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Start- og sluttdato for journalpostene i offentlig journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "offentligJournal.xml",
+      "scope": "source_document",
+      "tags": [
+        "public_journal",
+        "saksarkiv",
+        "date_range"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journal_date_range",
+            "type": "date_range",
+            "select": "//journalregistrering/journalpost/journaldato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.i01",
+      "legacy": {
+        "job_id": "I01",
+        "test_point": "N5.59",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter i arkivuttrekket",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "journalpost"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "journalpost_count",
+            "type": "xpath",
+            "expression": "count(//registrering[@type=\"journalpost\"])"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.i02",
+      "legacy": {
+        "job_id": "I02",
+        "test_point": "N5.60",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Start- og sluttdato journalposter i arkivuttrekket versus løpende og offentlig journal",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "journalpost",
+        "saksarkiv",
+        "date_range",
+        "cross_file_comparison"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "archive_journalpost_created_range",
+            "type": "date_range",
+            "select": "//registrering[@type=\"journalpost\"]/opprettetDato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.j01",
+      "legacy": {
+        "job_id": "J01",
+        "test_point": "N5.61",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Endringer i endringslogg",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "endringslogg.xml",
+      "scope": "source_document",
+      "tags": [
+        "change_log",
+        "year",
+        "date_range"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "change_count",
+            "type": "xpath",
+            "expression": "count(//endring)"
+          },
+          {
+            "id": "change_date_range",
+            "type": "date_range",
+            "select": "//endring/endretDato"
+          },
+          {
+            "id": "changes_per_year",
+            "type": "year_counts",
+            "select": "//endring/endretDato"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.l02",
+      "legacy": {
+        "job_id": "L02",
+        "test_point": "N5.65",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Virksomhetsspesifikke metadata pr. element",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "business_specific_metadata",
+        "version_attention"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "metrics",
+        "metrics": [
+          {
+            "id": "count",
+            "type": "xpath",
+            "expression": "count(//virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(//mappe/virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "sakspart",
+            "type": "xpath",
+            "expression": "count(//sakspart/virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "part",
+            "type": "xpath",
+            "expression": "count(//part/virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "basisregistrering",
+            "type": "xpath",
+            "expression": "count(//basisregistrering/virksomhetsspesifikkeMetadata)"
+          }
+        ]
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.u01",
+      "legacy": {
+        "job_id": "U01",
+        "test_point": "N5.101",
+        "job_enabled": 3,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Konsentrert opptelling for hele Noark 5-uttrekket",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "whole_extraction",
+      "tags": [
+        "aggregate",
+        "whole_extraction",
+        "u1"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "u1_total",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.u02",
+      "legacy": {
+        "job_id": "U02",
+        "test_point": "N5.102",
+        "job_enabled": 3,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Konsentrert opptelling pr. arkivdel for hele Noark 5-uttrekket",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "archive_part",
+      "tags": [
+        "aggregate",
+        "archive_part",
+        "u2"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "u2_archive_parts",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c05_01_r3",
+      "legacy": {
+        "job_id": "C05.01_R3",
+        "test_point": "N5.07",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall klassifikasjonssystemer i arkivstrukturen (additional)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "additional",
+        "archive_part",
+        "classification"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "classification_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c09_r4",
+      "legacy": {
+        "job_id": "C09_R4",
+        "test_point": "N5.11",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall mapper pr. arkivdel og år",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "additional",
+        "archive_part",
+        "folder",
+        "year"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "year_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c10_r5",
+      "legacy": {
+        "job_id": "C10_R5",
+        "test_point": "N5.12",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Kontroll mappe kun til klasse uten underklasser",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "additional",
+        "archive_part",
+        "deviation_if_gt_zero"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "class_folder_conflict_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c13_01",
+      "legacy": {
+        "job_id": "C13.01",
+        "test_point": "N5.15",
+        "job_enabled": 1,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Mapper pr. arkivdel og status",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_part",
+        "folder",
+        "status"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "folder_status_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c15_01",
+      "legacy": {
+        "job_id": "C15.01",
+        "test_point": "N5.17.01",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Journalposter pr. arkivdel og type (generisk)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_part",
+        "journalpost",
+        "type",
+        "saksarkiv"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "journalpost_type_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c16_r6",
+      "legacy": {
+        "job_id": "C16_R6",
+        "test_point": "N5.18",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall registreringer pr. arkivdel og år (opprettetDato)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_part",
+        "registration",
+        "year"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "registration_created_year_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    },
+    {
+      "test_id": "kdrs.c16_01_r7",
+      "legacy": {
+        "job_id": "C16.01_R7",
+        "test_point": "N5.18",
+        "job_enabled": 2,
+        "master_source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26.txt"
+      },
+      "name": "Antall registreringer pr. arkivdel og år (journaldato)",
+      "system": "noark5",
+      "subsystem": "",
+      "source_xml": "arkivstruktur.xml",
+      "scope": "source_document",
+      "tags": [
+        "archive_part",
+        "journalpost",
+        "year"
+      ],
+      "noark_versions": [
+        "3.1",
+        "4.0",
+        "5.0"
+      ],
+      "version_basis": "master_query_subtype_needs_qa",
+      "execution": {
+        "kind": "registration_journal_year_per_archive_part",
+        "metrics": []
+      },
+      "status": "active"
+    }
+  ]
+}
