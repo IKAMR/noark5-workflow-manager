@@ -22,7 +22,7 @@ class RunNoark5XpathTestsOperation(BaseOperation):
     raw_result_record = True
 
     def raw_result_identity(self, result, ctx):
-        return {"test_id": "noark5-kdrs-query-2026-05-26", "definition_version": "3"}
+        return {"test_id": "noark5-kdrs-query-2026-05-26", "definition_version": "4"}
 
     def can_run(self, ctx: OperationContext) -> tuple[bool, str]:
         if ctx.work_operations is None:

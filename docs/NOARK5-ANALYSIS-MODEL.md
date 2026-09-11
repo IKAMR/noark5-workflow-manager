@@ -62,3 +62,55 @@ alvorlighetsgrad og konsekvens
 ```
 
 Normal håndtering er dokumentasjon av avvik. Nytt uttrekk er unntaket ved alvorlige mangler.
+
+
+## Avstemming mellom hele uttrekket og arkivdeler
+Der et datapunkt etter Noark-strukturen naturlig tilhører én arkivdel, bør samme individuelle analyse kunne materialiseres både for hele uttrekket og per arkivdel.
+
+Resultatene skal kunne avstemmes uten å beregnes i et separat U2-program:
+
+```text
+individuell analyse
+    +--> total for hele uttrekket
+    +--> resultat per arkivdel
+              |
+              v
+      avstemming/reconciliation
+```
+
+En avstemming skal minst kunne dokumentere `total`, `archive_parts_sum`, `difference` og `status`. For generiske fordelinger summeres arkivdelenes observerte verdier nøkkel for nøkkel.
+
+Bare metrikk som faglig er summerbare skal merkes som avstembare. Likhet skal ikke kreves automatisk for elementer som kan ligge utenfor arkivdel eller har annen strukturell semantikk. Et `mismatch` er en observasjon som skal undersøkes, ikke automatisk en teknisk kjørefeil eller et krav om nytt uttrekk.
+
+Avstemming hører primært til valideringsområde B – intern konsistens i uttrekket – og skal senere kunne brukes som evidens i depotets validering og rapportering.
+
+## a22 – datointervall og aggregert filstatistikk
+
+a22 utvider samme total/per-arkivdel-modell til datointervaller og filstatistikk.
+
+For datointervaller rekonstrueres totalen fra arkivdelene som tidligste `first` og seneste `last`. Dette brukes bare der datagrunnlaget naturlig ligger under arkivdel.
+
+For numerisk statistikk rekonstrueres:
+
+- `count` som sum av arkivdelenes antall,
+- `sum` som sum av arkivdelenes summer,
+- `min` som minste arkivdel-minimum,
+- `max` som største arkivdel-maksimum,
+- `average` som `total sum / total count`.
+
+Gjennomsnitt av arkivdelenes gjennomsnitt skal ikke brukes, fordi arkivdelene kan inneholde ulikt antall verdier.
+
+Også her er reconciliation evidens. `mismatch` betyr at forholdet må undersøkes, ikke automatisk teknisk feil.
+
+## a22 – identitetsdata som kanoniske resultater
+
+Identitets- og beskrivelsesdata som tidligere hovedsakelig ble skrevet direkte i U1/U2 skal også være strukturerte resultater, ikke rapporttekst. a22 innfører derfor en generell `rows`-metrikk der utvalg og feltuttrykk ligger i JSON-definisjonen. Dette gjør arkiv-, arkivskaper- og arkivdelidentitet tilgjengelig for senere views uten å bygge U1/U2 som egne beregningsprogrammer.
+
+Per-arkivdel-kontroller fortsetter å bruke samme individuelle test som totalen der dette er faglig naturlig. De historiske U2- og R-testene beholdes inntil regresjonsdekningen er dokumentert.
+
+
+## a22 – a22 avsluttes med maskinlesbar dekningskontrakt
+
+a22 legger ikke til et nytt parallelt analyseprogram. Den formaliserer at rå datadekningen fra U1/U2 nå ligger i individuelle analyser. Dekningen dokumenteres maskinlesbart i `config/noark5/analysis/u1_u2_coverage_2026_05_26.json`.
+
+U01/U02 merkes som `development_regression_reference`, men kjøresemantikken endres først i a24. Gjenstående standardverdier per Noark-versjon er eksplisitt utsatt til a23 og regnes ikke som manglende rå datadekning i a22.

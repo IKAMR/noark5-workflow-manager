@@ -1,7 +1,7 @@
 {
-  "catalog_format_version": 3,
+  "catalog_format_version": 7,
   "catalog_id": "noark5-kdrs-query-2026-05-26",
-  "status": "implementation_qa",
+  "status": "implementation_qa_a22",
   "source": {
     "repository": "IKAMR/KDRS_Query",
     "path": "doc/xml-queries_noark5_2026-05-26.txt",
@@ -25,7 +25,10 @@
       "test.failed",
       "test.skipped"
     ],
-    "per_test_timing": true
+    "per_test_timing": true,
+    "archive_part_metrics": true,
+    "reconciliation": "whole_extraction_vs_archive_parts",
+    "u1_u2_role": "development_regression_reference_until_a24"
   },
   "tests": [
     {
@@ -63,10 +66,39 @@
             "id": "archive_creator_count",
             "type": "xpath",
             "expression": "count(//arkivskaper)"
+          },
+          {
+            "id": "archive_records",
+            "type": "rows",
+            "select": "//arkiv",
+            "fields": {
+              "system_id": "string(systemID)",
+              "title": "string(tittel)",
+              "description": "string(beskrivelse)",
+              "status": "string(arkivstatus)",
+              "document_medium": "string(dokumentmedium)",
+              "created_date": "string(opprettetDato)",
+              "closed_date": "string(avsluttetDato)",
+              "created_by": "string(opprettetAv)",
+              "closed_by": "string(avsluttetAv)"
+            }
+          },
+          {
+            "id": "archive_creator_records",
+            "type": "rows",
+            "select": "//arkivskaper",
+            "fields": {
+              "name": "string(arkivskaperNavn)",
+              "id": "string(arkivskaperID)",
+              "description": "string(beskrivelse)"
+            }
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c02",
@@ -119,10 +151,112 @@
             "type": "group_text",
             "select": "//arkivdel//dokumentbeskrivelse/dokumentmedium",
             "value": "string(.)"
+          },
+          {
+            "id": "archive_part_created_date_range",
+            "type": "date_range",
+            "select": "//arkivdel/opprettetDato"
+          },
+          {
+            "id": "archive_part_closed_date_range",
+            "type": "date_range",
+            "select": "//arkivdel/avsluttetDato"
+          },
+          {
+            "id": "archive_part_records",
+            "type": "rows",
+            "select": "//arkivdel",
+            "fields": {
+              "system_id": "string(systemID)",
+              "title": "string(tittel)",
+              "description": "string(beskrivelse)",
+              "status": "string(arkivdelstatus)",
+              "document_medium": "string(dokumentmedium)",
+              "archive_period_start_date": "string(arkivperiodeStartDato)",
+              "archive_period_end_date": "string(arkivperiodeSluttDato)",
+              "created_date": "string(opprettetDato)",
+              "closed_date": "string(avsluttetDato)"
+            }
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(.//mappe)"
+          },
+          {
+            "id": "registration_count",
+            "type": "xpath",
+            "expression": "count(.//registrering)"
+          },
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse)"
+          },
+          {
+            "id": "document_medium_counts",
+            "type": "group_text",
+            "select": ".//dokumentbeskrivelse/dokumentmedium"
+          },
+          {
+            "id": "archive_part_created_date_range",
+            "type": "date_range",
+            "select": "opprettetDato"
+          },
+          {
+            "id": "archive_part_closed_date_range",
+            "type": "date_range",
+            "select": "avsluttetDato"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "folder_count",
+            "type": "scalar_sum",
+            "whole": "folder_count",
+            "parts": "folder_count"
+          },
+          {
+            "id": "registration_count",
+            "type": "scalar_sum",
+            "whole": "registration_count",
+            "parts": "registration_count"
+          },
+          {
+            "id": "document_description_count",
+            "type": "scalar_sum",
+            "whole": "document_description_count",
+            "parts": "document_description_count"
+          },
+          {
+            "id": "document_medium_counts",
+            "type": "counter_sum",
+            "whole": "document_medium_counts",
+            "parts": "document_medium_counts"
+          },
+          {
+            "id": "archive_part_created_date_range",
+            "type": "date_range",
+            "whole": "archive_part_created_date_range",
+            "parts": "archive_part_created_date_range"
+          },
+          {
+            "id": "archive_part_closed_date_range",
+            "type": "date_range",
+            "whole": "archive_part_closed_date_range",
+            "parts": "archive_part_closed_date_range"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: U01-datointervall for arkivdeler materialiseres i C02.",
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres.",
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c03",
@@ -351,10 +485,117 @@
             "id": "level_4",
             "type": "xpath",
             "expression": "count(//arkivdel//mappe/mappe/mappe/mappe)"
+          },
+          {
+            "id": "folder_created_date_range",
+            "type": "date_range",
+            "select": "//mappe/opprettetDato"
+          },
+          {
+            "id": "folder_closed_date_range",
+            "type": "date_range",
+            "select": "//mappe/avsluttetDato"
+          },
+          {
+            "id": "case_date_range",
+            "type": "date_range",
+            "select": "//mappe/saksdato"
+          },
+          {
+            "id": "meeting_date_range",
+            "type": "date_range",
+            "select": "//mappe/moetedato"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "xpath",
+            "expression": "count(//mappe[not(mappe or registrering)])"
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(.//mappe)"
+          },
+          {
+            "id": "folder_type_counts",
+            "type": "group_attr",
+            "select": ".//mappe",
+            "value": "@type"
+          },
+          {
+            "id": "without_specialization",
+            "type": "xpath",
+            "expression": "count(.//mappe[count(@*)<1])"
+          },
+          {
+            "id": "folder_created_date_range",
+            "type": "date_range",
+            "select": ".//mappe/opprettetDato"
+          },
+          {
+            "id": "folder_closed_date_range",
+            "type": "date_range",
+            "select": ".//mappe/avsluttetDato"
+          },
+          {
+            "id": "case_date_range",
+            "type": "date_range",
+            "select": ".//mappe/saksdato"
+          },
+          {
+            "id": "meeting_date_range",
+            "type": "date_range",
+            "select": ".//mappe/moetedato"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "xpath",
+            "expression": "count(.//mappe[not(mappe or registrering)])"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "folder_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "folder_type_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "without_specialization",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "folder_created_date_range",
+            "type": "date_range"
+          },
+          {
+            "id": "folder_closed_date_range",
+            "type": "date_range"
+          },
+          {
+            "id": "case_date_range",
+            "type": "date_range"
+          },
+          {
+            "id": "meeting_date_range",
+            "type": "date_range"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "scalar_sum"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: U01-datointervaller for mapper, saksdato og møtedato materialiseres i C08.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres.",
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c09",
@@ -583,9 +824,71 @@
             "type": "xpath",
             "expression": "count(//mappe[not(mappe or registrering)])"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "folder_count",
+            "type": "xpath",
+            "expression": "count(.//mappe)"
+          },
+          {
+            "id": "status_counts",
+            "type": "group_text",
+            "select": ".//mappe/saksstatus"
+          },
+          {
+            "id": "type_counts",
+            "type": "group_attr",
+            "select": ".//mappe",
+            "value": "@type"
+          },
+          {
+            "id": "meeting_folder_count",
+            "type": "xpath",
+            "expression": "count(.//mappe[@type=\"moetemappe\"])"
+          },
+          {
+            "id": "closed_meeting_folder_count",
+            "type": "xpath",
+            "expression": "count(.//mappe[@type=\"moetemappe\"][string-length(avsluttetDato)>0])"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "xpath",
+            "expression": "count(.//mappe[not(mappe or registrering)])"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "folder_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "status_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "type_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "meeting_folder_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "closed_meeting_folder_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "without_subfolder_or_registration",
+            "type": "scalar_sum"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c14",
@@ -628,10 +931,60 @@
             "id": "without_specialization",
             "type": "xpath",
             "expression": "count(//registrering[count(@*)<1])"
+          },
+          {
+            "id": "archived_date_range",
+            "type": "date_range",
+            "select": "//registrering/arkivertDato"
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "registration_count",
+            "type": "xpath",
+            "expression": "count(.//registrering)"
+          },
+          {
+            "id": "type_counts",
+            "type": "group_attr",
+            "select": ".//registrering",
+            "value": "@type"
+          },
+          {
+            "id": "without_specialization",
+            "type": "xpath",
+            "expression": "count(.//registrering[count(@*)<1])"
+          },
+          {
+            "id": "archived_date_range",
+            "type": "date_range",
+            "select": ".//registrering/arkivertDato"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "registration_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "type_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "without_specialization",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "archived_date_range",
+            "type": "date_range"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: U01-datointervall for arkivertDato materialiseres i C14.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres."
+      ]
     },
     {
       "test_id": "kdrs.c15",
@@ -680,10 +1033,67 @@
             "id": "non_main_document_count",
             "type": "xpath",
             "expression": "count(//registrering/dokumentbeskrivelse[not(tilknyttetRegistreringSom=\"Hoveddokument\")])"
+          },
+          {
+            "id": "journal_status_counts",
+            "type": "group_text",
+            "select": "//registrering/journalstatus"
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "journalpost_count",
+            "type": "xpath",
+            "expression": "count(.//registrering[@type=\"journalpost\"])"
+          },
+          {
+            "id": "journalpost_type_counts",
+            "type": "group_text",
+            "select": ".//registrering/journalposttype"
+          },
+          {
+            "id": "main_document_count",
+            "type": "xpath",
+            "expression": "count(.//registrering/dokumentbeskrivelse[tilknyttetRegistreringSom=\"Hoveddokument\"])"
+          },
+          {
+            "id": "non_main_document_count",
+            "type": "xpath",
+            "expression": "count(.//registrering/dokumentbeskrivelse[not(tilknyttetRegistreringSom=\"Hoveddokument\")])"
+          },
+          {
+            "id": "journal_status_counts",
+            "type": "group_text",
+            "select": ".//registrering/journalstatus"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "journalpost_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "journalpost_type_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "main_document_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "non_main_document_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "journal_status_counts",
+            "type": "counter_sum"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c16",
@@ -947,10 +1357,78 @@
             "type": "group_text",
             "select": "//tilknyttetRegistreringSom",
             "value": "string(.)"
+          },
+          {
+            "id": "document_number_count",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/dokumentnummer)"
+          },
+          {
+            "id": "document_number_counts",
+            "type": "group_text",
+            "select": "//dokumentbeskrivelse/dokumentnummer"
+          },
+          {
+            "id": "document_type_counts",
+            "type": "group_text",
+            "select": "//dokumenttype"
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse)"
+          },
+          {
+            "id": "relation_type_counts",
+            "type": "group_text",
+            "select": ".//tilknyttetRegistreringSom"
+          },
+          {
+            "id": "document_number_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse/dokumentnummer)"
+          },
+          {
+            "id": "document_number_counts",
+            "type": "group_text",
+            "select": ".//dokumentbeskrivelse/dokumentnummer"
+          },
+          {
+            "id": "document_type_counts",
+            "type": "group_text",
+            "select": ".//dokumenttype"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "document_description_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "relation_type_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "document_number_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "document_number_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "document_type_counts",
+            "type": "counter_sum"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: Dokumentnummer og generisk dokumenttype fra U01 materialiseres i C21. Generisk fordeling beholdes uten å gjøre testuttrekkets verdier normative.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres."
+      ]
     },
     {
       "test_id": "kdrs.c22",
@@ -989,9 +1467,34 @@
             "type": "xpath",
             "expression": "count(//dokumentbeskrivelse[not(dokumentobjekt)]/systemID/text())"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "without_object_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse[not(dokumentobjekt)])"
+          },
+          {
+            "id": "without_object_with_system_id",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse[not(dokumentobjekt)]/systemID/text())"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "without_object_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "without_object_with_system_id",
+            "type": "scalar_sum"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: dekning av gjenværende U1/U2 identitets-/strukturdata uten å bruke U01/U02 som beregningskilde."
+      ]
     },
     {
       "test_id": "kdrs.c23",
@@ -1030,9 +1533,38 @@
             "select": "//dokumentbeskrivelse/dokumentstatus",
             "value": "string(.)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "document_description_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse)"
+          },
+          {
+            "id": "status_counts",
+            "type": "group_text",
+            "select": ".//dokumentbeskrivelse/dokumentstatus"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "document_description_count",
+            "type": "scalar_sum",
+            "whole": "document_description_count",
+            "parts": "document_description_count"
+          },
+          {
+            "id": "status_counts",
+            "type": "counter_sum",
+            "whole": "status_counts",
+            "parts": "status_counts"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.c24",
@@ -1070,10 +1602,301 @@
             "type": "group_text",
             "select": "//variantformat",
             "value": "string(.)"
+          },
+          {
+            "id": "version_number_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/versjonsnummer)"
+          },
+          {
+            "id": "version_number_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/versjonsnummer"
+          },
+          {
+            "id": "format_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/format)"
+          },
+          {
+            "id": "format_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/format"
+          },
+          {
+            "id": "format_details_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/formatDetaljer)"
+          },
+          {
+            "id": "format_details_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/formatDetaljer"
+          },
+          {
+            "id": "file_size_stats",
+            "type": "numeric_stats",
+            "select": "//filstoerrelse"
+          },
+          {
+            "id": "file_size_buckets",
+            "type": "numeric_buckets",
+            "select": "//filstoerrelse",
+            "buckets": [
+              {
+                "id": "eq_0",
+                "min": 0,
+                "max": 0
+              },
+              {
+                "id": "1_9",
+                "min": 1,
+                "max": 9
+              },
+              {
+                "id": "10_99",
+                "min": 10,
+                "max": 99
+              },
+              {
+                "id": "100_199",
+                "min": 100,
+                "max": 199
+              },
+              {
+                "id": "200_499",
+                "min": 200,
+                "max": 499
+              },
+              {
+                "id": "500_999",
+                "min": 500,
+                "max": 999
+              },
+              {
+                "id": "1000_1999",
+                "min": 1000,
+                "max": 1999
+              },
+              {
+                "id": "2000_9999",
+                "min": 2000,
+                "max": 9999
+              },
+              {
+                "id": "10000_99999",
+                "min": 10000,
+                "max": 99999
+              },
+              {
+                "id": "100000_999999",
+                "min": 100000,
+                "max": 999999
+              },
+              {
+                "id": "1000000_9999999",
+                "min": 1000000,
+                "max": 9999999
+              },
+              {
+                "id": "10000000_99999999",
+                "min": 10000000,
+                "max": 99999999
+              },
+              {
+                "id": "ge_100000000",
+                "min": 100000000
+              }
+            ]
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "document_object_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt)"
+          },
+          {
+            "id": "variant_format_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/variantformat"
+          },
+          {
+            "id": "version_number_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/versjonsnummer)"
+          },
+          {
+            "id": "version_number_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/versjonsnummer"
+          },
+          {
+            "id": "format_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/format)"
+          },
+          {
+            "id": "format_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/format"
+          },
+          {
+            "id": "format_details_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/formatDetaljer)"
+          },
+          {
+            "id": "format_details_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/formatDetaljer"
+          },
+          {
+            "id": "file_size_stats",
+            "type": "numeric_stats",
+            "select": ".//filstoerrelse"
+          },
+          {
+            "id": "file_size_buckets",
+            "type": "numeric_buckets",
+            "select": ".//filstoerrelse",
+            "buckets": [
+              {
+                "id": "eq_0",
+                "min": 0,
+                "max": 0
+              },
+              {
+                "id": "1_9",
+                "min": 1,
+                "max": 9
+              },
+              {
+                "id": "10_99",
+                "min": 10,
+                "max": 99
+              },
+              {
+                "id": "100_199",
+                "min": 100,
+                "max": 199
+              },
+              {
+                "id": "200_499",
+                "min": 200,
+                "max": 499
+              },
+              {
+                "id": "500_999",
+                "min": 500,
+                "max": 999
+              },
+              {
+                "id": "1000_1999",
+                "min": 1000,
+                "max": 1999
+              },
+              {
+                "id": "2000_9999",
+                "min": 2000,
+                "max": 9999
+              },
+              {
+                "id": "10000_99999",
+                "min": 10000,
+                "max": 99999
+              },
+              {
+                "id": "100000_999999",
+                "min": 100000,
+                "max": 999999
+              },
+              {
+                "id": "1000000_9999999",
+                "min": 1000000,
+                "max": 9999999
+              },
+              {
+                "id": "10000000_99999999",
+                "min": 10000000,
+                "max": 99999999
+              },
+              {
+                "id": "ge_100000000",
+                "min": 100000000
+              }
+            ]
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "document_object_count",
+            "type": "scalar_sum",
+            "whole": "document_object_count",
+            "parts": "document_object_count"
+          },
+          {
+            "id": "variant_format_counts",
+            "type": "counter_sum",
+            "whole": "variant_format_counts",
+            "parts": "variant_format_counts"
+          },
+          {
+            "id": "version_number_count",
+            "type": "scalar_sum",
+            "whole": "version_number_count",
+            "parts": "version_number_count"
+          },
+          {
+            "id": "version_number_counts",
+            "type": "counter_sum",
+            "whole": "version_number_counts",
+            "parts": "version_number_counts"
+          },
+          {
+            "id": "format_count",
+            "type": "scalar_sum",
+            "whole": "format_count",
+            "parts": "format_count"
+          },
+          {
+            "id": "format_counts",
+            "type": "counter_sum",
+            "whole": "format_counts",
+            "parts": "format_counts"
+          },
+          {
+            "id": "format_details_count",
+            "type": "scalar_sum",
+            "whole": "format_details_count",
+            "parts": "format_details_count"
+          },
+          {
+            "id": "format_details_counts",
+            "type": "counter_sum",
+            "whole": "format_details_counts",
+            "parts": "format_details_counts"
+          },
+          {
+            "id": "file_size_stats",
+            "type": "numeric_stats",
+            "whole": "file_size_stats",
+            "parts": "file_size_stats"
+          },
+          {
+            "id": "file_size_buckets",
+            "type": "counter_sum",
+            "whole": "file_size_buckets",
+            "parts": "file_size_buckets"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: Versjonsnummer, format, formatdetaljer og filstørrelsesstatistikk fra U01 materialiseres i C24.",
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres."
+      ]
     },
     {
       "test_id": "kdrs.c25",
@@ -1106,9 +1929,25 @@
             "type": "date_range",
             "select": "//dokumentbeskrivelse/opprettetDato"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "created_date_range",
+            "type": "date_range",
+            "select": ".//dokumentbeskrivelse/opprettetDato"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "created_date_range",
+            "type": "date_range"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: dokumentbeskrivelsens opprettet-datointervall beregnes både totalt og per arkivdel og avstemmes."
+      ]
     },
     {
       "test_id": "kdrs.f01",
@@ -1161,9 +2000,71 @@
             "type": "xpath",
             "expression": "count(//dokumentbeskrivelse/part)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "sakspart_count_v31_v40",
+            "type": "xpath",
+            "expression": "count(.//sakspart)"
+          },
+          {
+            "id": "part_count_v50",
+            "type": "xpath",
+            "expression": "count(.//part)"
+          },
+          {
+            "id": "mappe_part_count",
+            "type": "xpath",
+            "expression": "count(.//mappe/part)"
+          },
+          {
+            "id": "registrering_part_count",
+            "type": "xpath",
+            "expression": "count(.//registrering/part)"
+          },
+          {
+            "id": "dokumentbeskrivelse_part_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse/part)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "sakspart_count_v31_v40",
+            "type": "scalar_sum",
+            "whole": "sakspart_count_v31_v40",
+            "parts": "sakspart_count_v31_v40"
+          },
+          {
+            "id": "part_count_v50",
+            "type": "scalar_sum",
+            "whole": "part_count_v50",
+            "parts": "part_count_v50"
+          },
+          {
+            "id": "mappe_part_count",
+            "type": "scalar_sum",
+            "whole": "mappe_part_count",
+            "parts": "mappe_part_count"
+          },
+          {
+            "id": "registrering_part_count",
+            "type": "scalar_sum",
+            "whole": "registrering_part_count",
+            "parts": "registrering_part_count"
+          },
+          {
+            "id": "dokumentbeskrivelse_part_count",
+            "type": "scalar_sum",
+            "whole": "dokumentbeskrivelse_part_count",
+            "parts": "dokumentbeskrivelse_part_count"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f02",
@@ -1341,9 +2242,39 @@
             "select": "//korrespondansepart",
             "value": "name(..)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "correspondence_party_count",
+            "type": "xpath",
+            "expression": "count(.//korrespondansepart)"
+          },
+          {
+            "id": "parent_type_counts",
+            "type": "group_xpath",
+            "select": ".//korrespondansepart",
+            "value": "name(..)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "correspondence_party_count",
+            "type": "scalar_sum",
+            "whole": "correspondence_party_count",
+            "parts": "correspondence_party_count"
+          },
+          {
+            "id": "parent_type_counts",
+            "type": "counter_sum",
+            "whole": "parent_type_counts",
+            "parts": "parent_type_counts"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f06",
@@ -1392,9 +2323,60 @@
             "type": "xpath",
             "expression": "count(//registrering[@type=\"journalpost\"]/avskrivning[string-length(referanseAvskrivesAvJournalpost)>0]/referanseAvskrivesAvJournalpost)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "writeoff_method_count",
+            "type": "xpath",
+            "expression": "count(.//avskrivningsmaate)"
+          },
+          {
+            "id": "method_counts",
+            "type": "group_text",
+            "select": ".//avskrivningsmaate"
+          },
+          {
+            "id": "journalpost_with_method",
+            "type": "xpath",
+            "expression": "count(.//registrering[@type=\"journalpost\"]/avskrivning[string-length(avskrivningsmaate)>0]/avskrivningsmaate)"
+          },
+          {
+            "id": "reference_to_other_journalpost",
+            "type": "xpath",
+            "expression": "count(.//registrering[@type=\"journalpost\"]/avskrivning[string-length(referanseAvskrivesAvJournalpost)>0]/referanseAvskrivesAvJournalpost)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "writeoff_method_count",
+            "type": "scalar_sum",
+            "whole": "writeoff_method_count",
+            "parts": "writeoff_method_count"
+          },
+          {
+            "id": "method_counts",
+            "type": "counter_sum",
+            "whole": "method_counts",
+            "parts": "method_counts"
+          },
+          {
+            "id": "journalpost_with_method",
+            "type": "scalar_sum",
+            "whole": "journalpost_with_method",
+            "parts": "journalpost_with_method"
+          },
+          {
+            "id": "reference_to_other_journalpost",
+            "type": "scalar_sum",
+            "whole": "reference_to_other_journalpost",
+            "parts": "reference_to_other_journalpost"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f07",
@@ -1501,9 +2483,82 @@
             "type": "xpath",
             "expression": "count(//dokumentbeskrivelse/skjerming)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "screening_count",
+            "type": "xpath",
+            "expression": "count(.//skjerming)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(skjerming)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(.//klasse/skjerming)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(.//mappe/skjerming)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(.//registrering/skjerming)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse/skjerming)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "screening_count",
+            "type": "scalar_sum",
+            "whole": "screening_count",
+            "parts": "screening_count"
+          },
+          {
+            "id": "arkivdel",
+            "type": "scalar_sum",
+            "whole": "arkivdel",
+            "parts": "arkivdel"
+          },
+          {
+            "id": "klasse",
+            "type": "scalar_sum",
+            "whole": "klasse",
+            "parts": "klasse"
+          },
+          {
+            "id": "mappe",
+            "type": "scalar_sum",
+            "whole": "mappe",
+            "parts": "mappe"
+          },
+          {
+            "id": "registrering",
+            "type": "scalar_sum",
+            "whole": "registrering",
+            "parts": "registrering"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "scalar_sum",
+            "whole": "dokumentbeskrivelse",
+            "parts": "dokumentbeskrivelse"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f09",
@@ -1609,9 +2664,82 @@
             "type": "xpath",
             "expression": "count(//dokumentbeskrivelse/kassasjon)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "disposal_decision_count",
+            "type": "xpath",
+            "expression": "count(.//kassasjon)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(kassasjon)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(.//klasse/kassasjon)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(.//mappe/kassasjon)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(.//registrering/kassasjon)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse/kassasjon)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "disposal_decision_count",
+            "type": "scalar_sum",
+            "whole": "disposal_decision_count",
+            "parts": "disposal_decision_count"
+          },
+          {
+            "id": "arkivdel",
+            "type": "scalar_sum",
+            "whole": "arkivdel",
+            "parts": "arkivdel"
+          },
+          {
+            "id": "klasse",
+            "type": "scalar_sum",
+            "whole": "klasse",
+            "parts": "klasse"
+          },
+          {
+            "id": "mappe",
+            "type": "scalar_sum",
+            "whole": "mappe",
+            "parts": "mappe"
+          },
+          {
+            "id": "registrering",
+            "type": "scalar_sum",
+            "whole": "registrering",
+            "parts": "registrering"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "scalar_sum",
+            "whole": "dokumentbeskrivelse",
+            "parts": "dokumentbeskrivelse"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f11",
@@ -1668,9 +2796,82 @@
             "type": "xpath",
             "expression": "count(//dokumentbeskrivelse/utfoertKassasjon)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "performed_disposal_count",
+            "type": "xpath",
+            "expression": "count(.//utfoertKassasjon)"
+          },
+          {
+            "id": "arkivdel",
+            "type": "xpath",
+            "expression": "count(utfoertKassasjon)"
+          },
+          {
+            "id": "klasse",
+            "type": "xpath",
+            "expression": "count(.//klasse/utfoertKassasjon)"
+          },
+          {
+            "id": "mappe",
+            "type": "xpath",
+            "expression": "count(.//mappe/utfoertKassasjon)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(.//registrering/utfoertKassasjon)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(.//dokumentbeskrivelse/utfoertKassasjon)"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "performed_disposal_count",
+            "type": "scalar_sum",
+            "whole": "performed_disposal_count",
+            "parts": "performed_disposal_count"
+          },
+          {
+            "id": "arkivdel",
+            "type": "scalar_sum",
+            "whole": "arkivdel",
+            "parts": "arkivdel"
+          },
+          {
+            "id": "klasse",
+            "type": "scalar_sum",
+            "whole": "klasse",
+            "parts": "klasse"
+          },
+          {
+            "id": "mappe",
+            "type": "scalar_sum",
+            "whole": "mappe",
+            "parts": "mappe"
+          },
+          {
+            "id": "registrering",
+            "type": "scalar_sum",
+            "whole": "registrering",
+            "parts": "registrering"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "scalar_sum",
+            "whole": "dokumentbeskrivelse",
+            "parts": "dokumentbeskrivelse"
+          }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
+      ]
     },
     {
       "test_id": "kdrs.f12",
@@ -1701,10 +2902,111 @@
             "id": "conversion_count",
             "type": "xpath",
             "expression": "count(//konvertering)"
+          },
+          {
+            "id": "converted_from_format_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/konvertering/konvertertFraFormat)"
+          },
+          {
+            "id": "converted_from_format_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/konvertering/konvertertFraFormat"
+          },
+          {
+            "id": "converted_to_format_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/konvertering/konvertertTilFormat)"
+          },
+          {
+            "id": "converted_to_format_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/konvertering/konvertertTilFormat"
+          },
+          {
+            "id": "conversion_tool_count",
+            "type": "xpath",
+            "expression": "count(//dokumentobjekt/konvertering/konverteringsverktoey)"
+          },
+          {
+            "id": "conversion_tool_counts",
+            "type": "group_text",
+            "select": "//dokumentobjekt/konvertering/konverteringsverktoey"
+          }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "conversion_count",
+            "type": "xpath",
+            "expression": "count(.//konvertering)"
+          },
+          {
+            "id": "converted_from_format_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/konvertering/konvertertFraFormat)"
+          },
+          {
+            "id": "converted_from_format_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/konvertering/konvertertFraFormat"
+          },
+          {
+            "id": "converted_to_format_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/konvertering/konvertertTilFormat)"
+          },
+          {
+            "id": "converted_to_format_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/konvertering/konvertertTilFormat"
+          },
+          {
+            "id": "conversion_tool_count",
+            "type": "xpath",
+            "expression": "count(.//dokumentobjekt/konvertering/konverteringsverktoey)"
+          },
+          {
+            "id": "conversion_tool_counts",
+            "type": "group_text",
+            "select": ".//dokumentobjekt/konvertering/konverteringsverktoey"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "conversion_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "converted_from_format_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "converted_from_format_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "converted_to_format_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "converted_to_format_counts",
+            "type": "counter_sum"
+          },
+          {
+            "id": "conversion_tool_count",
+            "type": "scalar_sum"
+          },
+          {
+            "id": "conversion_tool_counts",
+            "type": "counter_sum"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a22: Konverteringsdetaljer fra U01 materialiseres i F12.",
+        "a22: total og arkivdel-scope bruker samme testdefinisjon med reconciliation der metrikkene kan rekonstrueres."
+      ]
     },
     {
       "test_id": "kdrs.f13",
@@ -1742,12 +3044,39 @@
             "select": "//slettingstype",
             "value": "string(.)"
           }
+        ],
+        "archive_part_metrics": [
+          {
+            "id": "deletion_count",
+            "type": "xpath",
+            "expression": "count(.//sletting)"
+          },
+          {
+            "id": "deletion_type_counts",
+            "type": "group_text",
+            "select": ".//slettingstype"
+          }
+        ],
+        "reconciliation": [
+          {
+            "id": "deletion_count",
+            "type": "scalar_sum",
+            "whole": "deletion_count",
+            "parts": "deletion_count"
+          },
+          {
+            "id": "deletion_type_counts",
+            "type": "counter_sum",
+            "whole": "deletion_type_counts",
+            "parts": "deletion_type_counts"
+          }
         ]
       },
       "status": "active",
       "normalized_test_point": "N5.47",
       "implementation_notes": [
-        "a21: legacy job_description/test_point er tomt; N5.47 er normalisert faglig kobling fra U1/2026-kilden. Legacy-feltet beholdes uendret."
+        "a21: legacy job_description/test_point er tomt; N5.47 er normalisert faglig kobling fra U1/2026-kilden. Legacy-feltet beholdes uendret.",
+        "a22: samme faglige måling materialiseres per arkivdel og avstemmes mot total der summering er faglig relevant."
       ]
     },
     {
@@ -2218,7 +3547,16 @@
         "kind": "u1_total",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "lifecycle": {
+        "role": "development_regression_reference",
+        "normal_execution_change_planned": "a24",
+        "calculation_source_for_new_views": false,
+        "note": "Beholdes kjørbar i a22/a23 for regresjon. Individuelle analyser er kanonisk grunnlag."
+      },
+      "implementation_notes": [
+        "a22: eksplisitt merket som utviklings-/regresjonsreferanse; kjøresemantikk endres først i a24."
+      ]
     },
     {
       "test_id": "kdrs.u02",
@@ -2248,7 +3586,16 @@
         "kind": "u2_archive_parts",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "lifecycle": {
+        "role": "development_regression_reference",
+        "normal_execution_change_planned": "a24",
+        "calculation_source_for_new_views": false,
+        "note": "Beholdes kjørbar i a22/a23 for regresjon. Individuelle analyser er kanonisk grunnlag."
+      },
+      "implementation_notes": [
+        "a22: eksplisitt merket som utviklings-/regresjonsreferanse; kjøresemantikk endres først i a24."
+      ]
     },
     {
       "test_id": "kdrs.c05_01_r3",
@@ -2484,5 +3831,15 @@
       ]
     }
   ],
-  "a21_source_audit": "xpath_catalog_2026_05_26_source_audit.json"
+  "a21_source_audit": "xpath_catalog_2026_05_26_source_audit.json",
+  "a22_notes": {
+    "purpose": "Første dekomponering av U01 til individuelle eksisterende analyser. Testuttrekkets faktiske verdier er ikke normative.",
+    "source": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26_U1.txt",
+    "principles": [
+      "Utvid eksisterende individuelle analyser fremfor å lage ny U1-beregning",
+      "Behold generisk observerte verdier",
+      "Standardverdier per Noark-versjon kommer i egen definisjonsmodell senere",
+      "U01/U02 beholdes som regresjonsgrunnlag i a22"
+    ]
+  }
 }

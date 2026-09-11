@@ -96,6 +96,52 @@ def _group(node, spec: dict[str, Any]) -> dict[str, int]:
     return dict(sorted(counts.items(), key=lambda x: x[0].casefold()))
 
 
+def _numeric_values(node, select: str) -> list[float]:
+    values = []
+    for text in _texts(node, select):
+        try:
+            values.append(float(text))
+        except (TypeError, ValueError):
+            continue
+    return values
+
+
+def _numeric_stats(node, select: str) -> dict[str, Any]:
+    values = _numeric_values(node, select)
+    if not values:
+        return {"count": 0, "sum": 0, "average": None, "min": None, "max": None}
+    total = sum(values)
+    return {
+        "count": len(values),
+        "sum": int(total) if total.is_integer() else total,
+        "average": total / len(values),
+        "min": int(min(values)) if min(values).is_integer() else min(values),
+        "max": int(max(values)) if max(values).is_integer() else max(values),
+    }
+
+
+def _numeric_buckets(node, spec: dict[str, Any]) -> dict[str, int]:
+    values = _numeric_values(node, spec["select"])
+    out = {}
+    for bucket in spec["buckets"]:
+        low = bucket.get("min")
+        high = bucket.get("max")
+        out[bucket["id"]] = sum(1 for value in values if (low is None or value >= low) and (high is None or value <= high))
+    return out
+
+
+def _rows(node, spec: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = []
+    for item in node.xpath(spec["select"]):
+        if not isinstance(item, etree._Element):
+            continue
+        row = {}
+        for field_id, expression in spec.get("fields", {}).items():
+            row[field_id] = _xpath(item, expression)
+        rows.append(row)
+    return rows
+
+
 def _eval_metrics(node, metrics: list[dict[str, Any]]) -> dict[str, Any]:
     result = {}
     for spec in metrics:
@@ -108,6 +154,12 @@ def _eval_metrics(node, metrics: list[dict[str, Any]]) -> dict[str, Any]:
             result[spec["id"]] = _year_counts(node, spec["select"])
         elif typ == "date_range":
             result[spec["id"]] = _date_range(node, spec["select"])
+        elif typ == "numeric_stats":
+            result[spec["id"]] = _numeric_stats(node, spec["select"])
+        elif typ == "numeric_buckets":
+            result[spec["id"]] = _numeric_buckets(node, spec)
+        elif typ == "rows":
+            result[spec["id"]] = _rows(node, spec)
         else:
             raise ValueError(f"Ukjent metrikk-type: {typ}")
     return result
@@ -129,6 +181,141 @@ def _per_parts(tree, metrics):
     for index, part in enumerate(_archive_parts(tree), 1):
         rows.append({"archive_part": _part_identity(part, index), "values": _eval_metrics(part, metrics)})
     return rows
+
+
+def _sum_part_scalar(rows, metric_id):
+    total = 0
+    for row in rows:
+        value = row.get("values", {}).get(metric_id)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            total += value
+    return total
+
+
+def _sum_part_counter(rows, metric_id):
+    counts = Counter()
+    for row in rows:
+        value = row.get("values", {}).get(metric_id) or {}
+        if isinstance(value, dict):
+            for key, count in value.items():
+                if isinstance(count, (int, float)) and not isinstance(count, bool):
+                    counts[str(key)] += count
+    return dict(sorted(counts.items(), key=lambda x: x[0].casefold()))
+
+
+def _reconcile(whole_values, rows, specs):
+    out = {}
+    for spec in specs:
+        typ = spec["type"]
+        whole_id = spec.get("whole", spec["id"])
+        part_id = spec.get("parts", spec["id"])
+        whole = whole_values.get(whole_id)
+        if typ == "scalar_sum":
+            part_sum = _sum_part_scalar(rows, part_id)
+            comparable = isinstance(whole, (int, float)) and not isinstance(whole, bool)
+            difference = whole - part_sum if comparable else None
+            out[spec["id"]] = {
+                "type": typ,
+                "total": whole,
+                "archive_parts_sum": part_sum,
+                "difference": difference,
+                "comparable": comparable,
+                "status": "match" if comparable and difference == 0 else ("not_comparable" if not comparable else "mismatch"),
+            }
+        elif typ == "counter_sum":
+            part_sum = _sum_part_counter(rows, part_id)
+            comparable = isinstance(whole, dict)
+            keys = sorted(set((whole or {}).keys()) | set(part_sum.keys()), key=str.casefold) if comparable else []
+            difference = {key: (whole or {}).get(key, 0) - part_sum.get(key, 0) for key in keys} if comparable else None
+            if isinstance(difference, dict):
+                difference = {k: v for k, v in difference.items() if v != 0}
+            out[spec["id"]] = {
+                "type": typ,
+                "total": whole,
+                "archive_parts_sum": part_sum,
+                "difference": difference,
+                "comparable": comparable,
+                "status": "match" if comparable and not difference else ("not_comparable" if not comparable else "mismatch"),
+            }
+        elif typ == "date_range":
+            part_ranges = [row.get("values", {}).get(part_id) for row in rows]
+            part_ranges = [v for v in part_ranges if isinstance(v, dict)]
+            first_values = sorted(v.get("first") for v in part_ranges if v.get("first") is not None)
+            last_values = sorted(v.get("last") for v in part_ranges if v.get("last") is not None)
+            reconstructed = {
+                "first": first_values[0] if first_values else None,
+                "last": last_values[-1] if last_values else None,
+            }
+            comparable = isinstance(whole, dict)
+            difference = {} if comparable and whole == reconstructed else ({"total": whole, "archive_parts": reconstructed} if comparable else None)
+            out[spec["id"]] = {
+                "type": typ,
+                "total": whole,
+                "archive_parts_range": reconstructed,
+                "difference": difference,
+                "comparable": comparable,
+                "status": "match" if comparable and not difference else ("not_comparable" if not comparable else "mismatch"),
+            }
+        elif typ == "numeric_stats":
+            part_stats = [row.get("values", {}).get(part_id) for row in rows]
+            part_stats = [v for v in part_stats if isinstance(v, dict)]
+            count = sum(v.get("count", 0) or 0 for v in part_stats)
+            total_sum = sum(v.get("sum", 0) or 0 for v in part_stats)
+            mins = [v.get("min") for v in part_stats if v.get("min") is not None]
+            maxs = [v.get("max") for v in part_stats if v.get("max") is not None]
+            reconstructed = {
+                "count": count,
+                "sum": total_sum,
+                "average": (total_sum / count) if count else None,
+                "min": min(mins) if mins else None,
+                "max": max(maxs) if maxs else None,
+            }
+            comparable = isinstance(whole, dict)
+            keys = ("count", "sum", "average", "min", "max")
+            differences = {}
+            if comparable:
+                for key in keys:
+                    a = whole.get(key)
+                    b = reconstructed.get(key)
+                    if key == "average" and isinstance(a, (int, float)) and isinstance(b, (int, float)):
+                        if abs(a - b) > 1e-9:
+                            differences[key] = {"total": a, "archive_parts": b}
+                    elif a != b:
+                        differences[key] = {"total": a, "archive_parts": b}
+            else:
+                differences = None
+            out[spec["id"]] = {
+                "type": typ,
+                "total": whole,
+                "archive_parts_reconstructed": reconstructed,
+                "difference": differences,
+                "comparable": comparable,
+                "status": "match" if comparable and not differences else ("not_comparable" if not comparable else "mismatch"),
+            }
+        else:
+            raise ValueError(f"Ukjent reconciliation-type: {typ}")
+    return out
+
+
+def _metrics_with_archive_parts(tree, execution):
+    values = _eval_metrics(tree, execution.get("metrics", []))
+    part_metrics = execution.get("archive_part_metrics") or []
+    if not part_metrics:
+        return values
+    rows = _per_parts(tree, part_metrics)
+    values["_archive_parts"] = rows
+    specs = execution.get("reconciliation") or []
+    if specs:
+        values["_reconciliation"] = _reconcile(values, rows, specs)
+        statuses = [entry.get("status") for entry in values["_reconciliation"].values()]
+        values["_reconciliation_summary"] = {
+            "checks": len(statuses),
+            "matches": sum(1 for status in statuses if status == "match"),
+            "mismatches": sum(1 for status in statuses if status == "mismatch"),
+            "not_comparable": sum(1 for status in statuses if status == "not_comparable"),
+            "status": "match" if statuses and all(status == "match" for status in statuses) else ("not_comparable" if statuses and all(status == "not_comparable" for status in statuses) else "review"),
+        }
+    return values
 
 
 def _cross_file_journal_date_comparison(test: dict[str, Any], extraction_root: Path) -> dict[str, Any]:
@@ -260,7 +447,7 @@ def run_test(test: dict[str, Any], extraction_root: str | Path) -> dict[str, Any
     try:
         tree = _normalise_tree(source)
         kind = test["execution"]["kind"]
-        values = _eval_metrics(tree, test["execution"].get("metrics", [])) if kind == "metrics" else _special(tree, test, source, extraction_root)
+        values = _metrics_with_archive_parts(tree, test["execution"]) if kind == "metrics" else _special(tree, test, source, extraction_root)
         result.update({"status": "ok", "source_path": str(source), "values": values})
     except Exception as exc:
         result.update({"status": "error", "source_path": str(source), "error": f"{type(exc).__name__}: {exc}"})

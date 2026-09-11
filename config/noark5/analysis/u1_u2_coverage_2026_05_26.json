@@ -1,0 +1,742 @@
+{
+  "coverage_format_version": 1,
+  "coverage_id": "noark5-u1-u2-coverage-2026-05-26-a22",
+  "source": {
+    "u1": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26_U1.txt",
+    "u2": "IKAMR/KDRS_Query:doc/xml-queries_noark5_2026-05-26_U2.txt",
+    "catalog": "config/noark5/tests/xpath_catalog_2026_05_26.json"
+  },
+  "principles": {
+    "u1_u2_are_reference_not_canonical_calculation": true,
+    "whole_and_archive_part_share_individual_analysis": true,
+    "reconciliation_used_when_semantically_valid": true,
+    "test_data_is_not_normative": true,
+    "standard_and_observed_values_are_complementary": true
+  },
+  "summary": {
+    "raw_data_coverage_complete_for_a22": true,
+    "u01_u02_can_remain_only_as_regression_reference": true,
+    "normal_execution_removal_phase": "a24",
+    "remaining_phases": {
+      "a23": "Noark 5 v3.1/4.0/5.0 standardverdier og versjonsregler",
+      "a24": "maskinell U1/U2-regresjonskontroll og uttak av U01/U02 fra ordinær kjøring",
+      "a25": "views/sammensetninger",
+      "a26": "depotets valideringsrapport",
+      "later": "område C mot arkivskapers eksterne kontrollgrunnlag"
+    }
+  },
+  "items": [
+    {
+      "id": "archive_identity",
+      "legacy": [
+        "U01",
+        "C01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c01"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "archive_creator_identity",
+      "legacy": [
+        "U01",
+        "C01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c01"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "archive_part_identity",
+      "legacy": [
+        "U01",
+        "U02",
+        "C02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c02"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "archive_part_main_counts",
+      "legacy": [
+        "U01",
+        "U02",
+        "C02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c02"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "archive_part_date_ranges",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c02"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "classification_counts",
+      "legacy": [
+        "U01",
+        "U02",
+        "C05",
+        "C06"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c05",
+        "kdrs.c05_01_r3",
+        "kdrs.c06"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "class_structure_conflicts",
+      "legacy": [
+        "U01",
+        "C10"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c10",
+        "kdrs.c10_r5"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "folder_counts_types_levels",
+      "legacy": [
+        "U01",
+        "U02",
+        "C08"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c08"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "folder_empty_or_without_registration",
+      "legacy": [
+        "U01",
+        "U02",
+        "C12",
+        "C13"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c08",
+        "kdrs.c12",
+        "kdrs.c13"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "folder_status",
+      "legacy": [
+        "U01",
+        "U02",
+        "C13"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c13",
+        "kdrs.c13_01"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "folder_date_ranges",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c08"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "folder_year_counts",
+      "legacy": [
+        "U01",
+        "C09"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c09",
+        "kdrs.c09_r4"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "registration_counts_types",
+      "legacy": [
+        "U01",
+        "U02",
+        "C14"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c14"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "registration_archived_date_range",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c14"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "registration_without_document_description",
+      "legacy": [
+        "U01",
+        "U02",
+        "C16"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c16",
+        "kdrs.c16_r6"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "registration_created_year_counts",
+      "legacy": [
+        "U01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c16_01_r7"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "journalpost_types",
+      "legacy": [
+        "U01",
+        "U02",
+        "C15"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c15",
+        "kdrs.c15_01"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "journal_status",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c15"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "journal_document_relation",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c15"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "journal_date_range_cross_file",
+      "legacy": [
+        "U01",
+        "I02",
+        "H03",
+        "H07"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.i02",
+        "kdrs.h03",
+        "kdrs.h07"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "journal_year_counts",
+      "legacy": [
+        "U01",
+        "H02",
+        "H06"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.h02",
+        "kdrs.h06",
+        "kdrs.c16_01_r7"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ]
+    },
+    {
+      "id": "change_log",
+      "legacy": [
+        "U01",
+        "J01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.j01"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "document_description_counts_relations",
+      "legacy": [
+        "U01",
+        "U02",
+        "C21"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c21"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_number_distribution",
+      "legacy": [
+        "U01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c21"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_type_distribution",
+      "legacy": [
+        "U01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c21"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_without_object",
+      "legacy": [
+        "U01",
+        "U02",
+        "C22"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c22"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_status",
+      "legacy": [
+        "U01",
+        "U02",
+        "C23"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c23"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_object_variant_version_format",
+      "legacy": [
+        "U01",
+        "U02",
+        "C24"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c24"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_created_date_range",
+      "legacy": [
+        "U01",
+        "U02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c25"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "file_size_statistics",
+      "legacy": [
+        "U01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.c24"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true,
+      "aggregation": "weighted_average_from_sum_and_count"
+    },
+    {
+      "id": "part_and_sakspart",
+      "legacy": [
+        "U01",
+        "U02",
+        "F01"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f01"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "correspondence_party",
+      "legacy": [
+        "U01",
+        "U02",
+        "F05"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f05"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "notes_crossrefs_precedent",
+      "legacy": [
+        "U01",
+        "F02",
+        "F03",
+        "F04"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f02",
+        "kdrs.f03",
+        "kdrs.f04"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "writeoff",
+      "legacy": [
+        "U01",
+        "U02",
+        "F06"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f06"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "document_flow",
+      "legacy": [
+        "U01",
+        "F07"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f07"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "screening",
+      "legacy": [
+        "U01",
+        "U02",
+        "F08"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f08"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "grading",
+      "legacy": [
+        "U01",
+        "F09"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f09"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "disposal",
+      "legacy": [
+        "U01",
+        "U02",
+        "F10"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f10"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "performed_disposal",
+      "legacy": [
+        "U01",
+        "U02",
+        "F11"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f11"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "conversion",
+      "legacy": [
+        "U01",
+        "F12"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f12"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "deletion",
+      "legacy": [
+        "U01",
+        "U02",
+        "F13"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.f13"
+      ],
+      "scope": [
+        "whole_extraction",
+        "archive_part"
+      ],
+      "reconciled": true
+    },
+    {
+      "id": "business_specific_metadata",
+      "legacy": [
+        "U01",
+        "L02"
+      ],
+      "status": "covered",
+      "tests": [
+        "kdrs.l02"
+      ],
+      "scope": [
+        "whole_extraction"
+      ]
+    },
+    {
+      "id": "standard_values_by_noark_version",
+      "status": "deferred",
+      "phase": "a23",
+      "reason": "Normative standardverdier skal kvalitetssikres mot Noark 5 v3.1/4.0/5.0, ikke utledes fra U1/U2 eller testuttrekk."
+    },
+    {
+      "id": "u1_u2_machine_regression",
+      "status": "deferred",
+      "phase": "a24",
+      "reason": "Sammensatte referanseverdier skal kontrolleres maskinelt mot individuelle resultater før U01/U02 tas ut av ordinær kjøring."
+    },
+    {
+      "id": "views_and_compositions",
+      "status": "deferred",
+      "phase": "a25",
+      "reason": "Presentasjon skal bygges over kanoniske resultater og er ikke rå datadekning."
+    },
+    {
+      "id": "creator_external_control_basis",
+      "status": "deferred",
+      "phase": "later",
+      "reason": "Område C krever eksternt kontrollgrunnlag fra arkivskaper og er ikke del av U1/U2."
+    }
+  ]
+}
