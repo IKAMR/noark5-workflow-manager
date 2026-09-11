@@ -1,72 +1,64 @@
-# Noark 5-analysemodell – U1/U2 som kravgrunnlag
+# Noark 5-analysemodell – validering, kontroll og rapportering
 
-## Prinsipp
+## Grunnprinsipp
+Arkivskaper er alltid ansvarlig for innholdet i uttrekket. Testing før levering utføres ofte av arkivskapers IT-/driftsmiljø eller systemleverandør på vegne av arkivskaper. Depotet foretar en selvstendig og pragmatisk validering av mottatt uttrekk og sender en forståelig rapport tilbake til arkivskaper for lesing og aksept.
 
-U1 og U2 brukes som krav- og referansegrunnlag for hvilke data og kontroller som skal
-kunne produseres. De brukes **ikke** som to hardkodede analyseprogrammer.
+Avvik dokumenteres. Nytt uttrekk er aktuelt først ved alvorlige struktur- eller innholdsmangler som gjør uttrekket utilstrekkelig som bevaringsversjon.
 
-Arkitekturen skilles i tre lag:
+## Tre valideringsområder
+### A – Noark 5-spesifikasjon mot Noark 5-uttrekk
+Kontroll mot aktuell Noark-versjon: XML/XSD, struktur, obligatoriske elementer, relasjoner, standardverdier og andre normative krav.
 
-```text
-ekstern definisjon
-      |
-      v
-definisjonsdrevet test-/analysemotor
-      |
-      v
-kanonisk strukturert resultat
-      |
-      +--> U1-lignende samlet visning
-      +--> U2-lignende visning per arkivdel
-      +--> kontrollrapport
-      +--> hovedrapport/vedlegg
-      +--> senere API/database
-```
+### B – Noark 5-uttrekk mot innholdselementene i uttrekket
+Intern konsistens og omfang: arkiv, arkivdeler, klassifikasjon, mapper, registreringer, dokumenter, journaler, endringslogg, parter, skjerming, kassasjon, sletting, konvertering, datoer og kryssfil-kontroller.
 
-## Eksterne definisjoner
+### C – Noark 5-uttrekk mot arkivskapers kontrollgrunnlag
+Sammenligning mot opplysninger og forventninger fra arkivskaper, særlig avsluttede arkivdeler og forventet innhold i produksjonsbasen.
 
-Første analysetrinn ligger i:
+Depotet dokumenterer forskjeller. Arkivskaper vurderer og aksepterer innholdet eller sørger for korrigering dersom manglene er alvorlige.
 
-`config/noark5/analysis/u1_u2_core_arkiv_arkivdel.json`
+## Standardverdier og generiske verdier
+Standardverditesting og generisk opptelling skal kunne eksistere parallelt. Testdata fra ett uttrekk er evidens, ikke normativt grunnlag.
 
-XPath, felt og tellere ligger her, ikke i Python-motoren. Første trinn omfatter
-Arkiv og Arkivdel og bygger på det U1/U2-materialet som allerede er dokumentert
-i prosjektet (C01/C02/U01/U02-referansene).
+Observasjon, standardreferanse og faglig vurdering holdes adskilt.
 
-Neste U1/U2-deler skal legges til definisjonene stegvis. Python-motoren skal bare
-endres dersom definisjonsspråket faktisk trenger en ny generell mekanisme.
+## Individuelle analyser som grunnmodell
+Hver faglig verdi skal så langt som mulig beregnes én gang av en individuell analyse eller kontroll. Resultatet lagres strukturert og gjenbrukes i views, validering, rapporter, vedlegg og senere API/database.
 
-## Grunnmodell kontra rapportering
+## U1 og U2
+U1 og U2 beholdes som historisk krav-, sammenlignings- og regresjonsgrunnlag. De skal ikke være permanent grunnmodell eller parallelle beregningsprogrammer.
 
-`definition_engine.py` produserer en kanonisk resultatmodell med:
-
-- `summary.entity_counts`
-- `entities.<entity>[]`
-- `fields`
-- `metrics`
-- `children`
-
-Rapportvisninger beskrives separat i:
-
-`config/noark5/report_views/u1_u2_views.json`
-
-a15 step1 genererer foreløpig ikke U1/U2-dokumenter. Filen låser bare skillet
-mellom analysegrunnlag og senere rapportvisninger.
-
-## Resultatmapper
-
-Noark 5-testresultater samles under:
+Målet er:
 
 ```text
-<Arbeid – operasjoner>/
-└── noark5_tests/
-    ├── schema/
-    └── native/
+individuelle analyser
+        |
+        v
+kanoniske resultater
+        |
+        +--> samlet visning for hele uttrekket
+        +--> samme relevante resultater per arkivdel
+        +--> validerings-/kontrollvisninger
+        +--> rapport og vedlegg
 ```
 
-`schema/` inneholder XML/XSD-resultater.
+U01/U02 kan kjøres under utvikling/regresjon inntil alle nødvendige datapunkter kan rekonstrueres fra individuelle resultater.
 
-`native/` inneholder Workflow Managers egne Noark 5-analyser.
+## Views og rapportering
+Views skal ikke utføre nye faglige beregninger. De setter sammen allerede beregnede resultater. Samme view kan brukes i depotets validering, hos arkivskaper, i hovedrapport og i vedlegg.
 
-Eksterne validatorer, for eksempel Arkade 5, får egne tydelige undermapper med
-verktøy/versjon når adapteren implementeres.
+## Avvik og konsekvens
+```text
+testresultat / observasjon
+        |
+        v
+avvik eller merknad
+        |
+        v
+faglig vurdering
+        |
+        v
+alvorlighetsgrad og konsekvens
+```
+
+Normal håndtering er dokumentasjon av avvik. Nytt uttrekk er unntaket ved alvorlige mangler.

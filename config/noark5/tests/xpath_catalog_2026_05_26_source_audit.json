@@ -1,0 +1,139 @@
+{
+  "audit_format_version": 1,
+  "audit_id": "noark5-kdrs-query-2026-05-26-a21-source-audit",
+  "created_for": "v0.1.2-a21",
+  "purpose": "Dokumentere kildegrunnlag, legacy-semantikk, verifiserte avvik og bevisste a21-normaliseringer uten å omskrive KDRS Query-historikken.",
+  "sources": [
+    {
+      "id": "kdrs-master-2026",
+      "repository": "IKAMR/KDRS_Query",
+      "path": "doc/xml-queries_noark5_2026-05-26.txt",
+      "ref": "master",
+      "sha": "f629b073c48ecf19ece748117f91277947303ed5",
+      "role": "authoritative_legacy_source",
+      "notes": "Hovedkilde for C/F/H/I/J/L og R-variantene. query_description angir bug fix for generisk opptelling."
+    },
+    {
+      "id": "kdrs-u1-2026",
+      "repository": "IKAMR/KDRS_Query",
+      "path": "doc/xml-queries_noark5_2026-05-26_U1.txt",
+      "ref": "master",
+      "sha": "0233fb5c9b1a9c28454c3ba93ebf745f80f81dfd",
+      "role": "authoritative_legacy_source",
+      "notes": "Legacy-profil for samlet Noark 5-opptelling."
+    },
+    {
+      "id": "kdrs-u2-2026",
+      "repository": "IKAMR/KDRS_Query",
+      "path": "doc/xml-queries_noark5_2026-05-26_U2.txt",
+      "ref": "master",
+      "sha": "051d3da8d247bca7d1629b08254116609778423a",
+      "role": "authoritative_legacy_source",
+      "notes": "Legacy-profil for opptelling per arkivdel."
+    },
+    {
+      "id": "kdrs-query-0.9-runner",
+      "repository": "IKAMR/KDRS_Query",
+      "path": "src/KDRS_Query/XpathRun.cs",
+      "ref": "master",
+      "sha": "0f91374437518130fed8730a77b70f0979a988b4",
+      "role": "legacy_execution_reference",
+      "notes": "Viser Saxon-basert kjøring, dynamisk default namespace og progress-event med job_id ved teststart."
+    },
+    {
+      "id": "kdrs-query-0.9-gui",
+      "repository": "IKAMR/KDRS_Query",
+      "path": "src/KDRS_Query/Form1.cs",
+      "ref": "master",
+      "sha": "a1ca5ebf0746cd075d6c615260f24abd23ffdc98",
+      "role": "legacy_ui_reference",
+      "notes": "Viser generell marquee-progress og avslutningsmelding først etter hele query-kjøringen."
+    }
+  ],
+  "qa_findings": [
+    {
+      "id": "generic-specialization-2026-fix",
+      "classification": "confirmed_correct_in_a20_a21",
+      "tests": ["C08", "C13", "C14", "U01", "U02"],
+      "legacy_2022": "Generiske tellinger brukte blant annet count(@*)=3.",
+      "legacy_2026": "2026-masteren endrer disse til count(@*)<1.",
+      "a21_action": "Behold 2026-logikken. Ikke regressér til 2022-resultater."
+    },
+    {
+      "id": "archive-part-scope",
+      "classification": "a20_metadata_error_fixed_in_a21",
+      "tests": ["C05.01_R3", "C09_R4", "C10_R5", "C13.01", "C15.01", "C16_R6", "C16.01_R7"],
+      "source_fact": "Definisjonene itererer/rapporterer per arkivdel.",
+      "a20": "scope=source_document",
+      "a21_action": "scope=archive_part"
+    },
+    {
+      "id": "i02-cross-file",
+      "classification": "documented_a21_extension",
+      "tests": ["I02", "H03", "H07"],
+      "source_fact": "I02 job_description sier: Henter kun fra arkivstruktur.xml, resten må hentes fra H3 og H7.",
+      "a20": "Returnerte bare datointervall fra arkivstruktur.xml.",
+      "a21_action": "Kjør eksplisitt sammenligning av arkivstruktur, loependeJournal og offentligJournal. Bevar note om at dette er en utvidelse av legacy-arbeidsflyten, ikke en påstand om at KDRS I02 alene gjorde sammenligningen."
+    },
+    {
+      "id": "f13-test-point",
+      "classification": "normalization_without_legacy_rewrite",
+      "tests": ["F13"],
+      "source_fact": "F13 har tom job_description i hovedmasteren. U1 omtaler samme kontroll som N5.47 Sletting utenom kassasjon.",
+      "a21_action": "Behold legacy.test_point=null og legg til normalized_test_point=N5.47."
+    },
+    {
+      "id": "l02-business-specific-metadata",
+      "classification": "probable_legacy_quirk_normalized_in_a21",
+      "tests": ["L02", "U01"],
+      "source_fact": "L02 inneholder en syntaktisk mistenkelig total count//virksomhetsspesifikkeMetadata og fordeler blant annet på basisregistrering. U1 bruker en bredere Noark 5.0-fordeling med registrering og dokumentbeskrivelse.",
+      "observed_a20_result": {
+        "total": 1877,
+        "mappe": 410,
+        "basisregistrering": 0,
+        "u1_registrering": 1467
+      },
+      "a21_action": "Behold legacy-metrikkene for sporbarhet og legg til registrering og dokumentbeskrivelse som normaliserte delresultater."
+    },
+    {
+      "id": "c13-sakstatus-typo",
+      "classification": "probable_legacy_quirk",
+      "tests": ["C13", "U01", "U02"],
+      "source_fact": "Legacy hardkodet telling bruker sakstatus='Underbehandling', mens generisk statusopptelling bruker saksstatus.",
+      "a21_action": "Ikke kopier typo som autoritativ beregning. Behold generisk statusopptelling som normal fremstilling."
+    },
+    {
+      "id": "c15-hardcoded-journalpost-values",
+      "classification": "legacy_value_set_not_authoritative",
+      "tests": ["C15", "U01", "U02"],
+      "source_fact": "Legacy har hardkodede journalposttype-tekster i tillegg til generisk gruppering.",
+      "observed_extract_values": ["Inngående brev", "Utgående brev", "Internt notat", "Internt notat uten oppfølging", "Saksframlegg/innstilling"],
+      "a21_action": "Bruk generisk gruppering som primær sannhet; dokumenter hardkodede legacy-tekster som historisk presentasjon."
+    },
+    {
+      "id": "u2-expedited-copy-paste",
+      "classification": "probable_legacy_quirk",
+      "tests": ["U02"],
+      "source_fact": "Legacy U2-linjen merket Ekspedert teller journalstatus='Utgår'.",
+      "a21_action": "Ny U2 bruker generisk journal_status_counts og kopierer derfor ikke denne feilen."
+    },
+    {
+      "id": "f07-document-flow-string-value",
+      "classification": "legacy_presentation_quirk",
+      "tests": ["F07"],
+      "source_fact": "Legacy generisk gruppering bruker elementets samlede string value for dokumentflyt.",
+      "a21_action": "Ingen semantisk endring i a21; behold tellinger, men ikke gjør sammenslått elementtekst til fremtidig rapportstandard."
+    },
+    {
+      "id": "u1-u2-consistency",
+      "classification": "confirmed_correct",
+      "tests": ["U01", "U02"],
+      "observed_validation": "XPath-U1 og native U1 samsvarte på 274 direkte sammenlignbare skalarverdier uten avvik. Summer av fem U2-arkivdeler samsvarte med U1 for sentrale struktur-, dokument-, part-, skjermings-, kassasjons- og slettetellinger.",
+      "a21_action": "Behold U1/U2 som profiler og gjenbruk underliggende beregninger; ingen arkitekturomskriving i a21."
+    }
+  ],
+  "limitations": [
+    "De fem leverte ZIP-ene inneholdt ikke en separat historisk kdrs_query_results_*.txt fra en uavhengig KDRS Query 0.9-kjøring.",
+    "QA er derfor basert på 2026-kildedefinisjonene, KDRS Query 0.9-koden, a20-resultatene, native U1-resultatene og intern U1/U2-konsistens."
+  ]
+}

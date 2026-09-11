@@ -1,7 +1,7 @@
 {
-  "catalog_format_version": 2,
+  "catalog_format_version": 3,
   "catalog_id": "noark5-kdrs-query-2026-05-26",
-  "status": "implementation_draft",
+  "status": "implementation_qa",
   "source": {
     "repository": "IKAMR/KDRS_Query",
     "path": "doc/xml-queries_noark5_2026-05-26.txt",
@@ -18,7 +18,14 @@
     "engine": "lxml",
     "namespace_strategy": "local-name-normalized copy",
     "result_storage": "one JSON file per test plus index.json",
-    "reporting": "deferred"
+    "reporting": "deferred",
+    "per_test_events": [
+      "test.started",
+      "test.finished",
+      "test.failed",
+      "test.skipped"
+    ],
+    "per_test_timing": true
   },
   "tests": [
     {
@@ -1737,7 +1744,11 @@
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "normalized_test_point": "N5.47",
+      "implementation_notes": [
+        "a21: legacy job_description/test_point er tomt; N5.47 er normalisert faglig kobling fra U1/2026-kilden. Legacy-feltet beholdes uendret."
+      ]
     },
     {
       "test_id": "kdrs.h01",
@@ -2030,7 +2041,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "whole_extraction",
       "tags": [
         "journalpost",
         "saksarkiv",
@@ -2044,16 +2055,26 @@
       ],
       "version_basis": "master_query_subtype_needs_qa",
       "execution": {
-        "kind": "metrics",
-        "metrics": [
-          {
-            "id": "archive_journalpost_created_range",
-            "type": "date_range",
+        "kind": "cross_file_journal_date_comparison",
+        "sources": {
+          "archive_structure": {
+            "source_xml": "arkivstruktur.xml",
             "select": "//registrering[@type=\"journalpost\"]/opprettetDato"
+          },
+          "running_journal": {
+            "source_xml": "loependeJournal.xml",
+            "select": "//journalregistrering/journalpost/journaldato"
+          },
+          "public_journal": {
+            "source_xml": "offentligJournal.xml",
+            "select": "//journalregistrering/journalpost/journaldato"
           }
-        ]
+        }
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: utvider legacy I02 til eksplisitt kryssfil-sammenligning. 2026-kilden sier at I02 selv bare henter arkivstruktur og at H03/H07 må brukes for resten."
+      ]
     },
     {
       "test_id": "kdrs.j01",
@@ -2151,10 +2172,23 @@
             "id": "basisregistrering",
             "type": "xpath",
             "expression": "count(//basisregistrering/virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "registrering",
+            "type": "xpath",
+            "expression": "count(//registrering/virksomhetsspesifikkeMetadata)"
+          },
+          {
+            "id": "dokumentbeskrivelse",
+            "type": "xpath",
+            "expression": "count(//dokumentbeskrivelse/virksomhetsspesifikkeMetadata)"
           }
         ]
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: legacy L02-feltene beholdes; generisk registrering og dokumentbeskrivelse legges til fordi basisregistrering alene ikke beskriver faktisk fordeling i Noark 5.0-data."
+      ]
     },
     {
       "test_id": "kdrs.u01",
@@ -2228,7 +2262,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "additional",
         "archive_part",
@@ -2244,7 +2278,10 @@
         "kind": "classification_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c09_r4",
@@ -2258,7 +2295,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "additional",
         "archive_part",
@@ -2275,7 +2312,10 @@
         "kind": "year_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c10_r5",
@@ -2289,7 +2329,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "additional",
         "archive_part",
@@ -2305,7 +2345,10 @@
         "kind": "class_folder_conflict_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c13_01",
@@ -2319,7 +2362,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "archive_part",
         "folder",
@@ -2335,7 +2378,10 @@
         "kind": "folder_status_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c15_01",
@@ -2349,7 +2395,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "archive_part",
         "journalpost",
@@ -2366,7 +2412,10 @@
         "kind": "journalpost_type_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c16_r6",
@@ -2380,7 +2429,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "archive_part",
         "registration",
@@ -2396,7 +2445,10 @@
         "kind": "registration_created_year_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     },
     {
       "test_id": "kdrs.c16_01_r7",
@@ -2410,7 +2462,7 @@
       "system": "noark5",
       "subsystem": "",
       "source_xml": "arkivstruktur.xml",
-      "scope": "source_document",
+      "scope": "archive_part",
       "tags": [
         "archive_part",
         "journalpost",
@@ -2426,7 +2478,11 @@
         "kind": "registration_journal_year_per_archive_part",
         "metrics": []
       },
-      "status": "active"
+      "status": "active",
+      "implementation_notes": [
+        "a21: scope normalisert til archive_part fordi testen rapporterer per arkivdel."
+      ]
     }
-  ]
+  ],
+  "a21_source_audit": "xpath_catalog_2026_05_26_source_audit.json"
 }
